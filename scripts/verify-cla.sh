@@ -11,7 +11,7 @@ pass() { echo "OK: $*"; }
 
 SIGN_PHRASE='I have read the CLA Document and I hereby sign the CLA'
 DOC_URL='https://github.com/magiconair/beacon/blob/main/CLA.md'
-ACTION_REF='contributor-assistant/github-action@v2.6.1'
+ACTION_REF='rdkcentral/contributor-assistant_github-action@v2.7.0'
 
 echo "==> Beacon CLA local verification"
 echo

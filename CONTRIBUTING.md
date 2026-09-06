@@ -5,7 +5,7 @@
 Beacon uses a **copyright assignment** CLA so the project steward can hold a single copyright interest, transfer the project to an NGO, and relicense if needed.
 
 - Full terms: [CLA.md](./CLA.md)
-- Enforcement: GitHub Action [`contributor-assistant/github-action`](https://github.com/contributor-assistant/github-action) (not the old cla-assistant.io service)
+- Enforcement: GitHub Action [`rdkcentral/contributor-assistant_github-action`](https://github.com/rdkcentral/contributor-assistant_github-action) (maintained fork; Node 24). Not the archived `contributor-assistant/github-action` or the old cla-assistant.io service.
 
 On your first pull request, the CLA Assistant will comment. Sign by posting exactly:
 
