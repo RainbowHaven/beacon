@@ -13,9 +13,12 @@ On your first pull request, the CLA Assistant will comment. Sign by posting exac
 I have read the CLA Document and I hereby sign the CLA
 ```
 
-Signatures are stored in `signatures/version1/cla.json` on `main`.
+Signatures are stored in `signatures/version1/cla.json` on `main` (created/updated by the Action — do not hand-edit).
 
-`magiconair` and GitHub bots are allowlisted and do not need to sign through the workflow.
+`magiconair`, `cursoragent`, and GitHub bots are allowlisted and do not need to sign through the workflow.
+
+**Note:** The first pull request after enabling CLA may fail the CLA check once while the empty signatures file is bootstrapped on `main`. Comment `recheck` on the PR to clear it.
+
 
 ## Local checks (CLA)
 
