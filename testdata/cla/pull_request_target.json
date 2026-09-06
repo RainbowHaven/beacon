@@ -1,0 +1,23 @@
+{
+  "action": "opened",
+  "number": 1,
+  "pull_request": {
+    "number": 1,
+    "title": "test: CLA signing flow",
+    "user": { "login": "cla-test-user" },
+    "head": {
+      "ref": "cla-test",
+      "sha": "0000000000000000000000000000000000000001"
+    },
+    "base": {
+      "ref": "main",
+      "sha": "0000000000000000000000000000000000000000"
+    }
+  },
+  "repository": {
+    "name": "beacon",
+    "owner": { "login": "magiconair" },
+    "default_branch": "main"
+  },
+  "sender": { "login": "cla-test-user" }
+}
