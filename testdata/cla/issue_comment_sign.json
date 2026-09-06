@@ -1,0 +1,20 @@
+{
+  "action": "created",
+  "comment": {
+    "body": "I have read the CLA Document and I hereby sign the CLA",
+    "user": { "login": "cla-test-user" }
+  },
+  "issue": {
+    "number": 1,
+    "pull_request": {
+      "url": "https://api.github.com/repos/magiconair/beacon/pulls/1"
+    },
+    "user": { "login": "cla-test-user" }
+  },
+  "repository": {
+    "name": "beacon",
+    "owner": { "login": "magiconair" },
+    "default_branch": "main"
+  },
+  "sender": { "login": "cla-test-user" }
+}
