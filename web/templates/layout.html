@@ -1,0 +1,31 @@
+{{define "layout_start"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{if .Title}}{{.Title}} · {{end}}Beacon</title>
+  <link rel="stylesheet" href="{{static "css/app.css"}}">
+</head>
+<body>
+<header class="app">
+  <strong><a href="/" style="text-decoration:none;color:inherit">Beacon</a></strong>
+  <nav>
+    {{if .User}}{{if .User.Email}}
+      <span class="muted">{{.User.Email}} ({{.User.Role}})</span>
+      {{if eq .User.Role "rhc_admin"}}<a href="/admin/users">Users</a>{{end}}
+      <form class="inline" method="post" action="/logout"><button class="secondary" type="submit">Log out</button></form>
+    {{else}}
+      <a href="/login">Log in</a>
+    {{end}}{{else}}
+      <a href="/login">Log in</a>
+    {{end}}
+  </nav>
+</header>
+<main class="wrap">
+{{end}}
+
+{{define "layout_end"}}
+</main>
+</body>
+</html>
+{{end}}
