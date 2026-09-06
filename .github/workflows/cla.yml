@@ -1,13 +1,16 @@
-# CLA signatures via contributor-assistant/github-action (PR comment signing).
-# Prefer this over the unmaintained cla-assistant.io hosted service.
+# CLA signatures via rdkcentral/contributor-assistant_github-action (PR comment signing).
+# Prefer this maintained fork (Node 24) over archived contributor-assistant/github-action
+# and over the unmaintained cla-assistant.io hosted service.
 #
 # Notes:
-# - Do NOT pre-create signatures/version1/cla.json; the action creates it.
+# - Do NOT hand-edit signatures/version1/cla.json; the action owns that file.
+# - First PR after enabling CLA often fails once while the empty signatures
+#   file is created on main — comment `recheck` on the PR (expected).
 # - Signature commits land on `main`. If `main` is protected and blocks
 #   GITHUB_TOKEN pushes, add a classic PAT with `repo` scope as the
 #   PERSONAL_ACCESS_TOKEN secret (or store signatures on an unprotected branch).
-# - The upstream action repo is archived; pin a release tag. Revisit if a
-#   maintained fork becomes the community standard.
+#
+# Allowlist: repo owner, Cursor agent co-author on commits, and bots.
 
 name: CLA Assistant
 
@@ -33,7 +36,7 @@ jobs:
           (github.event.comment.body == 'recheck'
           || github.event.comment.body == 'I have read the CLA Document and I hereby sign the CLA')
           || github.event_name == 'pull_request_target'
-        uses: contributor-assistant/github-action@v2.6.1
+        uses: rdkcentral/contributor-assistant_github-action@v2.7.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Uncomment if signature commits to main fail under branch protection:
@@ -42,8 +45,8 @@ jobs:
           path-to-signatures: signatures/version1/cla.json
           path-to-document: https://github.com/magiconair/beacon/blob/main/CLA.md
           branch: main
-          # Owner need not re-sign; bots cannot sign.
-          allowlist: magiconair,bot*,dependabot[bot]
+          # Owner and automation need not re-sign; Cursor co-authors agent commits.
+          allowlist: magiconair,cursoragent,bot*,dependabot[bot],github-actions[bot]
           lock-pullrequest-aftermerge: true
           custom-notsigned-prcomment: >-
             Thank you for contributing to Beacon. All contributors must sign the

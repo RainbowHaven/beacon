@@ -11,7 +11,7 @@ pass() { echo "OK: $*"; }
 
 SIGN_PHRASE='I have read the CLA Document and I hereby sign the CLA'
 DOC_URL='https://github.com/magiconair/beacon/blob/main/CLA.md'
-ACTION_REF='contributor-assistant/github-action@v2.6.1'
+ACTION_REF='rdkcentral/contributor-assistant_github-action@v2.7.0'
 
 echo "==> Beacon CLA local verification"
 echo
@@ -21,11 +21,15 @@ echo
 [[ -f .github/workflows/cla.yml ]] || fail ".github/workflows/cla.yml missing"
 pass "required files exist"
 
-# Signature store must be created by the action, not checked in.
+# Signature store is owned by the CLA action (created on first run).
+# If present locally, it must be the empty/action-managed JSON — not a hand-made stub.
 if [[ -e signatures/version1/cla.json ]]; then
-  fail "signatures/version1/cla.json must not be pre-created (action creates it)"
+  grep -Fq 'signedContributors' signatures/version1/cla.json \
+    || fail "signatures/version1/cla.json exists but does not look like CLA Assistant output"
+  pass "signatures file present (action-managed)"
+else
+  pass "signatures file not present yet (action will create it)"
 fi
-pass "signatures file not pre-created"
 
 grep -Fq "$SIGN_PHRASE" CLA.md || fail "CLA.md missing exact sign phrase"
 grep -Fq "$SIGN_PHRASE" CONTRIBUTING.md || fail "CONTRIBUTING.md missing exact sign phrase"
@@ -47,7 +51,7 @@ grep -Fq "$ACTION_REF" "$WF" || fail "workflow must pin $ACTION_REF"
 grep -Fq "path-to-document: $DOC_URL" "$WF" || fail "path-to-document must be $DOC_URL"
 grep -Fq "path-to-signatures: signatures/version1/cla.json" "$WF" || fail "unexpected path-to-signatures"
 grep -Fq "branch: main" "$WF" || fail "signature branch must be main"
-grep -Fq "allowlist: magiconair,bot*,dependabot[bot]" "$WF" || fail "allowlist mismatch"
+grep -Fq "allowlist: magiconair,cursoragent,bot*,dependabot[bot],github-actions[bot]" "$WF" || fail "allowlist mismatch"
 pass "workflow triggers, pin, document URL, signatures path, allowlist"
 
 # Structural YAML parse via Go (no PyYAML required).

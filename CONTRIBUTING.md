@@ -5,7 +5,7 @@
 Beacon uses a **copyright assignment** CLA so the project steward can hold a single copyright interest, transfer the project to an NGO, and relicense if needed.
 
 - Full terms: [CLA.md](./CLA.md)
-- Enforcement: GitHub Action [`contributor-assistant/github-action`](https://github.com/contributor-assistant/github-action) (not the old cla-assistant.io service)
+- Enforcement: GitHub Action [`rdkcentral/contributor-assistant_github-action`](https://github.com/rdkcentral/contributor-assistant_github-action) (maintained fork; Node 24). Not the archived `contributor-assistant/github-action` or the old cla-assistant.io service.
 
 On your first pull request, the CLA Assistant will comment. Sign by posting exactly:
 
@@ -13,9 +13,12 @@ On your first pull request, the CLA Assistant will comment. Sign by posting exac
 I have read the CLA Document and I hereby sign the CLA
 ```
 
-Signatures are stored in `signatures/version1/cla.json` on `main`.
+Signatures are stored in `signatures/version1/cla.json` on `main` (created/updated by the Action — do not hand-edit).
 
-`magiconair` and GitHub bots are allowlisted and do not need to sign through the workflow.
+`magiconair`, `cursoragent`, and GitHub bots are allowlisted and do not need to sign through the workflow.
+
+**Note:** The first pull request after enabling CLA may fail the CLA check once while the empty signatures file is bootstrapped on `main`. Comment `recheck` on the PR to clear it.
+
 
 ## Local checks (CLA)
 
