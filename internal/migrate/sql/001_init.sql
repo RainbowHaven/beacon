@@ -1,0 +1,93 @@
+-- Phase 1: tenancy, users, invites, WebAuthn credentials, sessions, audit.
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE rhls (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE safe_houses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    rhl_id UUID NOT NULL REFERENCES rhls (id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TYPE user_status AS ENUM ('pending', 'active', 'locked');
+CREATE TYPE user_role AS ENUM ('rhc_admin', 'rhl_admin', 'safe_house_manager');
+
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL UNIQUE,
+    display_name TEXT NOT NULL DEFAULT '',
+    status user_status NOT NULL DEFAULT 'pending',
+    role user_role NOT NULL,
+    rhl_id UUID REFERENCES rhls (id) ON DELETE SET NULL,
+    safe_house_id UUID REFERENCES safe_houses (id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT users_manager_house_chk CHECK (
+        role <> 'safe_house_manager' OR safe_house_id IS NOT NULL
+    ),
+    CONSTRAINT users_rhl_admin_chk CHECK (
+        role <> 'rhl_admin' OR rhl_id IS NOT NULL
+    )
+);
+
+CREATE TABLE invites (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    token_hash BYTEA NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE webauthn_credentials (
+    id BYTEA PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    public_key BYTEA NOT NULL,
+    attestation_type TEXT NOT NULL DEFAULT '',
+    transport JSONB NOT NULL DEFAULT '[]'::jsonb,
+    flag_user_present BOOLEAN NOT NULL DEFAULT FALSE,
+    flag_user_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    flag_backup_eligible BOOLEAN NOT NULL DEFAULT FALSE,
+    flag_backup_state BOOLEAN NOT NULL DEFAULT FALSE,
+    aaguid BYTEA,
+    sign_count BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX webauthn_credentials_user_id_idx ON webauthn_credentials (user_id);
+
+CREATE TABLE webauthn_challenges (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users (id) ON DELETE CASCADE,
+    purpose TEXT NOT NULL,
+    data JSONB NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    token_hash BYTEA NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    revoked_at TIMESTAMPTZ
+);
+
+CREATE INDEX sessions_user_id_idx ON sessions (user_id);
+
+CREATE TABLE audit_events (
+    id BIGSERIAL PRIMARY KEY,
+    actor_user_id UUID REFERENCES users (id) ON DELETE SET NULL,
+    action TEXT NOT NULL,
+    subject_type TEXT,
+    subject_id TEXT,
+    meta JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

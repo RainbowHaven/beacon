@@ -26,6 +26,12 @@ services:
     environment:
       ADDR: ":8080"
       DATABASE_URL: postgres://beacon:beacon@db:5432/beacon?sslmode=disable
+      BASE_URL: http://localhost:8080
+      SECURE_COOKIES: "false"
+      WEBAUTHN_RP_ID: localhost
+      WEBAUTHN_RP_DISPLAY_NAME: Beacon
+      WEBAUTHN_RP_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
+      BOOTSTRAP_ADMIN_EMAIL: rhc@example.com
     depends_on:
       db:
         condition: service_healthy

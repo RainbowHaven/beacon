@@ -1,0 +1,25 @@
+{{template "layout_start" .}}
+<h1>Enroll passkey</h1>
+<p>Welcome, <strong>{{.Email}}</strong> ({{.Role}}).</p>
+<p class="muted">Create a passkey on this device. You will use it to sign in — there is no password.</p>
+<button type="button" id="enroll">Create passkey</button>
+<p id="enroll-error" class="flash error" hidden></p>
+<script type="module">
+  import { enrollPasskey } from '{{static "js/webauthn.js"}}';
+  const token = {{printf "%q" .Token}};
+  const btn = document.getElementById('enroll');
+  const err = document.getElementById('enroll-error');
+  btn.addEventListener('click', async () => {
+    err.hidden = true;
+    btn.disabled = true;
+    try {
+      const result = await enrollPasskey(token);
+      window.location.href = result.redirect || '/';
+    } catch (ex) {
+      err.textContent = ex.message || String(ex);
+      err.hidden = false;
+      btn.disabled = false;
+    }
+  });
+</script>
+{{template "layout_end" .}}

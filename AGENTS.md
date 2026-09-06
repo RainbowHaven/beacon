@@ -20,6 +20,7 @@ Beacon helps Rainbow Haven run LGBTQ safe houses: occupancy, expenses, and RHC r
 - Go 1.27, `cmd/beacon`, Postgres 16
 - Compose: `./scripts/compose.sh` (Docker if available, else Podman)
 - Verify Phase 0: `./scripts/verify-bootstrap.sh`
+- Verify Phase 1: `./scripts/verify-phase1.sh`
 - Verify CLA docs/workflow: `./scripts/verify-cla.sh`
 
 ## Roles

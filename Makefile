@@ -1,4 +1,4 @@
-.PHONY: test run compose-up compose-down verify verify-cla
+.PHONY: test run compose-up compose-down verify verify-cla verify-phase1
 
 test:
 	GOTOOLCHAIN=auto go test ./...
@@ -14,6 +14,9 @@ compose-down:
 
 verify:
 	./scripts/verify-bootstrap.sh
+
+verify-phase1:
+	./scripts/verify-phase1.sh
 
 verify-cla:
 	./scripts/verify-cla.sh

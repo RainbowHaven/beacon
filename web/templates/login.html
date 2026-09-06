@@ -1,0 +1,29 @@
+{{template "layout_start" .}}
+<h1>Log in</h1>
+<p class="muted">Use the passkey enrolled from your invite link. No passwords.</p>
+{{if .Error}}<div class="flash error">{{.Error}}</div>{{end}}
+<form id="login-form" class="stack" style="max-width:24rem">
+  <label>Email
+    <input type="email" name="email" id="email" required autocomplete="username webauthn">
+  </label>
+  <button type="submit">Sign in with passkey</button>
+  <p id="login-error" class="flash error" hidden></p>
+</form>
+<script type="module">
+  import { loginWithPasskey } from '{{static "js/webauthn.js"}}';
+  const form = document.getElementById('login-form');
+  const err = document.getElementById('login-error');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    err.hidden = true;
+    try {
+      const email = document.getElementById('email').value.trim();
+      const result = await loginWithPasskey(email);
+      window.location.href = result.redirect || '/';
+    } catch (ex) {
+      err.textContent = ex.message || String(ex);
+      err.hidden = false;
+    }
+  });
+</script>
+{{template "layout_end" .}}
