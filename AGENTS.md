@@ -21,6 +21,7 @@ Beacon helps Rainbow Haven run LGBTQ safe houses: occupancy, expenses, and RHC r
 - Compose: `./scripts/compose.sh` (Docker if available, else Podman)
 - Verify Phase 0: `./scripts/verify-bootstrap.sh`
 - Verify Phase 1: `./scripts/verify-phase1.sh`
+- Verify Phase 2: `./scripts/verify-phase2.sh`
 - Verify CLA docs/workflow: `./scripts/verify-cla.sh`
 
 ## Roles

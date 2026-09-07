@@ -13,13 +13,18 @@ import (
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	u, ok := s.loadSessionUser(r)
 	var userPtr *domain.User
+	var counts []domain.HeadcountRow
 	if ok {
 		userPtr = &u
+		if houses, err := s.housesForUser(r, u); err == nil {
+			counts, _ = s.store.HeadcountByHouses(r.Context(), houseIDs(houses))
+		}
 	}
 	s.render(w, "home.html", map[string]any{
-		"Title":    "Home",
-		"User":     userPtr,
-		"LoggedIn": ok,
+		"Title":     "Home",
+		"User":      userPtr,
+		"LoggedIn":  ok,
+		"Headcount": counts,
 	})
 }
 

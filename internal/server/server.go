@@ -40,6 +40,8 @@ type Config struct {
 	WebAuthnRPOrigins   []string
 	BootstrapAdminEmail string
 	BootstrapReissue    bool
+	IdentityPublicKey   [32]byte
+	IdentityKeyID       string
 }
 
 type Server struct {
@@ -64,6 +66,12 @@ func New(log *slog.Logger, db *sql.DB, cfg Config) (*Server, error) {
 	}
 	if cfg.BaseURL == "" {
 		cfg.BaseURL = cfg.WebAuthnRPOrigins[0]
+	}
+	if strings.TrimSpace(cfg.IdentityKeyID) == "" {
+		return nil, errors.New("IdentityKeyID is required")
+	}
+	if cfg.IdentityPublicKey == ([32]byte{}) {
+		return nil, errors.New("IdentityPublicKey is required")
 	}
 
 	wa, err := webauthn.New(&webauthn.Config{
@@ -154,6 +162,12 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /admin/users", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminCreateUser)))
 	mux.Handle("POST /admin/users/{id}/lock", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminLockUser)))
 	mux.Handle("POST /admin/users/{id}/reinvite", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminReinvite)))
+
+	mux.Handle("GET /occupants", s.requireLogin(http.HandlerFunc(s.handleOccupants)))
+	mux.Handle("GET /occupants/new", s.requireLogin(http.HandlerFunc(s.handleOccupantNew)))
+	mux.Handle("POST /occupants/handoff", s.requireLogin(http.HandlerFunc(s.handleOccupantHandoff)))
+	mux.Handle("POST /occupants", s.requireLogin(http.HandlerFunc(s.handleOccupantCreate)))
+	mux.Handle("POST /occupants/{id}/depart", s.requireLogin(http.HandlerFunc(s.handleOccupantDepart)))
 
 	return mux
 }

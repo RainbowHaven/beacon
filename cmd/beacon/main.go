@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -32,6 +33,15 @@ func run(logger *slog.Logger) error {
 		return errors.New("DATABASE_URL is required")
 	}
 
+	pub, err := parsePublicKey(os.Getenv("IDENTITY_PUBLIC_KEY_B64"))
+	if err != nil {
+		return fmt.Errorf("IDENTITY_PUBLIC_KEY_B64: %w", err)
+	}
+	keyID := os.Getenv("IDENTITY_KEY_ID")
+	if keyID == "" {
+		return errors.New("IDENTITY_KEY_ID is required")
+	}
+
 	db, err := sql.Open("pgx", databaseURL)
 	if err != nil {
 		return fmt.Errorf("open database: %w", err)
@@ -58,6 +68,8 @@ func run(logger *slog.Logger) error {
 		WebAuthnRPOrigins:   server.SplitCSV(envOr("WEBAUTHN_RP_ORIGINS", "http://localhost:8080,http://127.0.0.1:8080")),
 		BootstrapAdminEmail: os.Getenv("BOOTSTRAP_ADMIN_EMAIL"),
 		BootstrapReissue:    os.Getenv("BOOTSTRAP_REISSUE") == "true",
+		IdentityPublicKey:   pub,
+		IdentityKeyID:       keyID,
 	}
 	srvApp, err := server.New(logger, db, cfg)
 	if err != nil {
@@ -75,7 +87,7 @@ func run(logger *slog.Logger) error {
 
 	errCh := make(chan error, 1)
 	go func() {
-		logger.Info("listening", "addr", addr)
+		logger.Info("listening", "addr", addr, "identity_key_id", keyID)
 		errCh <- httpSrv.ListenAndServe()
 	}()
 
@@ -93,6 +105,22 @@ func run(logger *slog.Logger) error {
 		}
 		return err
 	}
+}
+
+func parsePublicKey(b64 string) ([32]byte, error) {
+	var out [32]byte
+	if b64 == "" {
+		return out, errors.New("required")
+	}
+	raw, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil {
+		return out, err
+	}
+	if len(raw) != 32 {
+		return out, fmt.Errorf("want 32 bytes, got %d", len(raw))
+	}
+	copy(out[:], raw)
+	return out, nil
 }
 
 func envOr(key, fallback string) string {

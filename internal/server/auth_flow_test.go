@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -46,7 +47,7 @@ func testDB(t *testing.T) *sql.DB {
 func resetSchema(t *testing.T, db *sql.DB) {
 	t.Helper()
 	_, err := db.Exec(`
-		DROP TABLE IF EXISTS audit_events, sessions, webauthn_challenges, webauthn_credentials, invites, users, safe_houses, rhls, schema_migrations CASCADE;
+		DROP TABLE IF EXISTS occupants, audit_events, sessions, webauthn_challenges, webauthn_credentials, invites, users, safe_houses, rhls, schema_migrations CASCADE;
 		DROP TYPE IF EXISTS user_status, user_role CASCADE;
 	`)
 	if err != nil {
@@ -63,12 +64,14 @@ func TestInviteRegisterLoginLock(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := server.Config{
-		BaseURL:            "http://localhost",
-		SecureCookies:      false,
-		WebAuthnRPID:       "localhost",
-		WebAuthnRPName:     "Beacon",
-		WebAuthnRPOrigins:  []string{"http://localhost"},
+		BaseURL:             "http://localhost",
+		SecureCookies:       false,
+		WebAuthnRPID:        "localhost",
+		WebAuthnRPName:      "Beacon",
+		WebAuthnRPOrigins:   []string{"http://localhost"},
 		BootstrapAdminEmail: "",
+		IdentityPublicKey:   testIdentityPublicKey(t),
+		IdentityKeyID:       "test-key-1",
 	}
 	srv, err := server.New(logger, db, cfg)
 	if err != nil {
@@ -227,4 +230,16 @@ func assertLoginFails(t *testing.T, base, email string) {
 	if res.StatusCode == 200 {
 		t.Fatal("expected locked login begin to fail")
 	}
+}
+
+// Local-dev public key (private key must never be loaded by the server).
+func testIdentityPublicKey(t *testing.T) [32]byte {
+	t.Helper()
+	raw, err := base64.StdEncoding.DecodeString("OM1ZQIEru2EWDGtgfLzI6tB3KIYZ30L2mVQTffmAxUQ=")
+	if err != nil || len(raw) != 32 {
+		t.Fatalf("test public key: %v len=%d", err, len(raw))
+	}
+	var out [32]byte
+	copy(out[:], raw)
+	return out
 }

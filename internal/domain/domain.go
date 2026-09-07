@@ -53,3 +53,33 @@ type Invite struct {
 	ExpiresAt time.Time
 	UsedAt    *time.Time
 }
+
+// Occupant operational fields are plaintext for headcount.
+// Legal name / refugee ID live only in IdentityCiphertext (sealed box).
+type Occupant struct {
+	ID                  uuid.UUID
+	SafeHouseID         uuid.UUID
+	Nickname            string
+	ArrivedAt           time.Time // date
+	DepartedAt          *time.Time
+	IdentityCiphertext  []byte
+	KeyID               string
+	CreatedBy           *uuid.UUID
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+}
+
+func (o Occupant) Current(asOf time.Time) bool {
+	if o.DepartedAt == nil {
+		return true
+	}
+	d := o.DepartedAt.UTC().Truncate(24 * time.Hour)
+	day := asOf.UTC().Truncate(24 * time.Hour)
+	return d.After(day)
+}
+
+type HeadcountRow struct {
+	SafeHouseID   uuid.UUID
+	SafeHouseName string
+	Current       int
+}

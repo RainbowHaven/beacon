@@ -18,6 +18,8 @@ export BASE_URL="${BASE_URL:-http://localhost:8080}"
 export WEBAUTHN_RP_ID="${WEBAUTHN_RP_ID:-localhost}"
 export WEBAUTHN_RP_ORIGINS="${WEBAUTHN_RP_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}"
 export SECURE_COOKIES=false
+export IDENTITY_PUBLIC_KEY_B64="${IDENTITY_PUBLIC_KEY_B64:-OM1ZQIEru2EWDGtgfLzI6tB3KIYZ30L2mVQTffmAxUQ=}"
+export IDENTITY_KEY_ID="${IDENTITY_KEY_ID:-local-dev-1}"
 
 chmod +x scripts/compose.sh scripts/verify-phase1.sh
 
@@ -35,11 +37,20 @@ pass "go test ./..."
 
 # Fresh schema so bootstrap invite is deterministic for this run.
 ./scripts/compose.sh exec -T db psql -U beacon -d beacon -v ON_ERROR_STOP=1 <<'SQL'
-DROP TABLE IF EXISTS audit_events, sessions, webauthn_challenges, webauthn_credentials, invites, users, safe_houses, rhls, schema_migrations CASCADE;
+DROP TABLE IF EXISTS occupants, audit_events, sessions, webauthn_challenges, webauthn_credentials, invites, users, safe_houses, rhls, schema_migrations CASCADE;
 DROP TYPE IF EXISTS user_status, user_role CASCADE;
 SQL
 
+# Free :8080 in case a previous beacon (or Compose app) is still listening.
+if command -v lsof >/dev/null 2>&1; then
+  pids="$(lsof -t -iTCP:8080 -sTCP:LISTEN 2>/dev/null || true)"
+  if [[ -n "$pids" ]]; then
+    kill $pids >/dev/null 2>&1 || true
+    sleep 0.5
+  fi
+fi
 pkill -f '/tmp/beacon-phase1' >/dev/null 2>&1 || true
+pkill -f '/tmp/beacon-phase2' >/dev/null 2>&1 || true
 go build -o /tmp/beacon-phase1 ./cmd/beacon
 /tmp/beacon-phase1 > /tmp/beacon-phase1.log 2>&1 &
 APP_PID=$!
