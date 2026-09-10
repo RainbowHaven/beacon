@@ -1,7 +1,7 @@
 {{template "layout_start" .}}
 <h1>Beacon</h1>
 {{if .LoggedIn}}
-<p>Signed in. Occupancy handoff seals legal identity in the browser — managers only see nicknames.</p>
+<p>Signed in. Occupancy seals identity in the browser; expenses and monthly totals need no private key.</p>
 {{if .Headcount}}
 <section class="stack" style="margin:1.25rem 0">
   <h2 style="margin:0;font-size:1.15rem;color:var(--accent)">Current headcount</h2>
@@ -14,6 +14,8 @@
 {{end}}
 <p class="actions">
   <a class="btn" href="/occupants">Occupants</a>
+  <a class="btn" href="/expenses">Expenses</a>
+  <a class="btn secondary" href="/reports">Reports</a>
   {{if eq .User.Role "rhc_admin"}}
   <a class="btn secondary" href="/admin/users">Manage users & invites</a>
   {{end}}

@@ -1,0 +1,47 @@
+{{template "layout_start" .}}
+<h1>Expenses</h1>
+{{if .Flash}}<p class="flash">{{.Flash}}</p>{{end}}
+{{if .Error}}<p class="flash error">{{.Error}}</p>{{end}}
+
+<p class="actions">
+  <a class="btn" href="/expenses/new">Log expense</a>
+  <a class="btn secondary" href="/reports">Monthly report</a>
+</p>
+
+{{if .Rows}}
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>House</th>
+      <th>Amount</th>
+      <th>Note</th>
+      <th>Receipt</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {{range .Rows}}
+    <tr>
+      <td>{{.SpentOnUS}}</td>
+      <td>{{.HouseName}}</td>
+      <td>{{.Amount}} {{.Currency}}</td>
+      <td>{{.Note}}</td>
+      <td>
+        {{if .HasReceipt}}
+        <a href="/expenses/{{.ID}}/receipt">View</a>
+        {{else}}—{{end}}
+      </td>
+      <td>
+        <form class="inline" method="post" action="/expenses/{{.ID}}/delete" onsubmit="return confirm('Delete this expense?')">
+          <button class="secondary" type="submit">Delete</button>
+        </form>
+      </td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+{{else}}
+<p class="muted">No expenses logged yet.</p>
+{{end}}
+{{template "layout_end" .}}

@@ -1,0 +1,30 @@
+{{template "layout_start" .}}
+<h1>Log expense</h1>
+{{if .Error}}<p class="flash error">{{.Error}}</p>{{end}}
+<p class="muted">Amounts are stored in CAD. Receipts are optional (JPEG, PNG, WebP, or PDF; max {{.MaxMB}}&nbsp;MB). Large photos are resized in the browser before upload.</p>
+<form id="expense-form" class="stack" method="post" action="/expenses" enctype="multipart/form-data" style="max-width:28rem">
+  <label>Safe house
+    <select name="safe_house_id" required>
+      {{range .Houses}}
+      <option value="{{.ID}}">{{.Name}}</option>
+      {{end}}
+    </select>
+  </label>
+  <label>Amount (CAD)
+    <input name="amount" type="text" inputmode="decimal" placeholder="12.50" required autocomplete="off">
+  </label>
+  <label>Date spent (MM/DD/YYYY)
+    <input type="text" name="spent_on" value="{{.Today}}" placeholder="MM/DD/YYYY" inputmode="numeric" autocomplete="off" required pattern="(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/[0-9]{4}" title="MM/DD/YYYY">
+  </label>
+  <label>Note
+    <input name="note" maxlength="240" autocomplete="off">
+  </label>
+  <label>Receipt (optional)
+    <input id="receipt" name="receipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
+  </label>
+  <p id="expense-error" class="flash error" hidden></p>
+  <button type="submit">Save</button>
+</form>
+<p><a href="/expenses">Back</a></p>
+<script type="module" src="{{static "js/receipt-resize.js"}}"></script>
+{{template "layout_end" .}}

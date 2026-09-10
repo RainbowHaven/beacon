@@ -35,9 +35,13 @@ services:
       # Local-only public key (matching private key is NOT on the server; keep offline for Phase 4).
       IDENTITY_PUBLIC_KEY_B64: OM1ZQIEru2EWDGtgfLzI6tB3KIYZ30L2mVQTffmAxUQ=
       IDENTITY_KEY_ID: local-dev-1
+      RECEIPT_DIR: /data/receipts
+    volumes:
+      - beacon_receipts:/data/receipts
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   beacon_pg:
+  beacon_receipts:

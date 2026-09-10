@@ -55,7 +55,7 @@ go test ./...
 pass "go test ./..."
 
 ./scripts/compose.sh exec -T db psql -U beacon -d beacon -v ON_ERROR_STOP=1 <<'SQL'
-DROP TABLE IF EXISTS occupants, audit_events, sessions, webauthn_challenges, webauthn_credentials, invites, users, safe_houses, rhls, schema_migrations CASCADE;
+DROP TABLE IF EXISTS expenses, occupants, audit_events, sessions, webauthn_challenges, webauthn_credentials, invites, users, safe_houses, rhls, schema_migrations CASCADE;
 DROP TYPE IF EXISTS user_status, user_role CASCADE;
 SQL
 

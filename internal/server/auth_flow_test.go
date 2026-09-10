@@ -47,7 +47,7 @@ func testDB(t *testing.T) *sql.DB {
 func resetSchema(t *testing.T, db *sql.DB) {
 	t.Helper()
 	_, err := db.Exec(`
-		DROP TABLE IF EXISTS occupants, audit_events, sessions, webauthn_challenges, webauthn_credentials, invites, users, safe_houses, rhls, schema_migrations CASCADE;
+		DROP TABLE IF EXISTS expenses, occupants, audit_events, sessions, webauthn_challenges, webauthn_credentials, invites, users, safe_houses, rhls, schema_migrations CASCADE;
 		DROP TYPE IF EXISTS user_status, user_role CASCADE;
 	`)
 	if err != nil {
@@ -72,6 +72,7 @@ func TestInviteRegisterLoginLock(t *testing.T) {
 		BootstrapAdminEmail: "",
 		IdentityPublicKey:   testIdentityPublicKey(t),
 		IdentityKeyID:       "test-key-1",
+		ReceiptDir:          t.TempDir(),
 	}
 	srv, err := server.New(logger, db, cfg)
 	if err != nil {
