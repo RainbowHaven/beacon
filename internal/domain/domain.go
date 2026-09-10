@@ -40,9 +40,10 @@ type RHL struct {
 }
 
 type SafeHouse struct {
-	ID    int64
-	RHLID int64
-	Name  string
+	ID               int64
+	RHLID            int64
+	Name             string
+	DefaultCurrency  string
 }
 
 type Invite struct {
@@ -80,4 +81,30 @@ type HeadcountRow struct {
 	SafeHouseID   int64
 	SafeHouseName string
 	Current       int
+}
+
+type Expense struct {
+	ID                 int64
+	SafeHouseID        int64
+	AmountCents        int64
+	Currency           string
+	Note               string
+	SpentOn            time.Time
+	ReceiptKey         *string
+	ReceiptContentType *string
+	ReceiptBytes       *int
+	CreatedBy          *int64
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+}
+
+func (e Expense) HasReceipt() bool { return e.ReceiptKey != nil && *e.ReceiptKey != "" }
+
+type ExpenseTotals struct {
+	SafeHouseID   int64
+	SafeHouseName string
+	ExpenseCount  int
+	ReceiptCount  int
+	AmountCents   int64
+	Currency      string
 }

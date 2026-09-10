@@ -70,6 +70,8 @@ func run(logger *slog.Logger) error {
 		BootstrapReissue:    os.Getenv("BOOTSTRAP_REISSUE") == "true",
 		IdentityPublicKey:   pub,
 		IdentityKeyID:       keyID,
+		ReceiptDir:          envOr("RECEIPT_DIR", "data/receipts"),
+		MaxReceiptBytes:     5 << 20,
 	}
 	srvApp, err := server.New(logger, db, cfg)
 	if err != nil {

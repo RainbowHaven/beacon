@@ -1,0 +1,94 @@
+{{template "layout_start" .}}
+<div class="report">
+  <p class="print-only report-brand">Beacon</p>
+  <div class="report-toolbar no-print actions">
+    <h1 style="margin:0;flex:1">Monthly report</h1>
+    <button type="button" class="btn" onclick="window.print()">Print</button>
+  </div>
+  <h1 class="print-only">Monthly report</h1>
+  {{if .Error}}<p class="flash error no-print">{{.Error}}</p>{{end}}
+  <p class="muted no-print">Headcount is current occupancy. Expense totals cover the selected calendar month — no private key required. Amounts are not converted across currencies.</p>
+  <p class="print-only report-meta"><strong>{{.MonthLabel}}</strong> · printed {{.PrintedOn}}</p>
+
+  <form method="get" action="/reports" class="actions no-print" style="margin-bottom:1.25rem">
+    <label>Month
+      <input type="month" name="month" value="{{.Month}}" required>
+    </label>
+    <button type="submit">Update</button>
+  </form>
+
+  <section class="stack report-section" style="margin-bottom:1.5rem">
+    <h2 style="margin:0;font-size:1.1rem">Headcount (current)</h2>
+    {{if .Headcount}}
+    <ul>
+    {{range .Headcount}}
+      <li><strong>{{.SafeHouseName}}</strong>: {{.Current}}</li>
+    {{end}}
+    </ul>
+    {{else}}
+    <p class="muted">No houses in scope.</p>
+    {{end}}
+  </section>
+
+  <section class="stack report-section">
+    <h2 style="margin:0;font-size:1.1rem">Expenses · {{.MonthLabel}}</h2>
+    {{if .Totals}}
+    <table>
+      <thead>
+        <tr>
+          <th>House</th>
+          <th>Currency</th>
+          <th>Expenses</th>
+          <th>With receipt</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+      {{range .Totals}}
+        <tr>
+          <td>{{.SafeHouseName}}</td>
+          <td>{{.Currency}}</td>
+          <td>{{.ExpenseCount}}</td>
+          <td>{{.ReceiptCount}}</td>
+          <td>{{.Amount}} {{.Currency}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+    {{if .CurrencyTotals}}
+    <h3 style="margin:1rem 0 0.5rem;font-size:1rem">Totals by currency</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Currency</th>
+          <th>Expenses</th>
+          <th>With receipt</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+      {{range .CurrencyTotals}}
+        <tr>
+          <td><strong>{{.Currency}}</strong></td>
+          <td>{{.ExpenseCount}}</td>
+          <td>{{.ReceiptCount}}</td>
+          <td><strong>{{.Amount}} {{.Currency}}</strong></td>
+        </tr>
+      {{end}}
+        <tr>
+          <td colspan="4" class="muted">All rows: {{.SumExpenses}} expenses · {{.SumReceipts}} with receipt (amounts not mixed across currencies)</td>
+        </tr>
+      </tbody>
+    </table>
+    {{end}}
+    {{else}}
+    <p class="muted">No expense data for this month.</p>
+    {{end}}
+  </section>
+
+  <p class="actions no-print" style="margin-top:1.5rem">
+    <a class="btn secondary" href="/expenses">Expenses</a>
+    <a class="btn secondary" href="/occupants">Occupants</a>
+  </p>
+</div>
+{{template "layout_end" .}}

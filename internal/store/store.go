@@ -64,12 +64,13 @@ func (s *Store) EnsureDemoTenancy(ctx context.Context) (domain.RHL, domain.SafeH
 	}
 
 	var house domain.SafeHouse
-	err = s.db.QueryRowContext(ctx, `SELECT id, rhl_id, name FROM safe_houses WHERE rhl_id = $1 ORDER BY created_at LIMIT 1`, rhl.ID).
-		Scan(&house.ID, &house.RHLID, &house.Name)
+	err = s.db.QueryRowContext(ctx, `SELECT id, rhl_id, name, default_currency FROM safe_houses WHERE rhl_id = $1 ORDER BY created_at LIMIT 1`, rhl.ID).
+		Scan(&house.ID, &house.RHLID, &house.Name, &house.DefaultCurrency)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = s.db.QueryRowContext(ctx, `
-			INSERT INTO safe_houses (rhl_id, name) VALUES ($1, $2) RETURNING id, rhl_id, name`,
-			rhl.ID, "Pilot Safe House").Scan(&house.ID, &house.RHLID, &house.Name)
+			INSERT INTO safe_houses (rhl_id, name, default_currency) VALUES ($1, $2, $3)
+			RETURNING id, rhl_id, name, default_currency`,
+			rhl.ID, "Pilot Safe House", "CAD").Scan(&house.ID, &house.RHLID, &house.Name, &house.DefaultCurrency)
 		if err != nil {
 			return domain.RHL{}, domain.SafeHouse{}, err
 		}
@@ -150,7 +151,7 @@ func (s *Store) ListRHLs(ctx context.Context) ([]domain.RHL, error) {
 }
 
 func (s *Store) ListSafeHouses(ctx context.Context) ([]domain.SafeHouse, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, rhl_id, name FROM safe_houses ORDER BY name`)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, rhl_id, name, default_currency FROM safe_houses ORDER BY name`)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +159,7 @@ func (s *Store) ListSafeHouses(ctx context.Context) ([]domain.SafeHouse, error) 
 	var out []domain.SafeHouse
 	for rows.Next() {
 		var h domain.SafeHouse
-		if err := rows.Scan(&h.ID, &h.RHLID, &h.Name); err != nil {
+		if err := rows.Scan(&h.ID, &h.RHLID, &h.Name, &h.DefaultCurrency); err != nil {
 			return nil, err
 		}
 		out = append(out, h)
