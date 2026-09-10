@@ -129,7 +129,7 @@ func (s *Store) DeleteExpense(ctx context.Context, id int64) error {
 	return nil
 }
 
-// ExpenseTotalsByHouses aggregates expenses in [from, to] inclusive by house.
+// ExpenseTotalsByHouses aggregates expenses in [from, to] inclusive by house and currency.
 func (s *Store) ExpenseTotalsByHouses(ctx context.Context, houseIDs []int64, from, to time.Time) ([]domain.ExpenseTotals, error) {
 	if len(houseIDs) == 0 {
 		return nil, nil
@@ -138,19 +138,21 @@ func (s *Store) ExpenseTotalsByHouses(ctx context.Context, houseIDs []int64, fro
 	to = to.UTC().Truncate(24 * time.Hour)
 	in, args := int64InClause(1, houseIDs)
 	args = append(args, from, to)
+	fromPH := fmt.Sprint(len(houseIDs) + 1)
+	toPH := fmt.Sprint(len(houseIDs) + 2)
 	q := `
 		SELECT sh.id, sh.name,
-			COALESCE(COUNT(e.id), 0)::int,
-			COALESCE(COUNT(e.receipt_key), 0)::int,
-			COALESCE(SUM(e.amount_cents), 0)::bigint,
-			COALESCE(MAX(e.currency), 'CAD')
-		FROM safe_houses sh
-		LEFT JOIN expenses e ON e.safe_house_id = sh.id
-			AND e.spent_on >= $` + fmt.Sprint(len(houseIDs)+1) + `::date
-			AND e.spent_on <= $` + fmt.Sprint(len(houseIDs)+2) + `::date
+			COUNT(e.id)::int,
+			COUNT(e.receipt_key)::int,
+			SUM(e.amount_cents)::bigint,
+			e.currency
+		FROM expenses e
+		JOIN safe_houses sh ON sh.id = e.safe_house_id
 		WHERE sh.id IN (` + in + `)
-		GROUP BY sh.id, sh.name
-		ORDER BY sh.name`
+			AND e.spent_on >= $` + fromPH + `::date
+			AND e.spent_on <= $` + toPH + `::date
+		GROUP BY sh.id, sh.name, e.currency
+		ORDER BY sh.name, e.currency`
 	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err

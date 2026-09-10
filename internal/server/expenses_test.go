@@ -72,6 +72,7 @@ func TestExpenseCreateAndMonthlyTotals(t *testing.T) {
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
 	_ = w.WriteField("safe_house_id", strconv.FormatInt(house.ID, 10))
+	_ = w.WriteField("currency", "USD")
 	_ = w.WriteField("amount", "12.50")
 	_ = w.WriteField("spent_on", time.Now().UTC().Format("01/02/2006"))
 	_ = w.WriteField("note", "groceries")
@@ -116,7 +117,7 @@ func TestExpenseCreateAndMonthlyTotals(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(list) != 1 || list[0].AmountCents != 1250 || !list[0].HasReceipt() {
+	if len(list) != 1 || list[0].AmountCents != 1250 || list[0].Currency != "USD" || !list[0].HasReceipt() {
 		t.Fatalf("list=%+v", list)
 	}
 
@@ -136,7 +137,7 @@ func TestExpenseCreateAndMonthlyTotals(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(totals) != 1 || totals[0].AmountCents != 1250 || totals[0].ReceiptCount != 1 {
+	if len(totals) != 1 || totals[0].AmountCents != 1250 || totals[0].ReceiptCount != 1 || totals[0].Currency != "USD" {
 		t.Fatalf("totals=%+v", totals)
 	}
 
@@ -146,7 +147,7 @@ func TestExpenseCreateAndMonthlyTotals(t *testing.T) {
 	}
 	defer rep.Body.Close()
 	b, _ := io.ReadAll(rep.Body)
-	if rep.StatusCode != 200 || !strings.Contains(string(b), "12.50") {
+	if rep.StatusCode != 200 || !strings.Contains(string(b), "12.50") || !strings.Contains(string(b), "USD") {
 		t.Fatalf("report status=%d body=%s", rep.StatusCode, string(b))
 	}
 }

@@ -7,7 +7,7 @@
   </div>
   <h1 class="print-only">Monthly report</h1>
   {{if .Error}}<p class="flash error no-print">{{.Error}}</p>{{end}}
-  <p class="muted no-print">Headcount is current occupancy. Expense totals cover the selected calendar month — no private key required.</p>
+  <p class="muted no-print">Headcount is current occupancy. Expense totals cover the selected calendar month — no private key required. Amounts are not converted across currencies.</p>
   <p class="print-only report-meta"><strong>{{.MonthLabel}}</strong> · printed {{.PrintedOn}}</p>
 
   <form method="get" action="/reports" class="actions no-print" style="margin-bottom:1.25rem">
@@ -37,6 +37,7 @@
       <thead>
         <tr>
           <th>House</th>
+          <th>Currency</th>
           <th>Expenses</th>
           <th>With receipt</th>
           <th>Total</th>
@@ -46,19 +47,40 @@
       {{range .Totals}}
         <tr>
           <td>{{.SafeHouseName}}</td>
+          <td>{{.Currency}}</td>
           <td>{{.ExpenseCount}}</td>
           <td>{{.ReceiptCount}}</td>
           <td>{{.Amount}} {{.Currency}}</td>
         </tr>
       {{end}}
+      </tbody>
+    </table>
+    {{if .CurrencyTotals}}
+    <h3 style="margin:1rem 0 0.5rem;font-size:1rem">Totals by currency</h3>
+    <table>
+      <thead>
         <tr>
-          <td><strong>All in scope</strong></td>
-          <td><strong>{{.SumExpenses}}</strong></td>
-          <td><strong>{{.SumReceipts}}</strong></td>
-          <td><strong>{{.SumAmount}} CAD</strong></td>
+          <th>Currency</th>
+          <th>Expenses</th>
+          <th>With receipt</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+      {{range .CurrencyTotals}}
+        <tr>
+          <td><strong>{{.Currency}}</strong></td>
+          <td>{{.ExpenseCount}}</td>
+          <td>{{.ReceiptCount}}</td>
+          <td><strong>{{.Amount}} {{.Currency}}</strong></td>
+        </tr>
+      {{end}}
+        <tr>
+          <td colspan="4" class="muted">All rows: {{.SumExpenses}} expenses · {{.SumReceipts}} with receipt (amounts not mixed across currencies)</td>
         </tr>
       </tbody>
     </table>
+    {{end}}
     {{else}}
     <p class="muted">No expense data for this month.</p>
     {{end}}

@@ -22,6 +22,19 @@ var allowedReceiptTypes = map[string]string{
 	"application/pdf": ".pdf",
 }
 
+// Supported expense currencies (ISO 4217). House default must be one of these.
+var expenseCurrencies = []string{"CAD", "USD", "EUR", "GBP", "UGX", "KES", "TZS", "RWF"}
+
+func normalizeCurrency(s string) (string, bool) {
+	s = strings.ToUpper(strings.TrimSpace(s))
+	for _, c := range expenseCurrencies {
+		if c == s {
+			return s, true
+		}
+	}
+	return "", false
+}
+
 func (s *Server) handleExpenses(w http.ResponseWriter, r *http.Request) {
 	u, _ := s.currentUser(r)
 	houses, err := s.housesForUser(r, u)
@@ -71,12 +84,13 @@ func (s *Server) handleExpenseNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.render(w, "expense_new.html", map[string]any{
-		"Title":  "Log expense",
-		"User":   &u,
-		"Houses": houses,
-		"Today":  formatUSDate(time.Now().UTC()),
-		"Error":  r.URL.Query().Get("error"),
-		"MaxMB":  s.cfg.MaxReceiptBytes / (1024 * 1024),
+		"Title":      "Log expense",
+		"User":       &u,
+		"Houses":     houses,
+		"Currencies": expenseCurrencies,
+		"Today":      formatUSDate(time.Now().UTC()),
+		"Error":      r.URL.Query().Get("error"),
+		"MaxMB":      s.cfg.MaxReceiptBytes / (1024 * 1024),
 	})
 }
 
@@ -107,11 +121,21 @@ func (s *Server) handleExpenseCreate(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/expenses/new?error=invalid+date+(use+MM/DD/YYYY)", http.StatusSeeOther)
 		return
 	}
+	currency, ok := normalizeCurrency(r.FormValue("currency"))
+	if !ok {
+		if house.DefaultCurrency != "" {
+			currency, ok = normalizeCurrency(house.DefaultCurrency)
+		}
+		if !ok {
+			http.Redirect(w, r, "/expenses/new?error=invalid+currency", http.StatusSeeOther)
+			return
+		}
+	}
 
 	in := store.CreateExpenseInput{
 		SafeHouseID: houseID,
 		AmountCents: cents,
-		Currency:    "CAD",
+		Currency:    currency,
 		Note:        r.FormValue("note"),
 		SpentOn:     spent,
 		CreatedBy:   &u.ID,
@@ -285,28 +309,63 @@ func (s *Server) handleReports(w http.ResponseWriter, r *http.Request) {
 		domain.ExpenseTotals
 		Amount string
 	}
+	type currencyTotal struct {
+		Currency     string
+		Amount       string
+		ExpenseCount int
+		ReceiptCount int
+	}
 	rows := make([]totalRow, 0, len(totals))
-	var sumCents int64
+	curCents := map[string]int64{}
+	curExpenses := map[string]int{}
+	curReceipts := map[string]int{}
 	var sumExpenses, sumReceipts int
 	for _, t := range totals {
 		rows = append(rows, totalRow{ExpenseTotals: t, Amount: formatCents(t.AmountCents)})
-		sumCents += t.AmountCents
 		sumExpenses += t.ExpenseCount
 		sumReceipts += t.ReceiptCount
+		curCents[t.Currency] += t.AmountCents
+		curExpenses[t.Currency] += t.ExpenseCount
+		curReceipts[t.Currency] += t.ReceiptCount
+	}
+	currencyTotals := make([]currencyTotal, 0, len(curCents))
+	seen := map[string]bool{}
+	for _, c := range expenseCurrencies {
+		if _, ok := curCents[c]; !ok {
+			continue
+		}
+		currencyTotals = append(currencyTotals, currencyTotal{
+			Currency:     c,
+			Amount:       formatCents(curCents[c]),
+			ExpenseCount: curExpenses[c],
+			ReceiptCount: curReceipts[c],
+		})
+		seen[c] = true
+	}
+	for c, cents := range curCents {
+		if seen[c] {
+			continue
+		}
+		currencyTotals = append(currencyTotals, currencyTotal{
+			Currency:     c,
+			Amount:       formatCents(cents),
+			ExpenseCount: curExpenses[c],
+			ReceiptCount: curReceipts[c],
+		})
 	}
 	s.render(w, "reports.html", map[string]any{
-		"Title":       "Monthly report",
-		"User":        &u,
-		"BodyClass":   "report-page",
-		"Month":       month,
-		"MonthLabel":  start.Format("January 2006"),
-		"PrintedOn":   formatUSDate(time.Now().UTC()),
-		"Headcount":   headcount,
-		"Totals":      rows,
-		"SumAmount":   formatCents(sumCents),
-		"SumExpenses": sumExpenses,
-		"SumReceipts": sumReceipts,
-		"Error":       r.URL.Query().Get("error"),
+		"Title":          "Monthly report",
+		"User":           &u,
+		"BodyClass":      "report-page",
+		"Month":          month,
+		"MonthLabel":     start.Format("January 2006"),
+		"PrintedOn":      formatUSDate(time.Now().UTC()),
+		"Headcount":      headcount,
+		"Totals":         rows,
+		"CurrencyTotals": currencyTotals,
+		"SumExpenses":    sumExpenses,
+		"SumReceipts":    sumReceipts,
+		"Error":          r.URL.Query().Get("error"),
 	})
 }
 

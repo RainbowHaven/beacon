@@ -1,16 +1,23 @@
 {{template "layout_start" .}}
 <h1>Log expense</h1>
 {{if .Error}}<p class="flash error">{{.Error}}</p>{{end}}
-<p class="muted">Amounts are stored in CAD. Receipts are optional (JPEG, PNG, WebP, or PDF; max {{.MaxMB}}&nbsp;MB). Large photos are resized in the browser before upload.</p>
+<p class="muted">Pick a currency (defaults from the safe house). Receipts are optional (JPEG, PNG, WebP, or PDF; max {{.MaxMB}}&nbsp;MB). Large photos are resized in the browser before upload.</p>
 <form id="expense-form" class="stack" method="post" action="/expenses" enctype="multipart/form-data" style="max-width:28rem">
   <label>Safe house
-    <select name="safe_house_id" required>
+    <select name="safe_house_id" id="safe_house_id" required>
       {{range .Houses}}
-      <option value="{{.ID}}">{{.Name}}</option>
+      <option value="{{.ID}}" data-currency="{{.DefaultCurrency}}">{{.Name}} ({{.DefaultCurrency}})</option>
       {{end}}
     </select>
   </label>
-  <label>Amount (CAD)
+  <label>Currency
+    <select name="currency" id="currency" required>
+      {{range .Currencies}}
+      <option value="{{.}}">{{.}}</option>
+      {{end}}
+    </select>
+  </label>
+  <label>Amount
     <input name="amount" type="text" inputmode="decimal" placeholder="12.50" required autocomplete="off">
   </label>
   <label>Date spent (MM/DD/YYYY)
@@ -27,4 +34,24 @@
 </form>
 <p><a href="/expenses">Back</a></p>
 <script type="module" src="{{static "js/receipt-resize.js"}}"></script>
+<script>
+(function () {
+  const house = document.getElementById("safe_house_id");
+  const currency = document.getElementById("currency");
+  if (!house || !currency) return;
+  function syncCurrency() {
+    const opt = house.options[house.selectedIndex];
+    const def = opt && opt.getAttribute("data-currency");
+    if (!def) return;
+    for (let i = 0; i < currency.options.length; i++) {
+      if (currency.options[i].value === def) {
+        currency.selectedIndex = i;
+        break;
+      }
+    }
+  }
+  house.addEventListener("change", syncCurrency);
+  syncCurrency();
+})();
+</script>
 {{template "layout_end" .}}

@@ -40,9 +40,10 @@ type RHL struct {
 }
 
 type SafeHouse struct {
-	ID    int64
-	RHLID int64
-	Name  string
+	ID               int64
+	RHLID            int64
+	Name             string
+	DefaultCurrency  string
 }
 
 type Invite struct {
