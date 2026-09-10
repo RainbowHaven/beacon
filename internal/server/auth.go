@@ -13,13 +13,18 @@ import (
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	u, ok := s.loadSessionUser(r)
 	var userPtr *domain.User
+	var counts []domain.HeadcountRow
 	if ok {
 		userPtr = &u
+		if houses, err := s.housesForUser(r, u); err == nil {
+			counts, _ = s.store.HeadcountByHouses(r.Context(), houseIDs(houses))
+		}
 	}
 	s.render(w, "home.html", map[string]any{
-		"Title":    "Home",
-		"User":     userPtr,
-		"LoggedIn": ok,
+		"Title":     "Home",
+		"User":      userPtr,
+		"LoggedIn":  ok,
+		"Headcount": counts,
 	})
 }
 
@@ -168,7 +173,7 @@ func (s *Server) handleRegisterFinish(w http.ResponseWriter, r *http.Request) {
 	s.clearCookie(w, challengeCookie)
 	s.clearCookie(w, inviteCookie)
 	s.setSessionCookie(w, raw)
-	_ = s.store.Audit(r.Context(), &u.ID, "auth.register", "user", u.ID.String(), nil)
+	_ = s.store.Audit(r.Context(), &u.ID, "auth.register", "user", idString(u.ID), nil)
 	writeJSON(w, map[string]string{"status": "ok", "redirect": "/"})
 }
 
@@ -257,7 +262,7 @@ func (s *Server) handleLoginFinish(w http.ResponseWriter, r *http.Request) {
 	}
 	s.clearCookie(w, challengeCookie)
 	s.setSessionCookie(w, raw)
-	_ = s.store.Audit(r.Context(), &u.ID, "auth.login", "user", u.ID.String(), nil)
+	_ = s.store.Audit(r.Context(), &u.ID, "auth.login", "user", idString(u.ID), nil)
 	writeJSON(w, map[string]string{"status": "ok", "redirect": "/"})
 }
 

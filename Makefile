@@ -1,4 +1,4 @@
-.PHONY: test run compose-up compose-down verify verify-cla verify-phase1
+.PHONY: test run compose-up compose-down verify verify-cla verify-phase1 verify-phase2
 
 test:
 	GOTOOLCHAIN=auto go test ./...
@@ -17,6 +17,9 @@ verify:
 
 verify-phase1:
 	./scripts/verify-phase1.sh
+
+verify-phase2:
+	./scripts/verify-phase2.sh
 
 verify-cla:
 	./scripts/verify-cla.sh

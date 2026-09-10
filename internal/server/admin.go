@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/magiconair/beacon/internal/domain"
 	"github.com/magiconair/beacon/internal/store"
 )
@@ -46,14 +45,14 @@ func (s *Server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) {
 	case domain.RoleRHCAdmin:
 		// no scope
 	case domain.RoleRHLAdmin:
-		id, err := uuid.Parse(r.FormValue("rhl_id"))
+		id, err := parseID(r.FormValue("rhl_id"))
 		if err != nil {
 			http.Redirect(w, r, "/admin/users?error=rhl+required", http.StatusSeeOther)
 			return
 		}
 		in.RHLID = &id
 	case domain.RoleSafeHouseManager:
-		id, err := uuid.Parse(r.FormValue("safe_house_id"))
+		id, err := parseID(r.FormValue("safe_house_id"))
 		if err != nil {
 			http.Redirect(w, r, "/admin/users?error=safe+house+required", http.StatusSeeOther)
 			return
@@ -81,14 +80,14 @@ func (s *Server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/admin/users?error="+msg, http.StatusSeeOther)
 		return
 	}
-	_ = s.store.Audit(r.Context(), &actor.ID, "admin.invite", "user", u.ID.String(), map[string]any{"email": u.Email, "role": u.Role})
+	_ = s.store.Audit(r.Context(), &actor.ID, "admin.invite", "user", idString(u.ID), map[string]any{"email": u.Email, "role": u.Role})
 	inviteURL := s.cfg.BaseURL + "/invite/" + token
 	http.Redirect(w, r, "/admin/users?flash=created&invite="+url.QueryEscape(inviteURL), http.StatusSeeOther)
 }
 
 func (s *Server) handleAdminLockUser(w http.ResponseWriter, r *http.Request) {
 	actor, _ := s.currentUser(r)
-	id, err := uuid.Parse(r.PathValue("id"))
+	id, err := parseID(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, "bad id", http.StatusBadRequest)
 		return
@@ -97,13 +96,13 @@ func (s *Server) handleAdminLockUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "lock failed", http.StatusInternalServerError)
 		return
 	}
-	_ = s.store.Audit(r.Context(), &actor.ID, "admin.lock", "user", id.String(), nil)
+	_ = s.store.Audit(r.Context(), &actor.ID, "admin.lock", "user", idString(id), nil)
 	http.Redirect(w, r, "/admin/users?flash=locked", http.StatusSeeOther)
 }
 
 func (s *Server) handleAdminReinvite(w http.ResponseWriter, r *http.Request) {
 	actor, _ := s.currentUser(r)
-	id, err := uuid.Parse(r.PathValue("id"))
+	id, err := parseID(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, "bad id", http.StatusBadRequest)
 		return
@@ -117,7 +116,7 @@ func (s *Server) handleAdminReinvite(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "reinvite failed", http.StatusInternalServerError)
 		return
 	}
-	_ = s.store.Audit(r.Context(), &actor.ID, "admin.reinvite", "user", id.String(), nil)
+	_ = s.store.Audit(r.Context(), &actor.ID, "admin.reinvite", "user", idString(id), nil)
 	inviteURL := s.cfg.BaseURL + "/invite/" + token
 	http.Redirect(w, r, "/admin/users?flash=reinvited&invite="+url.QueryEscape(inviteURL), http.StatusSeeOther)
 }

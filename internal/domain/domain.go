@@ -2,8 +2,6 @@ package domain
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type UserStatus string
@@ -23,13 +21,13 @@ const (
 )
 
 type User struct {
-	ID          uuid.UUID
+	ID          int64
 	Email       string
 	DisplayName string
 	Status      UserStatus
 	Role        Role
-	RHLID       *uuid.UUID
-	SafeHouseID *uuid.UUID
+	RHLID       *int64
+	SafeHouseID *int64
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
@@ -37,19 +35,49 @@ type User struct {
 func (u User) IsActive() bool { return u.Status == UserActive }
 
 type RHL struct {
-	ID   uuid.UUID
+	ID   int64
 	Name string
 }
 
 type SafeHouse struct {
-	ID    uuid.UUID
-	RHLID uuid.UUID
+	ID    int64
+	RHLID int64
 	Name  string
 }
 
 type Invite struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
+	ID        int64
+	UserID    int64
 	ExpiresAt time.Time
 	UsedAt    *time.Time
+}
+
+// Occupant operational fields are plaintext for headcount.
+// Legal name / refugee ID live only in IdentityCiphertext (sealed box).
+type Occupant struct {
+	ID                 int64
+	SafeHouseID        int64
+	Nickname           string
+	ArrivedAt          time.Time // date
+	DepartedAt         *time.Time
+	IdentityCiphertext []byte
+	KeyID              string
+	CreatedBy          *int64
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+}
+
+func (o Occupant) Current(asOf time.Time) bool {
+	if o.DepartedAt == nil {
+		return true
+	}
+	d := o.DepartedAt.UTC().Truncate(24 * time.Hour)
+	day := asOf.UTC().Truncate(24 * time.Hour)
+	return d.After(day)
+}
+
+type HeadcountRow struct {
+	SafeHouseID   int64
+	SafeHouseName string
+	Current       int
 }

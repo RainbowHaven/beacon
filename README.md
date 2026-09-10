@@ -19,6 +19,9 @@ export BASE_URL='http://localhost:8080'
 export WEBAUTHN_RP_ID=localhost
 export WEBAUTHN_RP_ORIGINS='http://localhost:8080,http://127.0.0.1:8080'
 export SECURE_COOKIES=false
+# Sealed-box public key only (private key stays offline for Phase 4 break-glass).
+export IDENTITY_PUBLIC_KEY_B64='OM1ZQIEru2EWDGtgfLzI6tB3KIYZ30L2mVQTffmAxUQ='
+export IDENTITY_KEY_ID='local-dev-1'
 
 go run ./cmd/beacon
 ```
@@ -36,7 +39,7 @@ That mints a **new** invite URL (old links stop working). Or reset the DB:
 
 ```bash
 ./scripts/compose.sh exec -T db psql -U beacon -d beacon -c \
-  "DROP TABLE IF EXISTS audit_events, sessions, webauthn_challenges, webauthn_credentials, invites, users, safe_houses, rhls, schema_migrations CASCADE; DROP TYPE IF EXISTS user_status, user_role CASCADE;"
+  "DROP TABLE IF EXISTS occupants, audit_events, sessions, webauthn_challenges, webauthn_credentials, invites, users, safe_houses, rhls, schema_migrations CASCADE; DROP TYPE IF EXISTS user_status, user_role CASCADE;"
 ```
 
 Use only one server process on :8080 (either `go run` **or** Compose `app`, not both).
@@ -46,11 +49,16 @@ Health checks:
 - `GET /healthz` — process up
 - `GET /readyz` — database reachable
 
-RHC admin (after login): `/admin/users` — invite, lock, re-invite (passkey recovery).
+After login:
+
+- `/occupants` — headcount, nickname list, mark departed
+- `/occupants/new` — start resident handoff (legal name / UN ID sealed in-browser)
+- RHC admin `/admin/users` — invite, lock, re-invite (passkey recovery)
 
 ## Verify
 
 ```bash
+./scripts/verify-phase2.sh       # Phase 2: sealed identity + occupants
 ./scripts/verify-phase1.sh       # Phase 1: WebAuthn flow tests + HTTP smoke
 ./scripts/verify-bootstrap.sh   # Compose full stack (optional)
 ./scripts/verify-cla.sh

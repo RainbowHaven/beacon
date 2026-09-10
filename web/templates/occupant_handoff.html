@@ -1,0 +1,64 @@
+{{template "layout_start" .}}
+<section class="handoff-panel stack">
+  <p class="handoff-brand">Beacon</p>
+  <h1>Resident details</h1>
+  <p class="muted">This screen is for the resident. Legal name and refugee/UN ID are sealed on this device before they are sent. Only the nickname stays visible to staff.</p>
+  <p><strong>{{.House.Name}}</strong> · arrived {{.ArrivedAt}}</p>
+
+  <form id="handoff-form" class="stack" method="post" action="/occupants" autocomplete="off"
+        data-identity-public-key="{{.IdentityPublicKey}}">
+    <input type="hidden" name="safe_house_id" value="{{.House.ID}}">
+    <input type="hidden" name="arrived_at" value="{{.ArrivedAt}}">
+    <input type="hidden" name="key_id" value="{{.IdentityKeyID}}">
+    <input type="hidden" name="identity_ciphertext" id="identity_ciphertext" value="">
+
+    <label>Nickname (shared with staff)
+      <input name="nickname" id="nickname" required maxlength="80" autocomplete="off" autocapitalize="words">
+    </label>
+    <label>Legal name (sealed)
+      <input id="legal_name" required maxlength="200" autocomplete="off">
+    </label>
+    <label>Refugee / UN ID (sealed)
+      <input id="refugee_id" maxlength="120" autocomplete="off">
+    </label>
+    <p id="handoff-error" class="flash error" hidden></p>
+    <button type="submit">Save sealed record</button>
+  </form>
+  <p class="muted" style="font-size:0.85rem">Key {{.IdentityKeyID}}</p>
+</section>
+<script src="{{static "js/vendor/nacl-fast.min.js"}}"></script>
+<script type="module">
+  import { sealIdentityPayload } from "{{static "js/seal.js"}}";
+
+  const form = document.getElementById("handoff-form");
+  const pubKey = form.dataset.identityPublicKey;
+  const errEl = document.getElementById("handoff-error");
+  const legal = document.getElementById("legal_name");
+  const refugee = document.getElementById("refugee_id");
+  const ctField = document.getElementById("identity_ciphertext");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errEl.hidden = true;
+    try {
+      if (!pubKey) {
+        throw new Error("Missing identity public key");
+      }
+      const payload = {
+        legal_name: legal.value.trim(),
+        refugee_id: refugee.value.trim(),
+      };
+      if (!payload.legal_name) {
+        throw new Error("Legal name is required");
+      }
+      ctField.value = sealIdentityPayload(payload, pubKey);
+      legal.value = "";
+      refugee.value = "";
+      form.submit();
+    } catch (err) {
+      errEl.textContent = err.message || String(err);
+      errEl.hidden = false;
+    }
+  });
+</script>
+{{template "layout_end" .}}

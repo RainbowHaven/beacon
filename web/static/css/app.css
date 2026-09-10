@@ -63,3 +63,18 @@ th, td { text-align: left; padding: 0.6rem 0.5rem; border-bottom: 1px solid var(
 }
 .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 form.inline { display: inline; }
+body.handoff {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 20% 0%, #e7f0eb 0%, transparent 55%),
+    linear-gradient(165deg, #f7f4ee, #ebe4d6);
+}
+.handoff-main { max-width: 28rem; padding-top: 3rem; }
+.handoff-brand {
+  margin: 0;
+  font-size: clamp(2rem, 8vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--accent);
+}
+.handoff-panel h1 { font-size: 1.4rem; margin-top: 0.25rem; }

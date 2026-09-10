@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/google/uuid"
 	"github.com/magiconair/beacon/internal/domain"
 	"github.com/magiconair/beacon/internal/store"
 	"github.com/magiconair/beacon/internal/wauser"
@@ -40,6 +39,8 @@ type Config struct {
 	WebAuthnRPOrigins   []string
 	BootstrapAdminEmail string
 	BootstrapReissue    bool
+	IdentityPublicKey   [32]byte
+	IdentityKeyID       string
 }
 
 type Server struct {
@@ -64,6 +65,12 @@ func New(log *slog.Logger, db *sql.DB, cfg Config) (*Server, error) {
 	}
 	if cfg.BaseURL == "" {
 		cfg.BaseURL = cfg.WebAuthnRPOrigins[0]
+	}
+	if strings.TrimSpace(cfg.IdentityKeyID) == "" {
+		return nil, errors.New("IdentityKeyID is required")
+	}
+	if cfg.IdentityPublicKey == ([32]byte{}) {
+		return nil, errors.New("IdentityPublicKey is required")
 	}
 
 	wa, err := webauthn.New(&webauthn.Config{
@@ -155,6 +162,12 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /admin/users/{id}/lock", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminLockUser)))
 	mux.Handle("POST /admin/users/{id}/reinvite", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminReinvite)))
 
+	mux.Handle("GET /occupants", s.requireLogin(http.HandlerFunc(s.handleOccupants)))
+	mux.Handle("GET /occupants/new", s.requireLogin(http.HandlerFunc(s.handleOccupantNew)))
+	mux.Handle("POST /occupants/handoff", s.requireLogin(http.HandlerFunc(s.handleOccupantHandoff)))
+	mux.Handle("POST /occupants", s.requireLogin(http.HandlerFunc(s.handleOccupantCreate)))
+	mux.Handle("POST /occupants/{id}/depart", s.requireLogin(http.HandlerFunc(s.handleOccupantDepart)))
+
 	return mux
 }
 
@@ -183,7 +196,7 @@ func (s *Server) Bootstrap(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		_ = s.store.Audit(ctx, nil, "bootstrap.admin", "user", u.ID.String(), map[string]any{"email": u.Email})
+		_ = s.store.Audit(ctx, nil, "bootstrap.admin", "user", idString(u.ID), map[string]any{"email": u.Email})
 		s.logInvite(u.Email, token, "bootstrap RHC admin created")
 		return nil
 	}
@@ -221,7 +234,7 @@ func (s *Server) Bootstrap(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	_ = s.store.Audit(ctx, nil, "bootstrap.reinvite", "user", u.ID.String(), map[string]any{"email": u.Email})
+	_ = s.store.Audit(ctx, nil, "bootstrap.reinvite", "user", idString(u.ID), map[string]any{"email": u.Email})
 	s.logInvite(u.Email, token, "bootstrap refreshed invite for pending admin")
 	return nil
 }
@@ -300,10 +313,10 @@ func (s *Server) clearCookie(w http.ResponseWriter, name string) {
 	})
 }
 
-func (s *Server) setChallengeCookie(w http.ResponseWriter, id uuid.UUID) {
+func (s *Server) setChallengeCookie(w http.ResponseWriter, id int64) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     challengeCookie,
-		Value:    id.String(),
+		Value:    idString(id),
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
@@ -324,12 +337,12 @@ func (s *Server) setInviteCookie(w http.ResponseWriter, token string) {
 	})
 }
 
-func (s *Server) challengeID(r *http.Request) (uuid.UUID, error) {
+func (s *Server) challengeID(r *http.Request) (int64, error) {
 	c, err := r.Cookie(challengeCookie)
 	if err != nil {
-		return uuid.Nil, err
+		return 0, err
 	}
-	return uuid.Parse(c.Value)
+	return parseID(c.Value)
 }
 
 func (s *Server) loadWAUser(ctx context.Context, u domain.User) (wauser.User, error) {

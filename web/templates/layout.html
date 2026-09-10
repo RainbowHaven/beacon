@@ -6,12 +6,14 @@
   <title>{{if .Title}}{{.Title}} · {{end}}Beacon</title>
   <link rel="stylesheet" href="{{static "css/app.css"}}">
 </head>
-<body>
+<body{{if .Handoff}} class="handoff"{{end}}>
+{{if not .Handoff}}
 <header class="app">
   <strong><a href="/" style="text-decoration:none;color:inherit">Beacon</a></strong>
   <nav>
     {{if .User}}{{if .User.Email}}
       <span class="muted">{{.User.Email}} ({{.User.Role}})</span>
+      <a href="/occupants">Occupants</a>
       {{if eq .User.Role "rhc_admin"}}<a href="/admin/users">Users</a>{{end}}
       <form class="inline" method="post" action="/logout"><button class="secondary" type="submit">Log out</button></form>
     {{else}}
@@ -21,7 +23,8 @@
     {{end}}
   </nav>
 </header>
-<main class="wrap">
+{{end}}
+<main class="wrap{{if .Handoff}} handoff-main{{end}}">
 {{end}}
 
 {{define "layout_end"}}

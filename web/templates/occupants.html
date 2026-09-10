@@ -1,0 +1,58 @@
+{{template "layout_start" .}}
+<h1>Occupants</h1>
+{{if .Flash}}<p class="flash">{{.Flash}}</p>{{end}}
+{{if .Error}}<p class="flash error">{{.Error}}</p>{{end}}
+
+{{if .Headcount}}
+<section class="stack" style="margin-bottom:1.5rem">
+  <h2 style="margin:0;font-size:1.1rem">Headcount</h2>
+  <ul>
+  {{range .Headcount}}
+    <li><strong>{{.SafeHouseName}}</strong>: {{.Current}} current</li>
+  {{end}}
+  </ul>
+</section>
+{{end}}
+
+<p class="actions">
+  <a class="btn" href="/occupants/new">Add occupant</a>
+  {{if .CurrentOnly}}
+  <a class="btn secondary" href="/occupants?all=1">Show departed</a>
+  {{else}}
+  <a class="btn secondary" href="/occupants">Current only</a>
+  {{end}}
+</p>
+
+{{if .Rows}}
+<table>
+  <thead>
+    <tr>
+      <th>Nickname</th>
+      <th>House</th>
+      <th>Arrived</th>
+      <th>Departed</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {{range .Rows}}
+    <tr>
+      <td>{{.Nickname}}</td>
+      <td>{{.HouseName}}</td>
+      <td>{{.ArrivedAt.Format "2006-01-02"}}</td>
+      <td>{{if .DepartedAt}}{{.DepartedAt.Format "2006-01-02"}}{{else}}—{{end}}</td>
+      <td>
+        {{if .Current}}
+        <form class="inline" method="post" action="/occupants/{{.ID}}/depart" onsubmit="return confirm('Mark {{.Nickname}} as departed today?')">
+          <button class="secondary" type="submit">Depart</button>
+        </form>
+        {{end}}
+      </td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+{{else}}
+<p class="muted">No occupants in scope yet.</p>
+{{end}}
+{{template "layout_end" .}}
