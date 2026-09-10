@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/magiconair/beacon/internal/domain"
 )
 
@@ -54,9 +53,10 @@ func (s *Store) EnsureDemoTenancy(ctx context.Context) (domain.RHL, domain.SafeH
 	var rhl domain.RHL
 	err := s.db.QueryRowContext(ctx, `SELECT id, name FROM rhls ORDER BY created_at LIMIT 1`).Scan(&rhl.ID, &rhl.Name)
 	if errors.Is(err, sql.ErrNoRows) {
-		rhl.ID = uuid.New()
-		rhl.Name = "Rainbow Haven Local (Pilot)"
-		if _, err := s.db.ExecContext(ctx, `INSERT INTO rhls (id, name) VALUES ($1, $2)`, rhl.ID, rhl.Name); err != nil {
+		err = s.db.QueryRowContext(ctx, `
+			INSERT INTO rhls (name) VALUES ($1) RETURNING id, name`,
+			"Rainbow Haven Local (Pilot)").Scan(&rhl.ID, &rhl.Name)
+		if err != nil {
 			return domain.RHL{}, domain.SafeHouse{}, err
 		}
 	} else if err != nil {
@@ -67,10 +67,10 @@ func (s *Store) EnsureDemoTenancy(ctx context.Context) (domain.RHL, domain.SafeH
 	err = s.db.QueryRowContext(ctx, `SELECT id, rhl_id, name FROM safe_houses WHERE rhl_id = $1 ORDER BY created_at LIMIT 1`, rhl.ID).
 		Scan(&house.ID, &house.RHLID, &house.Name)
 	if errors.Is(err, sql.ErrNoRows) {
-		house.ID = uuid.New()
-		house.RHLID = rhl.ID
-		house.Name = "Pilot Safe House"
-		if _, err := s.db.ExecContext(ctx, `INSERT INTO safe_houses (id, rhl_id, name) VALUES ($1, $2, $3)`, house.ID, house.RHLID, house.Name); err != nil {
+		err = s.db.QueryRowContext(ctx, `
+			INSERT INTO safe_houses (rhl_id, name) VALUES ($1, $2) RETURNING id, rhl_id, name`,
+			rhl.ID, "Pilot Safe House").Scan(&house.ID, &house.RHLID, &house.Name)
+		if err != nil {
 			return domain.RHL{}, domain.SafeHouse{}, err
 		}
 	} else if err != nil {
@@ -81,25 +81,25 @@ func (s *Store) EnsureDemoTenancy(ctx context.Context) (domain.RHL, domain.SafeH
 
 func scanUser(row interface{ Scan(dest ...any) error }) (domain.User, error) {
 	var u domain.User
-	var rhl, house sql.NullString
+	var rhl, house sql.NullInt64
 	err := row.Scan(&u.ID, &u.Email, &u.DisplayName, &u.Status, &u.Role, &rhl, &house, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		return domain.User{}, err
 	}
 	if rhl.Valid {
-		id := uuid.MustParse(rhl.String)
+		id := rhl.Int64
 		u.RHLID = &id
 	}
 	if house.Valid {
-		id := uuid.MustParse(house.String)
+		id := house.Int64
 		u.SafeHouseID = &id
 	}
 	return u, nil
 }
 
-const userCols = `id, email, display_name, status, role, rhl_id::text, safe_house_id::text, created_at, updated_at`
+const userCols = `id, email, display_name, status, role, rhl_id, safe_house_id, created_at, updated_at`
 
-func (s *Store) GetUser(ctx context.Context, id uuid.UUID) (domain.User, error) {
+func (s *Store) GetUser(ctx context.Context, id int64) (domain.User, error) {
 	u, err := scanUser(s.db.QueryRowContext(ctx, `SELECT `+userCols+` FROM users WHERE id = $1`, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.User{}, ErrNotFound
@@ -170,8 +170,8 @@ type CreateUserInput struct {
 	Email       string
 	DisplayName string
 	Role        domain.Role
-	RHLID       *uuid.UUID
-	SafeHouseID *uuid.UUID
+	RHLID       *int64
+	SafeHouseID *int64
 }
 
 func (s *Store) CreateUserWithInvite(ctx context.Context, in CreateUserInput, inviteTTL time.Duration) (domain.User, string, error) {
@@ -181,11 +181,12 @@ func (s *Store) CreateUserWithInvite(ctx context.Context, in CreateUserInput, in
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	id := uuid.New()
-	_, err = tx.ExecContext(ctx, `
-		INSERT INTO users (id, email, display_name, status, role, rhl_id, safe_house_id)
-		VALUES ($1, lower($2), $3, 'pending', $4, $5, $6)`,
-		id, in.Email, in.DisplayName, in.Role, in.RHLID, in.SafeHouseID)
+	var id int64
+	err = tx.QueryRowContext(ctx, `
+		INSERT INTO users (email, display_name, status, role, rhl_id, safe_house_id)
+		VALUES (lower($1), $2, 'pending', $3, $4, $5)
+		RETURNING id`,
+		in.Email, in.DisplayName, in.Role, in.RHLID, in.SafeHouseID).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return domain.User{}, "", ErrEmailTaken
@@ -210,7 +211,7 @@ func (s *Store) CreateUserWithInvite(ctx context.Context, in CreateUserInput, in
 	return u, raw, err
 }
 
-func (s *Store) ReissueInvite(ctx context.Context, userID uuid.UUID, inviteTTL time.Duration) (string, error) {
+func (s *Store) ReissueInvite(ctx context.Context, userID int64, inviteTTL time.Duration) (string, error) {
 	raw, hash, err := newToken()
 	if err != nil {
 		return "", err
@@ -242,7 +243,7 @@ func (s *Store) ReissueInvite(ctx context.Context, userID uuid.UUID, inviteTTL t
 
 func (s *Store) LookupInvite(ctx context.Context, rawToken string) (domain.User, error) {
 	hash := hashToken(rawToken)
-	var userID uuid.UUID
+	var userID int64
 	var expires time.Time
 	var used sql.NullTime
 	err := s.db.QueryRowContext(ctx, `
@@ -282,12 +283,12 @@ func (s *Store) MarkInviteUsed(ctx context.Context, rawToken string) error {
 	return nil
 }
 
-func (s *Store) ActivateUser(ctx context.Context, userID uuid.UUID) error {
+func (s *Store) ActivateUser(ctx context.Context, userID int64) error {
 	_, err := s.db.ExecContext(ctx, `UPDATE users SET status = 'active', updated_at = now() WHERE id = $1`, userID)
 	return err
 }
 
-func (s *Store) LockUser(ctx context.Context, userID uuid.UUID) error {
+func (s *Store) LockUser(ctx context.Context, userID int64) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -302,7 +303,7 @@ func (s *Store) LockUser(ctx context.Context, userID uuid.UUID) error {
 	return tx.Commit()
 }
 
-func (s *Store) CreateSession(ctx context.Context, userID uuid.UUID, ttl time.Duration) (string, error) {
+func (s *Store) CreateSession(ctx context.Context, userID int64, ttl time.Duration) (string, error) {
 	raw, hash, err := newToken()
 	if err != nil {
 		return "", err
@@ -315,7 +316,7 @@ func (s *Store) CreateSession(ctx context.Context, userID uuid.UUID, ttl time.Du
 
 func (s *Store) UserBySession(ctx context.Context, rawToken string) (domain.User, error) {
 	hash := hashToken(rawToken)
-	var userID uuid.UUID
+	var userID int64
 	err := s.db.QueryRowContext(ctx, `
 		SELECT user_id FROM sessions
 		WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > now()`, hash).Scan(&userID)
@@ -342,26 +343,27 @@ func (s *Store) RevokeSession(ctx context.Context, rawToken string) error {
 	return err
 }
 
-func (s *Store) SaveWebAuthnChallenge(ctx context.Context, userID *uuid.UUID, purpose string, data any, ttl time.Duration) (uuid.UUID, error) {
-	id := uuid.New()
+func (s *Store) SaveWebAuthnChallenge(ctx context.Context, userID *int64, purpose string, data any, ttl time.Duration) (int64, error) {
 	b, err := json.Marshal(data)
 	if err != nil {
-		return uuid.Nil, err
+		return 0, err
 	}
 	expires := time.Now().UTC().Add(ttl)
-	_, err = s.db.ExecContext(ctx, `
-		INSERT INTO webauthn_challenges (id, user_id, purpose, data, expires_at)
-		VALUES ($1, $2, $3, $4::jsonb, $5)`, id, userID, purpose, string(b), expires)
+	var id int64
+	err = s.db.QueryRowContext(ctx, `
+		INSERT INTO webauthn_challenges (user_id, purpose, data, expires_at)
+		VALUES ($1, $2, $3::jsonb, $4)
+		RETURNING id`, userID, purpose, string(b), expires).Scan(&id)
 	return id, err
 }
 
-func (s *Store) TakeWebAuthnChallenge(ctx context.Context, id uuid.UUID, purpose string, dest any) (*uuid.UUID, error) {
-	var userID sql.NullString
+func (s *Store) TakeWebAuthnChallenge(ctx context.Context, id int64, purpose string, dest any) (*int64, error) {
+	var userID sql.NullInt64
 	var raw []byte
 	err := s.db.QueryRowContext(ctx, `
 		DELETE FROM webauthn_challenges
 		WHERE id = $1 AND purpose = $2 AND expires_at > now()
-		RETURNING user_id::text, data`, id, purpose).Scan(&userID, &raw)
+		RETURNING user_id, data`, id, purpose).Scan(&userID, &raw)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -374,11 +376,11 @@ func (s *Store) TakeWebAuthnChallenge(ctx context.Context, id uuid.UUID, purpose
 	if !userID.Valid {
 		return nil, nil
 	}
-	uid := uuid.MustParse(userID.String)
+	uid := userID.Int64
 	return &uid, nil
 }
 
-func (s *Store) Audit(ctx context.Context, actor *uuid.UUID, action, subjectType, subjectID string, meta map[string]any) error {
+func (s *Store) Audit(ctx context.Context, actor *int64, action, subjectType, subjectID string, meta map[string]any) error {
 	b, err := json.Marshal(meta)
 	if err != nil {
 		b = []byte(`{}`)

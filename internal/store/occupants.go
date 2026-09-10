@@ -8,17 +8,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/magiconair/beacon/internal/domain"
 )
 
 type CreateOccupantInput struct {
-	SafeHouseID        uuid.UUID
+	SafeHouseID        int64
 	Nickname           string
 	ArrivedAt          time.Time
 	IdentityCiphertext []byte
 	KeyID              string
-	CreatedBy          *uuid.UUID
+	CreatedBy          *int64
 }
 
 func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (domain.Occupant, error) {
@@ -32,13 +31,14 @@ func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (dom
 	if strings.TrimSpace(in.KeyID) == "" {
 		return domain.Occupant{}, errors.New("key_id required")
 	}
-	id := uuid.New()
 	arrived := in.ArrivedAt.UTC().Truncate(24 * time.Hour)
-	_, err := s.db.ExecContext(ctx, `
+	var id int64
+	err := s.db.QueryRowContext(ctx, `
 		INSERT INTO occupants (
-			id, safe_house_id, nickname, arrived_at, identity_ciphertext, key_id, created_by
-		) VALUES ($1, $2, $3, $4::date, $5, $6, $7)`,
-		id, in.SafeHouseID, nick, arrived, in.IdentityCiphertext, in.KeyID, in.CreatedBy)
+			safe_house_id, nickname, arrived_at, identity_ciphertext, key_id, created_by
+		) VALUES ($1, $2, $3::date, $4, $5, $6)
+		RETURNING id`,
+		in.SafeHouseID, nick, arrived, in.IdentityCiphertext, in.KeyID, in.CreatedBy).Scan(&id)
 	if err != nil {
 		return domain.Occupant{}, err
 	}
@@ -48,7 +48,7 @@ func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (dom
 func scanOccupant(row interface{ Scan(dest ...any) error }) (domain.Occupant, error) {
 	var o domain.Occupant
 	var departed sql.NullTime
-	var createdBy sql.NullString
+	var createdBy sql.NullInt64
 	err := row.Scan(
 		&o.ID, &o.SafeHouseID, &o.Nickname, &o.ArrivedAt, &departed,
 		&o.IdentityCiphertext, &o.KeyID, &createdBy, &o.CreatedAt, &o.UpdatedAt,
@@ -62,15 +62,15 @@ func scanOccupant(row interface{ Scan(dest ...any) error }) (domain.Occupant, er
 		o.DepartedAt = &d
 	}
 	if createdBy.Valid {
-		id := uuid.MustParse(createdBy.String)
+		id := createdBy.Int64
 		o.CreatedBy = &id
 	}
 	return o, nil
 }
 
-const occupantCols = `id, safe_house_id, nickname, arrived_at, departed_at, identity_ciphertext, key_id, created_by::text, created_at, updated_at`
+const occupantCols = `id, safe_house_id, nickname, arrived_at, departed_at, identity_ciphertext, key_id, created_by, created_at, updated_at`
 
-func (s *Store) GetOccupant(ctx context.Context, id uuid.UUID) (domain.Occupant, error) {
+func (s *Store) GetOccupant(ctx context.Context, id int64) (domain.Occupant, error) {
 	o, err := scanOccupant(s.db.QueryRowContext(ctx, `SELECT `+occupantCols+` FROM occupants WHERE id = $1`, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Occupant{}, ErrNotFound
@@ -78,11 +78,11 @@ func (s *Store) GetOccupant(ctx context.Context, id uuid.UUID) (domain.Occupant,
 	return o, err
 }
 
-func (s *Store) ListOccupantsByHouses(ctx context.Context, houseIDs []uuid.UUID, currentOnly bool) ([]domain.Occupant, error) {
+func (s *Store) ListOccupantsByHouses(ctx context.Context, houseIDs []int64, currentOnly bool) ([]domain.Occupant, error) {
 	if len(houseIDs) == 0 {
 		return nil, nil
 	}
-	in, args := uuidInClause(1, houseIDs)
+	in, args := int64InClause(1, houseIDs)
 	q := `SELECT ` + occupantCols + ` FROM occupants WHERE safe_house_id IN (` + in + `)`
 	if currentOnly {
 		q += ` AND (departed_at IS NULL OR departed_at > CURRENT_DATE)`
@@ -104,7 +104,7 @@ func (s *Store) ListOccupantsByHouses(ctx context.Context, houseIDs []uuid.UUID,
 	return out, rows.Err()
 }
 
-func (s *Store) MarkOccupantDeparted(ctx context.Context, id uuid.UUID, departedAt time.Time) error {
+func (s *Store) MarkOccupantDeparted(ctx context.Context, id int64, departedAt time.Time) error {
 	day := departedAt.UTC().Truncate(24 * time.Hour)
 	res, err := s.db.ExecContext(ctx, `
 		UPDATE occupants
@@ -121,11 +121,11 @@ func (s *Store) MarkOccupantDeparted(ctx context.Context, id uuid.UUID, departed
 	return nil
 }
 
-func (s *Store) HeadcountByHouses(ctx context.Context, houseIDs []uuid.UUID) ([]domain.HeadcountRow, error) {
+func (s *Store) HeadcountByHouses(ctx context.Context, houseIDs []int64) ([]domain.HeadcountRow, error) {
 	if len(houseIDs) == 0 {
 		return nil, nil
 	}
-	in, args := uuidInClause(1, houseIDs)
+	in, args := int64InClause(1, houseIDs)
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT sh.id, sh.name,
 			COALESCE(SUM(CASE WHEN o.id IS NOT NULL AND (o.departed_at IS NULL OR o.departed_at > CURRENT_DATE) THEN 1 ELSE 0 END), 0)::int
@@ -149,7 +149,7 @@ func (s *Store) HeadcountByHouses(ctx context.Context, houseIDs []uuid.UUID) ([]
 	return out, rows.Err()
 }
 
-func (s *Store) GetSafeHouse(ctx context.Context, id uuid.UUID) (domain.SafeHouse, error) {
+func (s *Store) GetSafeHouse(ctx context.Context, id int64) (domain.SafeHouse, error) {
 	var h domain.SafeHouse
 	err := s.db.QueryRowContext(ctx, `SELECT id, rhl_id, name FROM safe_houses WHERE id = $1`, id).
 		Scan(&h.ID, &h.RHLID, &h.Name)
@@ -159,7 +159,7 @@ func (s *Store) GetSafeHouse(ctx context.Context, id uuid.UUID) (domain.SafeHous
 	return h, err
 }
 
-func (s *Store) ListSafeHousesByRHL(ctx context.Context, rhlID uuid.UUID) ([]domain.SafeHouse, error) {
+func (s *Store) ListSafeHousesByRHL(ctx context.Context, rhlID int64) ([]domain.SafeHouse, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT id, rhl_id, name FROM safe_houses WHERE rhl_id = $1 ORDER BY name`, rhlID)
 	if err != nil {
 		return nil, err
@@ -176,7 +176,7 @@ func (s *Store) ListSafeHousesByRHL(ctx context.Context, rhlID uuid.UUID) ([]dom
 	return out, rows.Err()
 }
 
-func uuidInClause(start int, ids []uuid.UUID) (string, []any) {
+func int64InClause(start int, ids []int64) (string, []any) {
 	parts := make([]string, len(ids))
 	args := make([]any, len(ids))
 	for i, id := range ids {

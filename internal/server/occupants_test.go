@@ -10,11 +10,11 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/magiconair/beacon/internal/domain"
 	"github.com/magiconair/beacon/internal/server"
 	"github.com/magiconair/beacon/internal/store"
@@ -85,7 +85,7 @@ func TestOccupantCreateScopedAndSealed(t *testing.T) {
 	}
 
 	form := url.Values{
-		"safe_house_id":       {house.ID.String()},
+		"safe_house_id":       {strconv.FormatInt(house.ID, 10)},
 		"arrived_at":          {time.Now().UTC().Format("2006-01-02")},
 		"nickname":            {"Sparrow"},
 		"key_id":              {"test-key-1"},
@@ -100,7 +100,7 @@ func TestOccupantCreateScopedAndSealed(t *testing.T) {
 		t.Fatalf("create status %d", res.StatusCode)
 	}
 
-	list, err := st.ListOccupantsByHouses(context.Background(), []uuid.UUID{house.ID}, true)
+	list, err := st.ListOccupantsByHouses(context.Background(), []int64{house.ID}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestOccupantCreateScopedAndSealed(t *testing.T) {
 		t.Fatal("ciphertext must not contain plaintext name")
 	}
 
-	counts, err := st.HeadcountByHouses(context.Background(), []uuid.UUID{house.ID})
+	counts, err := st.HeadcountByHouses(context.Background(), []int64{house.ID})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -6,10 +6,9 @@ import (
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/google/uuid"
 )
 
-func (s *Store) ListCredentials(ctx context.Context, userID uuid.UUID) ([]webauthn.Credential, error) {
+func (s *Store) ListCredentials(ctx context.Context, userID int64) ([]webauthn.Credential, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, public_key, attestation_type, transport,
 		       flag_user_present, flag_user_verified, flag_backup_eligible, flag_backup_state,
@@ -45,7 +44,7 @@ func (s *Store) ListCredentials(ctx context.Context, userID uuid.UUID) ([]webaut
 	return out, rows.Err()
 }
 
-func (s *Store) SaveCredential(ctx context.Context, userID uuid.UUID, c *webauthn.Credential) error {
+func (s *Store) SaveCredential(ctx context.Context, userID int64, c *webauthn.Credential) error {
 	transports := make([]string, 0, len(c.Transport))
 	for _, t := range c.Transport {
 		transports = append(transports, string(t))
@@ -73,7 +72,7 @@ func (s *Store) SaveCredential(ctx context.Context, userID uuid.UUID, c *webauth
 	return err
 }
 
-func (s *Store) DeleteCredentialsForUser(ctx context.Context, userID uuid.UUID) error {
+func (s *Store) DeleteCredentialsForUser(ctx context.Context, userID int64) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM webauthn_credentials WHERE user_id = $1`, userID)
 	return err
 }

@@ -173,7 +173,7 @@ func (s *Server) handleRegisterFinish(w http.ResponseWriter, r *http.Request) {
 	s.clearCookie(w, challengeCookie)
 	s.clearCookie(w, inviteCookie)
 	s.setSessionCookie(w, raw)
-	_ = s.store.Audit(r.Context(), &u.ID, "auth.register", "user", u.ID.String(), nil)
+	_ = s.store.Audit(r.Context(), &u.ID, "auth.register", "user", idString(u.ID), nil)
 	writeJSON(w, map[string]string{"status": "ok", "redirect": "/"})
 }
 
@@ -262,7 +262,7 @@ func (s *Server) handleLoginFinish(w http.ResponseWriter, r *http.Request) {
 	}
 	s.clearCookie(w, challengeCookie)
 	s.setSessionCookie(w, raw)
-	_ = s.store.Audit(r.Context(), &u.ID, "auth.login", "user", u.ID.String(), nil)
+	_ = s.store.Audit(r.Context(), &u.ID, "auth.login", "user", idString(u.ID), nil)
 	writeJSON(w, map[string]string{"status": "ok", "redirect": "/"})
 }
 

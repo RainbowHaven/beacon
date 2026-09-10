@@ -1,8 +1,10 @@
 package wauser
 
 import (
+	"encoding/binary"
+	"fmt"
+
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/google/uuid"
 	"github.com/magiconair/beacon/internal/domain"
 )
 
@@ -13,7 +15,9 @@ type User struct {
 }
 
 func (u User) WebAuthnID() []byte {
-	return u.ID[:]
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(u.ID))
+	return b
 }
 
 func (u User) WebAuthnName() string {
@@ -35,6 +39,9 @@ func FromDomain(u domain.User, creds []webauthn.Credential) User {
 	return User{User: u, Credentials: creds}
 }
 
-func IDFromHandle(handle []byte) (uuid.UUID, error) {
-	return uuid.FromBytes(handle)
+func IDFromHandle(handle []byte) (int64, error) {
+	if len(handle) != 8 {
+		return 0, fmt.Errorf("webauthn user handle: want 8 bytes, got %d", len(handle))
+	}
+	return int64(binary.BigEndian.Uint64(handle)), nil
 }

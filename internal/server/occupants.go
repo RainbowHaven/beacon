@@ -3,10 +3,10 @@ package server
 import (
 	"encoding/base64"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/magiconair/beacon/internal/domain"
 	"github.com/magiconair/beacon/internal/store"
 )
@@ -58,12 +58,20 @@ func (s *Server) canAccessHouse(u domain.User, house domain.SafeHouse) bool {
 	}
 }
 
-func houseIDs(houses []domain.SafeHouse) []uuid.UUID {
-	ids := make([]uuid.UUID, len(houses))
+func houseIDs(houses []domain.SafeHouse) []int64 {
+	ids := make([]int64, len(houses))
 	for i, h := range houses {
 		ids[i] = h.ID
 	}
 	return ids
+}
+
+func parseID(s string) (int64, error) {
+	return strconv.ParseInt(strings.TrimSpace(s), 10, 64)
+}
+
+func idString(id int64) string {
+	return strconv.FormatInt(id, 10)
 }
 
 func (s *Server) handleOccupants(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +93,7 @@ func (s *Server) handleOccupants(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load headcount", http.StatusInternalServerError)
 		return
 	}
-	houseName := map[uuid.UUID]string{}
+	houseName := map[int64]string{}
 	for _, h := range houses {
 		houseName[h.ID] = h.Name
 	}
@@ -122,11 +130,11 @@ func (s *Server) handleOccupantNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.render(w, "occupant_new.html", map[string]any{
-		"Title":   "Add occupant",
-		"User":    &u,
-		"Houses":  houses,
-		"Today":   time.Now().UTC().Format("2006-01-02"),
-		"Error":   r.URL.Query().Get("error"),
+		"Title":  "Add occupant",
+		"User":   &u,
+		"Houses": houses,
+		"Today":  time.Now().UTC().Format("2006-01-02"),
+		"Error":  r.URL.Query().Get("error"),
 	})
 }
 
@@ -136,7 +144,7 @@ func (s *Server) handleOccupantHandoff(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad form", http.StatusBadRequest)
 		return
 	}
-	houseID, err := uuid.Parse(strings.TrimSpace(r.FormValue("safe_house_id")))
+	houseID, err := parseID(r.FormValue("safe_house_id"))
 	if err != nil {
 		http.Redirect(w, r, "/occupants/new?error=invalid+house", http.StatusSeeOther)
 		return
@@ -156,13 +164,13 @@ func (s *Server) handleOccupantHandoff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.render(w, "occupant_handoff.html", map[string]any{
-		"Title":              "Resident handoff",
-		"User":               &u,
-		"House":              house,
-		"ArrivedAt":          arrived,
-		"IdentityPublicKey":  base64.StdEncoding.EncodeToString(s.cfg.IdentityPublicKey[:]),
-		"IdentityKeyID":      s.cfg.IdentityKeyID,
-		"Handoff":            true,
+		"Title":             "Resident handoff",
+		"User":              &u,
+		"House":             house,
+		"ArrivedAt":         arrived,
+		"IdentityPublicKey": base64.StdEncoding.EncodeToString(s.cfg.IdentityPublicKey[:]),
+		"IdentityKeyID":     s.cfg.IdentityKeyID,
+		"Handoff":           true,
 	})
 }
 
@@ -172,7 +180,7 @@ func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad form", http.StatusBadRequest)
 		return
 	}
-	houseID, err := uuid.Parse(strings.TrimSpace(r.FormValue("safe_house_id")))
+	houseID, err := parseID(r.FormValue("safe_house_id"))
 	if err != nil {
 		http.Redirect(w, r, "/occupants/new?error=invalid+house", http.StatusSeeOther)
 		return
@@ -198,7 +206,6 @@ func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/occupants?error=missing+sealed+identity", http.StatusSeeOther)
 		return
 	}
-	// Reject accidental plaintext identity fields if a buggy client posts them.
 	if strings.TrimSpace(r.FormValue("legal_name")) != "" || strings.TrimSpace(r.FormValue("refugee_id")) != "" {
 		http.Redirect(w, r, "/occupants?error=identity+must+be+sealed+client-side", http.StatusSeeOther)
 		return
@@ -218,8 +225,8 @@ func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/occupants?error=could+not+save+occupant", http.StatusSeeOther)
 		return
 	}
-	_ = s.store.Audit(r.Context(), &uid, "occupant.create", "occupant", o.ID.String(), map[string]any{
-		"safe_house_id": houseID.String(),
+	_ = s.store.Audit(r.Context(), &uid, "occupant.create", "occupant", idString(o.ID), map[string]any{
+		"safe_house_id": houseID,
 		"key_id":        keyID,
 	})
 	http.Redirect(w, r, "/occupants?ok=added", http.StatusSeeOther)
@@ -227,7 +234,7 @@ func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleOccupantDepart(w http.ResponseWriter, r *http.Request) {
 	u, _ := s.currentUser(r)
-	id, err := uuid.Parse(r.PathValue("id"))
+	id, err := parseID(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, "bad id", http.StatusBadRequest)
 		return
@@ -256,7 +263,7 @@ func (s *Server) handleOccupantDepart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	uid := u.ID
-	_ = s.store.Audit(r.Context(), &uid, "occupant.depart", "occupant", id.String(), map[string]any{
+	_ = s.store.Audit(r.Context(), &uid, "occupant.depart", "occupant", idString(id), map[string]any{
 		"departed_at": day.Format("2006-01-02"),
 	})
 	http.Redirect(w, r, "/occupants?ok=departed", http.StatusSeeOther)

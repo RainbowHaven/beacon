@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/google/uuid"
 	"github.com/magiconair/beacon/internal/domain"
 	"github.com/magiconair/beacon/internal/store"
 	"github.com/magiconair/beacon/internal/wauser"
@@ -197,7 +196,7 @@ func (s *Server) Bootstrap(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		_ = s.store.Audit(ctx, nil, "bootstrap.admin", "user", u.ID.String(), map[string]any{"email": u.Email})
+		_ = s.store.Audit(ctx, nil, "bootstrap.admin", "user", idString(u.ID), map[string]any{"email": u.Email})
 		s.logInvite(u.Email, token, "bootstrap RHC admin created")
 		return nil
 	}
@@ -235,7 +234,7 @@ func (s *Server) Bootstrap(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	_ = s.store.Audit(ctx, nil, "bootstrap.reinvite", "user", u.ID.String(), map[string]any{"email": u.Email})
+	_ = s.store.Audit(ctx, nil, "bootstrap.reinvite", "user", idString(u.ID), map[string]any{"email": u.Email})
 	s.logInvite(u.Email, token, "bootstrap refreshed invite for pending admin")
 	return nil
 }
@@ -314,10 +313,10 @@ func (s *Server) clearCookie(w http.ResponseWriter, name string) {
 	})
 }
 
-func (s *Server) setChallengeCookie(w http.ResponseWriter, id uuid.UUID) {
+func (s *Server) setChallengeCookie(w http.ResponseWriter, id int64) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     challengeCookie,
-		Value:    id.String(),
+		Value:    idString(id),
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
@@ -338,12 +337,12 @@ func (s *Server) setInviteCookie(w http.ResponseWriter, token string) {
 	})
 }
 
-func (s *Server) challengeID(r *http.Request) (uuid.UUID, error) {
+func (s *Server) challengeID(r *http.Request) (int64, error) {
 	c, err := r.Cookie(challengeCookie)
 	if err != nil {
-		return uuid.Nil, err
+		return 0, err
 	}
-	return uuid.Parse(c.Value)
+	return parseID(c.Value)
 }
 
 func (s *Server) loadWAUser(ctx context.Context, u domain.User) (wauser.User, error) {
