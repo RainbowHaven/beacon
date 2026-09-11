@@ -1,0 +1,38 @@
+{{template "layout_start" .}}
+<h1>Edit user</h1>
+<p class="muted"><a href="/admin/users">← Users</a></p>
+{{if .Error}}<div class="flash error">{{.Error}}</div>{{end}}
+<p class="flash">Changing role or house scope does <strong>not</strong> require a new invite. Existing passkeys keep working. Sessions are revoked so the change applies on next login.</p>
+
+<form method="post" action="/admin/users/{{.Target.ID}}" class="stack" style="max-width:28rem">
+  <p><strong>{{.Target.Email}}</strong> · status {{.Target.Status}}</p>
+  <label>Display name <input type="text" name="display_name" value="{{.Target.DisplayName}}"></label>
+  <label>Role
+    <select name="role" id="role" required>
+      <option value="rhc_admin" {{if eq .Target.Role "rhc_admin"}}selected{{end}}>RHC admin</option>
+      <option value="rhl_admin" {{if eq .Target.Role "rhl_admin"}}selected{{end}}>RHL admin</option>
+      <option value="safe_house_manager" {{if eq .Target.Role "safe_house_manager"}}selected{{end}}>Safe house manager</option>
+    </select>
+  </label>
+  <label>RHL (for RHL admin)
+    <select name="rhl_id">
+      <option value="">—</option>
+      {{range .RHLs}}
+      <option value="{{.ID}}" {{if eq .ID $.SelectedRHL}}selected{{end}}>{{.Name}}</option>
+      {{end}}
+    </select>
+  </label>
+  <label>Safe house (for manager)
+    <select name="safe_house_id">
+      <option value="">—</option>
+      {{range .SafeHouses}}
+      <option value="{{.ID}}" {{if eq .ID $.SelectedHouse}}selected{{end}}>{{.Name}}</option>
+      {{end}}
+    </select>
+  </label>
+  <p class="actions">
+    <button type="submit" onclick="return confirm('Update role/scope for {{.Target.Email}}? Their sessions will end immediately.')">Save</button>
+    <a class="btn secondary" href="/admin/users">Cancel</a>
+  </p>
+</form>
+{{template "layout_end" .}}

@@ -24,6 +24,7 @@ Beacon helps Rainbow Haven run LGBTQ safe houses: occupancy, expenses, and RHC r
 - Verify Phase 2: `make verify-phase2`
 - Verify Phase 3: `make verify-phase3`
 - Verify Phase 4: `make verify-phase4`
+- Verify Phase 5: `make verify-phase5`
 - Verify CLA docs/workflow: `make verify-cla`
 - Identity keys: `make keys` → `.local/` (gitignored). Never commit private keys.
 

@@ -13,7 +13,8 @@ Safe house operations for Rainbow Haven — occupancy, expenses, and RHC reporti
 ```bash
 git clone git@github.com:magiconair/beacon.git
 cd beacon
-make help          # list targets
+make setup         # brew: go, cloudflared, bun (optional)
+make help
 make run           # generate local keys → .env → Postgres → app on :8080
 ```
 
@@ -41,17 +42,37 @@ make run
 ## Make targets
 
 ```bash
+make setup           # brew install go, cloudflared, bun
 make keys            # identity keypair → .local/ (no-op if already present)
 make env             # write .env from public key
 make db-up           # Postgres on host port 5433
 make run             # keys + env + db + go run ./cmd/beacon
+make tunnel          # Cloudflare quick tunnel (phone); writes .local/tunnel.env
+make run-tunnel      # app with tunnel WebAuthn host (use with make tunnel)
 make test            # go test ./...
-make verify-phase1   # … through verify-phase4
+make verify-phase1   # … through verify-phase5
 make verify          # Compose full-stack smoke
 make verify-cla      # CLA docs/workflow check
 make compose-up      # app + db via Compose (uses .env)
 make compose-down    # stop and remove volumes
 ```
+
+## Phone access (cloudflared)
+
+Passkeys are bound to the **hostname**. A quick tunnel works, but you must run the app with that host as WebAuthn RP ID:
+
+```bash
+# Terminal 1 — app on localhost first is fine; you’ll restart with tunnel env:
+make run
+
+# Terminal 2 — prints https://….trycloudflare.com and writes .local/tunnel.env
+make tunnel
+
+# Terminal 1 — stop the app (Ctrl-C), then:
+make run-tunnel
+```
+
+Open the printed HTTPS URL on your phone. Enroll a **new** passkey on the tunnel host (localhost passkeys won’t work there). Quick tunnel URLs change each run — update/restart when the URL changes.
 
 ## Tests & verification
 
@@ -59,6 +80,7 @@ Prefer Make so everyone runs the same commands:
 
 ```bash
 make test
+make verify-phase5   # org/houses + scope isolation (does not drop DB)
 make verify-phase4   # break-glass routes (does not drop DB)
 make verify-phase3   # drops schema — use a disposable local DB
 make verify-phase2
@@ -74,7 +96,8 @@ Phases 1–3 **drop** the local schema. Do not point them at data you care about
 - `/occupants/new` — handoff (legal name / UN ID sealed in-browser)
 - `/expenses` — amounts, notes, optional receipts
 - `/reports` — monthly headcount + expense totals (no private key)
-- `/admin/users` — list / lock / re-invite; `/admin/users/invite` to invite
+- `/admin/users` — list / lock / re-invite / edit role & scope; `/admin/users/invite` to invite
+- `/admin/houses` — create/edit RHLs and safe houses (currency, active)
 - `/admin/break-glass` — RHC browser-only decrypt (paste private key locally)
 - `/admin/audit` — audit trail
 

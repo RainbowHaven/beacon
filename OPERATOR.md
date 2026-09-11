@@ -17,6 +17,17 @@ Do not commit identity private keys. Each developer’s `make keys` output is lo
 2. Create user (role + house/RHL scope) → copy invite URL (shown once on Users).
 3. Manager opens the URL on `http://localhost:8080` (or the real `BASE_URL` host) and enrolls a passkey.
 
+## Change role or house without a new invite
+
+1. **Users** → **Edit** on that account (not your own).
+2. Change role and/or house/RHL → **Save**.
+3. Their sessions end immediately; passkeys keep working — they log in again with the same passkey.
+
+## Add a safe house
+
+1. **Houses** → add an RHL if needed → **Add safe house** (currency + active).
+2. Invite or **Edit** a manager to assign them to that house.
+
 ## Lost phone / new device
 
 1. **Users** → **Re-invite** (revokes sessions and credentials).
@@ -36,4 +47,4 @@ Do not commit identity private keys. Each developer’s `make keys` output is lo
 
 ## Local DB tip
 
-`go test` and `./scripts/verify-phase{1,2,3}.sh` **drop** the database schema. `verify-phase4.sh` does not. Do not run drop scripts against a DB you care about keeping (enrolled passkeys will disappear).
+`go test` and `./scripts/verify-phase{1,2,3}.sh` **drop** the database schema. `verify-phase4.sh` and `verify-phase5.sh` do not. Do not run drop scripts against a DB you care about keeping (enrolled passkeys will disappear).

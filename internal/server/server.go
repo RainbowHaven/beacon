@@ -24,12 +24,13 @@ import (
 )
 
 const (
-	sessionCookie   = "beacon_session"
-	challengeCookie = "beacon_wa_challenge"
-	inviteCookie    = "beacon_invite"
-	inviteTTL       = 7 * 24 * time.Hour
-	sessionTTL      = 14 * 24 * time.Hour
-	challengeTTL    = 5 * time.Minute
+	sessionCookie     = "beacon_session"
+	challengeCookie   = "beacon_wa_challenge"
+	inviteCookie      = "beacon_invite"
+	inviteFlashCookie = "beacon_invite_flash"
+	inviteTTL         = 7 * 24 * time.Hour
+	sessionTTL        = 14 * 24 * time.Hour
+	challengeTTL      = 5 * time.Minute
 )
 
 type Config struct {
@@ -176,8 +177,15 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /admin/users", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminUsers)))
 	mux.Handle("GET /admin/users/invite", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminInvitePage)))
 	mux.Handle("POST /admin/users/invite", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminCreateUser)))
+	mux.Handle("GET /admin/users/{id}/edit", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminEditUser)))
+	mux.Handle("POST /admin/users/{id}", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminUpdateUser)))
 	mux.Handle("POST /admin/users/{id}/lock", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminLockUser)))
 	mux.Handle("POST /admin/users/{id}/reinvite", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminReinvite)))
+	mux.Handle("GET /admin/houses", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminHouses)))
+	mux.Handle("POST /admin/rhls", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminCreateRHL)))
+	mux.Handle("POST /admin/rhls/{id}", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminUpdateRHL)))
+	mux.Handle("POST /admin/safe-houses", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminCreateSafeHouse)))
+	mux.Handle("POST /admin/safe-houses/{id}", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminUpdateSafeHouse)))
 	mux.Handle("GET /admin/break-glass", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleBreakGlass)))
 	mux.Handle("GET /admin/occupants/{id}/sealed-identity", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleSealedIdentity)))
 	mux.Handle("GET /admin/audit", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAudit)))
@@ -362,6 +370,36 @@ func (s *Server) setInviteCookie(w http.ResponseWriter, token string) {
 		Secure:   s.cfg.SecureCookies,
 		MaxAge:   int((2 * time.Hour).Seconds()),
 	})
+}
+
+// One-time display of a freshly minted invite token (avoids putting tokens in redirect query strings).
+func (s *Server) setInviteFlashCookie(w http.ResponseWriter, token string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     inviteFlashCookie,
+		Value:    token,
+		Path:     "/admin/users",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   s.cfg.SecureCookies,
+		MaxAge:   300,
+	})
+}
+
+func (s *Server) takeInviteFlashCookie(w http.ResponseWriter, r *http.Request) string {
+	c, err := r.Cookie(inviteFlashCookie)
+	if err != nil || strings.TrimSpace(c.Value) == "" {
+		return ""
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     inviteFlashCookie,
+		Value:    "",
+		Path:     "/admin/users",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   s.cfg.SecureCookies,
+		MaxAge:   -1,
+	})
+	return strings.TrimSpace(c.Value)
 }
 
 func (s *Server) challengeID(r *http.Request) (int64, error) {

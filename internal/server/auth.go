@@ -2,12 +2,14 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/magiconair/beacon/internal/domain"
+	"github.com/magiconair/beacon/internal/store"
 )
 
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
@@ -48,10 +50,23 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleInvitePage(w http.ResponseWriter, r *http.Request) {
-	token := r.PathValue("token")
+	token := strings.TrimSpace(r.PathValue("token"))
 	u, err := s.store.LookupInvite(r.Context(), token)
 	if err != nil {
-		s.render(w, "invite_invalid.html", map[string]any{"Title": "Invite"})
+		s.log.Warn("invite page lookup failed", "err", err, "token_len", len(token), "host", r.Host)
+		reason := "missing, expired, or already used"
+		switch {
+		case errors.Is(err, store.ErrUserLocked):
+			reason = "the account is locked"
+		case errors.Is(err, store.ErrInviteInvalid):
+			reason = "missing, expired, already used, or from a different database"
+		case token == "":
+			reason = "the link has no token"
+		}
+		s.render(w, "invite_invalid.html", map[string]any{
+			"Title":  "Invite",
+			"Reason": reason,
+		})
 		return
 	}
 	s.setInviteCookie(w, token)
