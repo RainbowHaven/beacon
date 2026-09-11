@@ -23,6 +23,7 @@ Beacon helps Rainbow Haven run LGBTQ safe houses: occupancy, expenses, and RHC r
 - Verify Phase 1: `./scripts/verify-phase1.sh`
 - Verify Phase 2: `./scripts/verify-phase2.sh`
 - Verify Phase 3: `./scripts/verify-phase3.sh`
+- Verify Phase 4: `./scripts/verify-phase4.sh`
 - Verify CLA docs/workflow: `./scripts/verify-cla.sh`
 
 ## Roles

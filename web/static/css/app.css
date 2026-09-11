@@ -8,6 +8,7 @@
   --card: #fffdf8;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body {
   margin: 0;
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, serif;
@@ -61,7 +62,7 @@ th, td { text-align: left; padding: 0.6rem 0.5rem; border-bottom: 1px solid var(
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.85rem;
 }
-.actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
 form.inline { display: inline; }
 body.handoff {
   min-height: 100vh;

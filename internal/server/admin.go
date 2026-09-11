@@ -15,17 +15,26 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
+	actor, _ := s.currentUser(r)
+	s.render(w, "admin_users.html", map[string]any{
+		"Title":     "Users",
+		"User":      &actor,
+		"Users":     users,
+		"Flash":     r.URL.Query().Get("flash"),
+		"InviteURL": r.URL.Query().Get("invite"),
+		"Error":     r.URL.Query().Get("error"),
+	})
+}
+
+func (s *Server) handleAdminInvitePage(w http.ResponseWriter, r *http.Request) {
 	rhls, _ := s.store.ListRHLs(r.Context())
 	houses, _ := s.store.ListSafeHouses(r.Context())
 	actor, _ := s.currentUser(r)
-	s.render(w, "admin_users.html", map[string]any{
-		"Title":      "Users",
+	s.render(w, "admin_invite.html", map[string]any{
+		"Title":      "Invite user",
 		"User":       &actor,
-		"Users":      users,
 		"RHLs":       rhls,
 		"SafeHouses": houses,
-		"Flash":      r.URL.Query().Get("flash"),
-		"InviteURL":  r.URL.Query().Get("invite"),
 		"Error":      r.URL.Query().Get("error"),
 	})
 }
@@ -33,7 +42,7 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) {
 	actor, _ := s.currentUser(r)
 	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, "/admin/users?error=bad+form", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/users/invite?error=bad+form", http.StatusSeeOther)
 		return
 	}
 	email := strings.TrimSpace(r.FormValue("email"))
@@ -47,14 +56,14 @@ func (s *Server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) {
 	case domain.RoleRHLAdmin:
 		id, err := parseID(r.FormValue("rhl_id"))
 		if err != nil {
-			http.Redirect(w, r, "/admin/users?error=rhl+required", http.StatusSeeOther)
+			http.Redirect(w, r, "/admin/users/invite?error=rhl+required", http.StatusSeeOther)
 			return
 		}
 		in.RHLID = &id
 	case domain.RoleSafeHouseManager:
 		id, err := parseID(r.FormValue("safe_house_id"))
 		if err != nil {
-			http.Redirect(w, r, "/admin/users?error=safe+house+required", http.StatusSeeOther)
+			http.Redirect(w, r, "/admin/users/invite?error=safe+house+required", http.StatusSeeOther)
 			return
 		}
 		in.SafeHouseID = &id
@@ -67,7 +76,7 @@ func (s *Server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	default:
-		http.Redirect(w, r, "/admin/users?error=invalid+role", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/users/invite?error=invalid+role", http.StatusSeeOther)
 		return
 	}
 
@@ -77,7 +86,7 @@ func (s *Server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) {
 		if err == store.ErrEmailTaken {
 			msg = "email+taken"
 		}
-		http.Redirect(w, r, "/admin/users?error="+msg, http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/users/invite?error="+msg, http.StatusSeeOther)
 		return
 	}
 	_ = s.store.Audit(r.Context(), &actor.ID, "admin.invite", "user", idString(u.ID), map[string]any{"email": u.Email, "role": u.Role})
@@ -90,6 +99,10 @@ func (s *Server) handleAdminLockUser(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, "bad id", http.StatusBadRequest)
+		return
+	}
+	if id == actor.ID {
+		http.Redirect(w, r, "/admin/users?error=cannot+modify+yourself", http.StatusSeeOther)
 		return
 	}
 	if err := s.store.LockUser(r.Context(), id); err != nil {
@@ -105,6 +118,10 @@ func (s *Server) handleAdminReinvite(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, "bad id", http.StatusBadRequest)
+		return
+	}
+	if id == actor.ID {
+		http.Redirect(w, r, "/admin/users?error=cannot+modify+yourself", http.StatusSeeOther)
 		return
 	}
 	if err := s.store.DeleteCredentialsForUser(r.Context(), id); err != nil {

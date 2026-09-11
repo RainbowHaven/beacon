@@ -174,9 +174,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /webauthn/login/finish", s.handleLoginFinish)
 
 	mux.Handle("GET /admin/users", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminUsers)))
-	mux.Handle("POST /admin/users", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminCreateUser)))
+	mux.Handle("GET /admin/users/invite", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminInvitePage)))
+	mux.Handle("POST /admin/users/invite", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminCreateUser)))
 	mux.Handle("POST /admin/users/{id}/lock", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminLockUser)))
 	mux.Handle("POST /admin/users/{id}/reinvite", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminReinvite)))
+	mux.Handle("GET /admin/break-glass", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleBreakGlass)))
+	mux.Handle("GET /admin/occupants/{id}/sealed-identity", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleSealedIdentity)))
+	mux.Handle("GET /admin/audit", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAudit)))
 
 	mux.Handle("GET /occupants", s.requireLogin(http.HandlerFunc(s.handleOccupants)))
 	mux.Handle("GET /occupants/new", s.requireLogin(http.HandlerFunc(s.handleOccupantNew)))

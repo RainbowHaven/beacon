@@ -108,3 +108,14 @@ type ExpenseTotals struct {
 	AmountCents   int64
 	Currency      string
 }
+
+type AuditEvent struct {
+	ID          int64
+	ActorUserID *int64
+	ActorEmail  string
+	Action      string
+	SubjectType string
+	SubjectID   string
+	Meta        map[string]any
+	CreatedAt   time.Time
+}

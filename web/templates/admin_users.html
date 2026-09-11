@@ -36,33 +36,9 @@
 </script>
 {{end}}
 
-<section class="stack" style="margin-bottom:2rem">
-  <h2>Invite someone</h2>
-  <form method="post" action="/admin/users" class="stack" style="max-width:28rem">
-    <label>Email <input type="email" name="email" required></label>
-    <label>Display name <input type="text" name="display_name"></label>
-    <label>Role
-      <select name="role" id="role" required>
-        <option value="rhc_admin">RHC admin</option>
-        <option value="rhl_admin">RHL admin</option>
-        <option value="safe_house_manager">Safe house manager</option>
-      </select>
-    </label>
-    <label>RHL (for RHL admin)
-      <select name="rhl_id">
-        <option value="">—</option>
-        {{range .RHLs}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
-      </select>
-    </label>
-    <label>Safe house (for manager)
-      <select name="safe_house_id">
-        <option value="">—</option>
-        {{range .SafeHouses}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
-      </select>
-    </label>
-    <button type="submit">Create invite</button>
-  </form>
-</section>
+<p class="actions" style="margin-bottom:1.5rem">
+  <a class="btn" href="/admin/users/invite">Invite user</a>
+</p>
 
 <table>
   <thead>
@@ -74,11 +50,21 @@
       <td>{{.Email}}{{if .DisplayName}}<div class="muted">{{.DisplayName}}</div>{{end}}</td>
       <td>{{.Role}}</td>
       <td>{{.Status}}</td>
-      <td class="actions">
-        {{if ne .Status "locked"}}
-        <form class="inline" method="post" action="/admin/users/{{.ID}}/lock"><button class="danger" type="submit">Lock</button></form>
+      <td>
+        <div class="actions">
+        {{if eq .ID $.User.ID}}
+        <span class="muted">Signed in</span>
+        {{else}}
+          {{if ne .Status "locked"}}
+          <form class="inline" method="post" action="/admin/users/{{.ID}}/lock" onsubmit="return confirm('Lock {{.Email}}? Sessions end immediately. Re-invite later to restore access.')">
+            <button class="danger" type="submit">Lock</button>
+          </form>
+          {{end}}
+          <form class="inline" method="post" action="/admin/users/{{.ID}}/reinvite" onsubmit="return confirm('Issue a new invite for {{.Email}}? Existing passkeys stop working immediately. They must open the new invite link and enroll a passkey again.')">
+            <button class="secondary" type="submit">New invite</button>
+          </form>
         {{end}}
-        <form class="inline" method="post" action="/admin/users/{{.ID}}/reinvite"><button class="secondary" type="submit">New invite</button></form>
+        </div>
       </td>
     </tr>
   {{end}}

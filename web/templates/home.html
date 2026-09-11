@@ -17,7 +17,9 @@
   <a class="btn" href="/expenses">Expenses</a>
   <a class="btn secondary" href="/reports">Reports</a>
   {{if eq .User.Role "rhc_admin"}}
-  <a class="btn secondary" href="/admin/users">Manage users & invites</a>
+  <a class="btn secondary" href="/admin/users">Users</a>
+  <a class="btn secondary" href="/admin/break-glass">Break-glass</a>
+  <a class="btn secondary" href="/admin/audit">Audit</a>
   {{end}}
 </p>
 {{else}}

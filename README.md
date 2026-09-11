@@ -56,11 +56,16 @@ After login:
 - `/occupants/new` — start resident handoff (legal name / UN ID sealed in-browser)
 - `/expenses` — log amount/note/date with optional receipt upload
 - `/reports` — monthly headcount + expense totals/receipt counts (no private key)
-- RHC admin `/admin/users` — invite, lock, re-invite (passkey recovery)
+- RHC admin `/admin/users` — list, lock, re-invite; `/admin/users/invite` to create invites
+- RHC admin `/admin/break-glass` — browser-only identity decrypt (private key never uploaded)
+- RHC admin `/admin/audit` — audit trail
+
+Operator procedures: [OPERATOR.md](./OPERATOR.md).
 
 ## Verify
 
 ```bash
+./scripts/verify-phase4.sh       # Phase 4: break-glass + audit (does not drop DB)
 ./scripts/verify-phase3.sh       # Phase 3: expenses + receipts + monthly report
 ./scripts/verify-phase2.sh       # Phase 2: sealed identity + occupants
 ./scripts/verify-phase1.sh       # Phase 1: WebAuthn flow tests + HTTP smoke
