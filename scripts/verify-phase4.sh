@@ -19,10 +19,11 @@ export BASE_URL="${BASE_URL:-http://localhost:8080}"
 export WEBAUTHN_RP_ID="${WEBAUTHN_RP_ID:-localhost}"
 export WEBAUTHN_RP_ORIGINS="${WEBAUTHN_RP_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}"
 export SECURE_COOKIES=false
-export IDENTITY_PUBLIC_KEY_B64="${IDENTITY_PUBLIC_KEY_B64:-OM1ZQIEru2EWDGtgfLzI6tB3KIYZ30L2mVQTffmAxUQ=}"
-export IDENTITY_KEY_ID="${IDENTITY_KEY_ID:-local-dev-1}"
 export RECEIPT_DIR="${RECEIPT_DIR:-/tmp/beacon-phase4-receipts}"
-export IDENTITY_PRIVATE_KEY_B64="${IDENTITY_PRIVATE_KEY_B64:-kkaOEMtAGbjNKyXqJqzDTP9Un3oUWnyjkGqP9ZuXVbw=}"
+# shellcheck disable=SC1091
+source "$ROOT/scripts/lib/identity-env.sh"
+identity_env_prepare "$ROOT"
+CRYPTO_PRIV="${IDENTITY_PRIVATE_KEY_B64}"
 
 chmod +x scripts/compose.sh scripts/verify-phase4.sh
 mkdir -p "$RECEIPT_DIR"
@@ -37,6 +38,7 @@ for _ in $(seq 1 40); do
 done
 
 if command -v bun >/dev/null 2>&1; then
+  export IDENTITY_PRIVATE_KEY_B64="$CRYPTO_PRIV"
   CT_B64="$(bun -e '
 import { readFileSync } from "fs";
 eval(readFileSync("./web/static/js/vendor/nacl-fast.min.js","utf8"));
@@ -49,12 +51,15 @@ const opened = openAnonymous(ct, pub, priv);
 if (new TextDecoder().decode(opened) !== msg) throw new Error("js open mismatch");
 process.stdout.write(bytesToB64(ct));
 ')"
-  go run ./scripts/internal/openseal -pub "$IDENTITY_PUBLIC_KEY_B64" -priv "$IDENTITY_PRIVATE_KEY_B64" -ct "$CT_B64" \
+  go run ./scripts/internal/openseal -pub "$IDENTITY_PUBLIC_KEY_B64" -priv "$CRYPTO_PRIV" -ct "$CT_B64" \
     | grep -q '"legal_name":"Phase4"' || fail "JS seal → Go open"
   pass "JS seal/open + Go OpenAnonymous"
 else
   echo "WARN: bun not found; skipping JS openAnonymous check"
 fi
+
+unset IDENTITY_PRIVATE_KEY_B64
+unset CRYPTO_PRIV
 
 go test ./...
 pass "go test ./..."

@@ -3,8 +3,8 @@ package server_test
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"database/sql"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,6 +24,7 @@ import (
 	"github.com/magiconair/beacon/internal/migrate"
 	"github.com/magiconair/beacon/internal/server"
 	"github.com/magiconair/beacon/internal/store"
+	"golang.org/x/crypto/nacl/box"
 )
 
 func testDB(t *testing.T) *sql.DB {
@@ -321,14 +322,18 @@ func assertLoginFails(t *testing.T, base, email string) {
 	}
 }
 
-// Local-dev public key (private key must never be loaded by the server).
+// Ephemeral sealed-box keypair for tests (never a checked-in private key).
+func testIdentityKeyPair(t *testing.T) (pub, priv [32]byte) {
+	t.Helper()
+	pubPtr, privPtr, err := box.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("generate identity keypair: %v", err)
+	}
+	return *pubPtr, *privPtr
+}
+
 func testIdentityPublicKey(t *testing.T) [32]byte {
 	t.Helper()
-	raw, err := base64.StdEncoding.DecodeString("OM1ZQIEru2EWDGtgfLzI6tB3KIYZ30L2mVQTffmAxUQ=")
-	if err != nil || len(raw) != 32 {
-		t.Fatalf("test public key: %v len=%d", err, len(raw))
-	}
-	var out [32]byte
-	copy(out[:], raw)
-	return out
+	pub, _ := testIdentityKeyPair(t)
+	return pub
 }

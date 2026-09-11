@@ -4,12 +4,12 @@ Short procedures for Rainbow Haven Coordinating (RHC). No Go knowledge required.
 
 ## Keys (identity vault)
 
-- **Public key** lives in app config (`IDENTITY_PUBLIC_KEY_B64` + `IDENTITY_KEY_ID`).
-- **Private key** stays offline (printed / vault). Never put it in env, Docker, DB, or manager devices.
+- **Public key** lives in app config (`IDENTITY_PUBLIC_KEY_B64` + `IDENTITY_KEY_ID`). Generate locally with `make keys` / `make env`.
+- **Private key** stays offline (printed / vault / `.local/identity.priv.b64` on your laptop). Never put it in env committed to git, Docker, DB, or manager devices.
 - Break-glass: RHC opens `/admin/break-glass`, pastes the private key in the browser, decrypts one nickname at a time, then clicks **Clear key**.
 - Each sealed-identity fetch is audited as `identity.break_glass`.
 
-Local-dev private key (NOT for production): matching the compose public key is used only in `scripts/verify-phase2.sh` / `verify-phase4.sh` for crypto checks — do not set it as a server env var.
+Do not commit identity private keys. Each developer’s `make keys` output is local-only.
 
 ## Invite a manager
 

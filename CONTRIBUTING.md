@@ -20,21 +20,20 @@ Signatures are stored in `signatures/version1/cla.json` on `main` (created/updat
 **Note:** The first pull request after enabling CLA may fail the CLA check once while the empty signatures file is bootstrapped on `main`. Comment `recheck` on the PR to clear it.
 
 
-## Local checks (CLA)
-
-From the repo root:
+## Local checks
 
 ```bash
-./scripts/verify-cla.sh
+make verify-cla
+make test
 ```
 
-This validates documents and workflow shape offline (no GitHub API calls).
+`make verify-cla` validates CLA documents and workflow shape offline (no GitHub API calls).
 
 Optional richer local dry-run:
 
 ```bash
 brew install act actionlint
-./scripts/verify-cla.sh
+make verify-cla
 ```
 
 `act` can dry-run the workflow with fixtures under `testdata/cla/`. A full signing round-trip still needs a real pull request from a **non-allowlisted** GitHub user after the workflow is on `main`.
