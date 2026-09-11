@@ -1,0 +1,103 @@
+{{template "layout_start" .}}
+<h1>Houses</h1>
+<p class="muted">RHLs and safe houses. Inactive houses are hidden from day-to-day pickers.</p>
+{{if .Error}}<div class="flash error">{{.Error}}</div>{{end}}
+{{if .Flash}}<div class="flash">{{.Flash}}</div>{{end}}
+
+<section class="stack" style="margin-bottom:2rem">
+  <h2>RHLs</h2>
+  <table>
+    <thead><tr><th>Name</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {{range .RHLs}}
+      {{$rhl := .}}
+      <tr>
+        <td colspan="3">
+          <form method="post" action="/admin/rhls/{{$rhl.ID}}" class="stack" style="gap:0.5rem">
+            <div class="actions" style="align-items:flex-end;flex-wrap:wrap">
+              <label>Name <input type="text" name="name" value="{{$rhl.Name}}" required></label>
+              <label>Status
+                <select name="active">
+                  <option value="true" {{if $rhl.Active}}selected{{end}}>Active</option>
+                  <option value="false" {{if not $rhl.Active}}selected{{end}}>Inactive</option>
+                </select>
+              </label>
+              <button type="submit" class="secondary">Save</button>
+            </div>
+          </form>
+        </td>
+      </tr>
+    {{else}}
+      <tr><td colspan="3" class="muted">No RHLs yet.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+  <form method="post" action="/admin/rhls" class="actions" style="align-items:flex-end;margin-top:1rem">
+    <label>New RHL <input type="text" name="name" required placeholder="Region name"></label>
+    <input type="hidden" name="active" value="true">
+    <button type="submit">Add RHL</button>
+  </form>
+</section>
+
+<section class="stack">
+  <h2>Safe houses</h2>
+  <table>
+    <thead><tr><th colspan="5">Existing houses</th></tr></thead>
+    <tbody>
+    {{range .Houses}}
+      {{$house := .}}
+      <tr>
+        <td colspan="5">
+          <form method="post" action="/admin/safe-houses/{{$house.ID}}" class="stack" style="gap:0.5rem">
+            <div class="actions" style="align-items:flex-end;flex-wrap:wrap">
+              <label>Name <input type="text" name="name" value="{{$house.Name}}" required></label>
+              <label>RHL
+                <select name="rhl_id" required>
+                  {{range $.RHLs}}
+                  <option value="{{.ID}}" {{if eq .ID $house.RHLID}}selected{{end}}>{{.Name}}</option>
+                  {{end}}
+                </select>
+              </label>
+              <label>Currency
+                <select name="default_currency">
+                  {{range $.Currencies}}
+                  <option value="{{.}}" {{if eq . $house.DefaultCurrency}}selected{{end}}>{{.}}</option>
+                  {{end}}
+                </select>
+              </label>
+              <label>Status
+                <select name="active">
+                  <option value="true" {{if $house.Active}}selected{{end}}>Active</option>
+                  <option value="false" {{if not $house.Active}}selected{{end}}>Inactive</option>
+                </select>
+              </label>
+              <button type="submit" class="secondary">Save</button>
+            </div>
+          </form>
+        </td>
+      </tr>
+    {{else}}
+      <tr><td colspan="5" class="muted">No safe houses yet.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+
+  <form method="post" action="/admin/safe-houses" class="stack" style="max-width:28rem;margin-top:1rem">
+    <h3 style="margin:0;font-size:1.05rem">Add safe house</h3>
+    <label>Name <input type="text" name="name" required></label>
+    <label>RHL
+      <select name="rhl_id" required>
+        <option value="">—</option>
+        {{range .RHLs}}{{if .Active}}<option value="{{.ID}}">{{.Name}}</option>{{end}}{{end}}
+      </select>
+    </label>
+    <label>Default currency
+      <select name="default_currency">
+        {{range .Currencies}}<option value="{{.}}" {{if eq . "CAD"}}selected{{end}}>{{.}}</option>{{end}}
+      </select>
+    </label>
+    <input type="hidden" name="active" value="true">
+    <button type="submit">Add safe house</button>
+  </form>
+</section>
+{{template "layout_end" .}}

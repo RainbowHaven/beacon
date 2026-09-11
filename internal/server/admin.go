@@ -2,7 +2,6 @@ package server
 
 import (
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/magiconair/beacon/internal/domain"
@@ -16,13 +15,24 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	actor, _ := s.currentUser(r)
+	token := s.takeInviteFlashCookie(w, r)
+	if token == "" {
+		token = strings.TrimSpace(r.URL.Query().Get("invite_token"))
+	}
+	inviteURL := ""
+	invitePath := ""
+	if token != "" {
+		invitePath = "/invite/" + token
+		inviteURL = strings.TrimRight(s.cfg.BaseURL, "/") + invitePath
+	}
 	s.render(w, "admin_users.html", map[string]any{
-		"Title":     "Users",
-		"User":      &actor,
-		"Users":     users,
-		"Flash":     r.URL.Query().Get("flash"),
-		"InviteURL": r.URL.Query().Get("invite"),
-		"Error":     r.URL.Query().Get("error"),
+		"Title":      "Users",
+		"User":       &actor,
+		"Users":      users,
+		"Flash":      r.URL.Query().Get("flash"),
+		"InviteURL":  inviteURL,
+		"InvitePath": invitePath,
+		"Error":      r.URL.Query().Get("error"),
 	})
 }
 
@@ -90,8 +100,8 @@ func (s *Server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = s.store.Audit(r.Context(), &actor.ID, "admin.invite", "user", idString(u.ID), map[string]any{"email": u.Email, "role": u.Role})
-	inviteURL := s.cfg.BaseURL + "/invite/" + token
-	http.Redirect(w, r, "/admin/users?flash=created&invite="+url.QueryEscape(inviteURL), http.StatusSeeOther)
+	s.setInviteFlashCookie(w, token)
+	http.Redirect(w, r, "/admin/users?flash=created", http.StatusSeeOther)
 }
 
 func (s *Server) handleAdminLockUser(w http.ResponseWriter, r *http.Request) {
@@ -134,6 +144,101 @@ func (s *Server) handleAdminReinvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = s.store.Audit(r.Context(), &actor.ID, "admin.reinvite", "user", idString(id), nil)
-	inviteURL := s.cfg.BaseURL + "/invite/" + token
-	http.Redirect(w, r, "/admin/users?flash=reinvited&invite="+url.QueryEscape(inviteURL), http.StatusSeeOther)
+	s.setInviteFlashCookie(w, token)
+	http.Redirect(w, r, "/admin/users?flash=reinvited", http.StatusSeeOther)
+}
+
+func (s *Server) handleAdminEditUser(w http.ResponseWriter, r *http.Request) {
+	actor, _ := s.currentUser(r)
+	id, err := parseID(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "bad id", http.StatusBadRequest)
+		return
+	}
+	if id == actor.ID {
+		http.Redirect(w, r, "/admin/users?error=cannot+modify+yourself", http.StatusSeeOther)
+		return
+	}
+	target, err := s.store.GetUser(r.Context(), id)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	rhls, _ := s.store.ListRHLs(r.Context())
+	houses, _ := s.store.ListSafeHouses(r.Context())
+	var selectedRHL, selectedHouse int64
+	if target.RHLID != nil {
+		selectedRHL = *target.RHLID
+	}
+	if target.SafeHouseID != nil {
+		selectedHouse = *target.SafeHouseID
+	}
+	s.render(w, "admin_user_edit.html", map[string]any{
+		"Title":         "Edit user",
+		"User":          &actor,
+		"Target":        target,
+		"SelectedRHL":   selectedRHL,
+		"SelectedHouse": selectedHouse,
+		"RHLs":          rhls,
+		"SafeHouses":    houses,
+		"Error":         r.URL.Query().Get("error"),
+	})
+}
+
+func (s *Server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) {
+	actor, _ := s.currentUser(r)
+	id, err := parseID(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "bad id", http.StatusBadRequest)
+		return
+	}
+	if id == actor.ID {
+		http.Redirect(w, r, "/admin/users?error=cannot+modify+yourself", http.StatusSeeOther)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Redirect(w, r, "/admin/users/"+idString(id)+"/edit?error=bad+form", http.StatusSeeOther)
+		return
+	}
+	role := domain.Role(r.FormValue("role"))
+	in := store.UpdateUserInput{
+		DisplayName: strings.TrimSpace(r.FormValue("display_name")),
+		Role:        role,
+	}
+	switch role {
+	case domain.RoleRHCAdmin:
+		// clear scope
+	case domain.RoleRHLAdmin:
+		rid, err := parseID(r.FormValue("rhl_id"))
+		if err != nil {
+			http.Redirect(w, r, "/admin/users/"+idString(id)+"/edit?error=rhl+required", http.StatusSeeOther)
+			return
+		}
+		in.RHLID = &rid
+	case domain.RoleSafeHouseManager:
+		hid, err := parseID(r.FormValue("safe_house_id"))
+		if err != nil {
+			http.Redirect(w, r, "/admin/users/"+idString(id)+"/edit?error=safe+house+required", http.StatusSeeOther)
+			return
+		}
+		in.SafeHouseID = &hid
+		house, err := s.store.GetSafeHouse(r.Context(), hid)
+		if err != nil {
+			http.Redirect(w, r, "/admin/users/"+idString(id)+"/edit?error=safe+house+required", http.StatusSeeOther)
+			return
+		}
+		rid := house.RHLID
+		in.RHLID = &rid
+	default:
+		http.Redirect(w, r, "/admin/users/"+idString(id)+"/edit?error=invalid+role", http.StatusSeeOther)
+		return
+	}
+	if err := s.store.UpdateUser(r.Context(), id, in); err != nil {
+		http.Redirect(w, r, "/admin/users/"+idString(id)+"/edit?error=update+failed", http.StatusSeeOther)
+		return
+	}
+	_ = s.store.Audit(r.Context(), &actor.ID, "admin.user.update", "user", idString(id), map[string]any{
+		"role": in.Role, "rhl_id": in.RHLID, "safe_house_id": in.SafeHouseID,
+	})
+	http.Redirect(w, r, "/admin/users?flash=user+updated", http.StatusSeeOther)
 }

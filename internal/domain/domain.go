@@ -35,15 +35,17 @@ type User struct {
 func (u User) IsActive() bool { return u.Status == UserActive }
 
 type RHL struct {
-	ID   int64
-	Name string
+	ID     int64
+	Name   string
+	Active bool
 }
 
 type SafeHouse struct {
-	ID               int64
-	RHLID            int64
-	Name             string
-	DefaultCurrency  string
+	ID              int64
+	RHLID           int64
+	Name            string
+	DefaultCurrency string
+	Active          bool
 }
 
 type Invite struct {

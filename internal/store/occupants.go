@@ -151,8 +151,8 @@ func (s *Store) HeadcountByHouses(ctx context.Context, houseIDs []int64) ([]doma
 
 func (s *Store) GetSafeHouse(ctx context.Context, id int64) (domain.SafeHouse, error) {
 	var h domain.SafeHouse
-	err := s.db.QueryRowContext(ctx, `SELECT id, rhl_id, name, default_currency FROM safe_houses WHERE id = $1`, id).
-		Scan(&h.ID, &h.RHLID, &h.Name, &h.DefaultCurrency)
+	err := s.db.QueryRowContext(ctx, `SELECT id, rhl_id, name, default_currency, active FROM safe_houses WHERE id = $1`, id).
+		Scan(&h.ID, &h.RHLID, &h.Name, &h.DefaultCurrency, &h.Active)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.SafeHouse{}, ErrNotFound
 	}
@@ -160,7 +160,7 @@ func (s *Store) GetSafeHouse(ctx context.Context, id int64) (domain.SafeHouse, e
 }
 
 func (s *Store) ListSafeHousesByRHL(ctx context.Context, rhlID int64) ([]domain.SafeHouse, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, rhl_id, name, default_currency FROM safe_houses WHERE rhl_id = $1 ORDER BY name`, rhlID)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, rhl_id, name, default_currency, active FROM safe_houses WHERE rhl_id = $1 ORDER BY name`, rhlID)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func (s *Store) ListSafeHousesByRHL(ctx context.Context, rhlID int64) ([]domain.
 	var out []domain.SafeHouse
 	for rows.Next() {
 		var h domain.SafeHouse
-		if err := rows.Scan(&h.ID, &h.RHLID, &h.Name, &h.DefaultCurrency); err != nil {
+		if err := rows.Scan(&h.ID, &h.RHLID, &h.Name, &h.DefaultCurrency, &h.Active); err != nil {
 			return nil, err
 		}
 		out = append(out, h)

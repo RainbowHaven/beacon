@@ -23,14 +23,16 @@ func (s *Server) requireLogin(next http.Handler) http.Handler {
 }
 
 func (s *Server) housesForUser(r *http.Request, u domain.User) ([]domain.SafeHouse, error) {
+	var houses []domain.SafeHouse
+	var err error
 	switch u.Role {
 	case domain.RoleRHCAdmin:
-		return s.store.ListSafeHouses(r.Context())
+		houses, err = s.store.ListSafeHouses(r.Context())
 	case domain.RoleRHLAdmin:
 		if u.RHLID == nil {
 			return nil, nil
 		}
-		return s.store.ListSafeHousesByRHL(r.Context(), *u.RHLID)
+		houses, err = s.store.ListSafeHousesByRHL(r.Context(), *u.RHLID)
 	case domain.RoleSafeHouseManager:
 		if u.SafeHouseID == nil {
 			return nil, nil
@@ -39,10 +41,20 @@ func (s *Server) housesForUser(r *http.Request, u domain.User) ([]domain.SafeHou
 		if err != nil {
 			return nil, err
 		}
-		return []domain.SafeHouse{h}, nil
+		houses = []domain.SafeHouse{h}
 	default:
 		return nil, nil
 	}
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.SafeHouse, 0, len(houses))
+	for _, h := range houses {
+		if h.Active {
+			out = append(out, h)
+		}
+	}
+	return out, nil
 }
 
 func (s *Server) canAccessHouse(u domain.User, house domain.SafeHouse) bool {
@@ -50,9 +62,9 @@ func (s *Server) canAccessHouse(u domain.User, house domain.SafeHouse) bool {
 	case domain.RoleRHCAdmin:
 		return true
 	case domain.RoleRHLAdmin:
-		return u.RHLID != nil && *u.RHLID == house.RHLID
+		return u.RHLID != nil && *u.RHLID == house.RHLID && house.Active
 	case domain.RoleSafeHouseManager:
-		return u.SafeHouseID != nil && *u.SafeHouseID == house.ID
+		return u.SafeHouseID != nil && *u.SafeHouseID == house.ID && house.Active
 	default:
 		return false
 	}

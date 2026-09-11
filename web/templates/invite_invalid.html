@@ -1,5 +1,6 @@
 {{template "layout_start" .}}
 <h1>Invite not valid</h1>
-<p>This invite link is missing, expired, or already used. Ask an RHC admin for a new invite.</p>
+<p>This invite link is {{if .Reason}}{{.Reason}}{{else}}missing, expired, or already used{{end}}.</p>
+<p class="muted">Ask an RHC admin for a new invite. If you use a Cloudflare tunnel, open the invite on that tunnel host (not a stale tunnel URL), and avoid resetting the DB between create and enroll.</p>
 <p><a href="/login">Back to login</a></p>
 {{template "layout_end" .}}

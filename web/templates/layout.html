@@ -10,24 +10,28 @@
 {{if not .Handoff}}
 <header class="app no-print">
   <strong><a href="/" style="text-decoration:none;color:inherit">Beacon</a></strong>
-  <nav>
-    {{if .User}}{{if .User.Email}}
-      <span class="muted">{{.User.Email}} ({{.User.Role}})</span>
+  {{if .User}}{{if .User.Email}}
+  <details class="nav-drawer">
+    <summary class="nav-toggle" aria-label="Menu">Menu</summary>
+    <nav class="nav-panel">
+      <span class="muted nav-user">{{.User.Email}} ({{.User.Role}})</span>
       <a href="/occupants">Occupants</a>
       <a href="/expenses">Expenses</a>
       <a href="/reports">Reports</a>
       {{if eq .User.Role "rhc_admin"}}
       <a href="/admin/users">Users</a>
+      <a href="/admin/houses">Houses</a>
       <a href="/admin/break-glass">Break-glass</a>
       <a href="/admin/audit">Audit</a>
       {{end}}
       <form class="inline" method="post" action="/logout"><button class="secondary" type="submit">Log out</button></form>
-    {{else}}
-      <a href="/login">Log in</a>
-    {{end}}{{else}}
-      <a href="/login">Log in</a>
-    {{end}}
-  </nav>
+    </nav>
+  </details>
+  {{else}}
+  <nav><a href="/login">Log in</a></nav>
+  {{end}}{{else}}
+  <nav><a href="/login">Log in</a></nav>
+  {{end}}
 </header>
 {{end}}
 <main class="wrap{{if .Handoff}} handoff-main{{end}}">

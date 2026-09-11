@@ -5,10 +5,15 @@
 {{if .InviteURL}}
 <div class="flash">
   <strong>Invite URL (shown once):</strong>
+  <p class="muted">Open this on the <strong>same host</strong> the app was started with (tunnel URL if using <code>make run-tunnel</code>). Passkeys are bound to that hostname.</p>
   <div class="invite-row">
     <input class="mono invite-url" id="invite-url" type="text" readonly value="{{.InviteURL}}">
     <button type="button" class="secondary" id="copy-invite">Copy</button>
   </div>
+  {{if .InvitePath}}
+  <p class="muted" style="margin-top:0.75rem">Path only (same server): <a class="mono" href="{{.InvitePath}}">{{.InvitePath}}</a></p>
+  {{end}}
+  <p class="muted" style="margin-top:0.5rem">If Copy does not reach your other Apple devices, select the link text and use the browser’s Copy.</p>
   <p class="muted" id="copy-invite-status" hidden>Copied</p>
 </div>
 <script>
@@ -18,19 +23,37 @@
     const status = document.getElementById('copy-invite-status');
     if (!input || !btn) return;
     btn.addEventListener('click', async () => {
-      input.select();
-      input.setSelectionRange(0, input.value.length);
+      const text = input.value;
+      // Copy via a temporary field so we don't focus the visible input
+      // (iOS zooms when focusing inputs with font-size < 16px).
+      let ok = false;
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.setAttribute('aria-hidden', 'true');
+      ta.style.cssText = 'position:fixed;top:0;left:0;width:2em;height:2em;padding:0;border:0;font-size:16px;opacity:0;';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, text.length);
       try {
-        await navigator.clipboard.writeText(input.value);
-      } catch {
-        document.execCommand('copy');
+        ok = document.execCommand('copy');
+      } catch {}
+      document.body.removeChild(ta);
+      if (!ok && navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          ok = true;
+        } catch {}
       }
       status.hidden = false;
-      btn.textContent = 'Copied';
+      status.textContent = ok ? 'Copied' : 'Select the link and use Copy';
+      btn.textContent = ok ? 'Copied' : 'Copy';
       setTimeout(() => {
         status.hidden = true;
+        status.textContent = 'Copied';
         btn.textContent = 'Copy';
-      }, 2000);
+      }, 2500);
     });
   })();
 </script>
@@ -40,34 +63,34 @@
   <a class="btn" href="/admin/users/invite">Invite user</a>
 </p>
 
-<table>
-  <thead>
-    <tr><th>Email</th><th>Role</th><th>Status</th><th></th></tr>
-  </thead>
-  <tbody>
-  {{range .Users}}
-    <tr>
-      <td>{{.Email}}{{if .DisplayName}}<div class="muted">{{.DisplayName}}</div>{{end}}</td>
-      <td>{{.Role}}</td>
-      <td>{{.Status}}</td>
-      <td>
-        <div class="actions">
-        {{if eq .ID $.User.ID}}
-        <span class="muted">Signed in</span>
-        {{else}}
-          {{if ne .Status "locked"}}
-          <form class="inline" method="post" action="/admin/users/{{.ID}}/lock" onsubmit="return confirm('Lock {{.Email}}? Sessions end immediately. Re-invite later to restore access.')">
-            <button class="danger" type="submit">Lock</button>
-          </form>
-          {{end}}
-          <form class="inline" method="post" action="/admin/users/{{.ID}}/reinvite" onsubmit="return confirm('Issue a new invite for {{.Email}}? Existing passkeys stop working immediately. They must open the new invite link and enroll a passkey again.')">
-            <button class="secondary" type="submit">New invite</button>
-          </form>
-        {{end}}
-        </div>
-      </td>
-    </tr>
-  {{end}}
-  </tbody>
-</table>
+{{if .Users}}
+<ul class="record-list">
+{{range .Users}}
+  <li class="record-card">
+    <div class="record-main">
+      <div class="record-title">{{.Email}}</div>
+      {{if .DisplayName}}<div class="muted">{{.DisplayName}}</div>{{end}}
+      <div class="record-meta muted">{{.Role}} · {{.Status}}</div>
+    </div>
+    <div class="actions record-actions">
+      {{if eq .ID $.User.ID}}
+      <span class="muted">Signed in</span>
+      {{else}}
+      <a class="btn secondary" href="/admin/users/{{.ID}}/edit">Edit</a>
+      {{if ne .Status "locked"}}
+      <form class="inline" method="post" action="/admin/users/{{.ID}}/lock" onsubmit="return confirm('Lock {{.Email}}? Sessions end immediately. Re-invite later to restore access.')">
+        <button class="danger" type="submit">Lock</button>
+      </form>
+      {{end}}
+      <form class="inline" method="post" action="/admin/users/{{.ID}}/reinvite" onsubmit="return confirm('Issue a new invite for {{.Email}}? Existing passkeys stop working immediately. They must open the new invite link and enroll a passkey again.')">
+        <button class="secondary" type="submit">New invite</button>
+      </form>
+      {{end}}
+    </div>
+  </li>
+{{end}}
+</ul>
+{{else}}
+<p class="muted">No users yet.</p>
+{{end}}
 {{template "layout_end" .}}
