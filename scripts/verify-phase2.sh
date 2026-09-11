@@ -18,10 +18,11 @@ export BASE_URL="${BASE_URL:-http://localhost:8080}"
 export WEBAUTHN_RP_ID="${WEBAUTHN_RP_ID:-localhost}"
 export WEBAUTHN_RP_ORIGINS="${WEBAUTHN_RP_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}"
 export SECURE_COOKIES=false
-# Public key only on the server. Matching private key used solely in this script's crypto check.
-export IDENTITY_PUBLIC_KEY_B64="${IDENTITY_PUBLIC_KEY_B64:-OM1ZQIEru2EWDGtgfLzI6tB3KIYZ30L2mVQTffmAxUQ=}"
-export IDENTITY_KEY_ID="${IDENTITY_KEY_ID:-local-dev-1}"
-IDENTITY_PRIVATE_KEY_B64="${IDENTITY_PRIVATE_KEY_B64:-kkaOEMtAGbjNKyXqJqzDTP9Un3oUWnyjkGqP9ZuXVbw=}"
+# shellcheck disable=SC1091
+source "$ROOT/scripts/lib/identity-env.sh"
+identity_env_prepare "$ROOT"
+# Private key only for the crypto round-trip below — never for the app process.
+CRYPTO_PRIV="${IDENTITY_PRIVATE_KEY_B64}"
 
 chmod +x scripts/compose.sh scripts/verify-phase2.sh
 
@@ -44,12 +45,15 @@ const pub = process.env.IDENTITY_PUBLIC_KEY_B64;
 const ct = sealAnonymous(JSON.stringify({legal_name:"Verify",refugee_id:"V-1"}), pub);
 process.stdout.write(bytesToB64(ct));
 ')"
-  go run ./scripts/internal/openseal -pub "$IDENTITY_PUBLIC_KEY_B64" -priv "$IDENTITY_PRIVATE_KEY_B64" -ct "$CT_B64" \
+  go run ./scripts/internal/openseal -pub "$IDENTITY_PUBLIC_KEY_B64" -priv "$CRYPTO_PRIV" -ct "$CT_B64" \
     | grep -q '"legal_name":"Verify"' || fail "JS→Go sealed-box roundtrip"
   pass "JS→Go sealed-box roundtrip"
 else
   echo "WARN: bun not found; skipping browser seal roundtrip (go tests still cover SealAnonymous)"
 fi
+
+unset IDENTITY_PRIVATE_KEY_B64
+unset CRYPTO_PRIV
 
 go test ./...
 pass "go test ./..."

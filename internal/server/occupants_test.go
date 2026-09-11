@@ -26,7 +26,7 @@ func TestOccupantCreateScopedAndSealed(t *testing.T) {
 	resetSchema(t, db)
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	pub := testIdentityPublicKey(t)
+	pub, priv := testIdentityKeyPair(t)
 	cfg := server.Config{
 		BaseURL:           "http://localhost",
 		SecureCookies:     false,
@@ -71,10 +71,6 @@ func TestOccupantCreateScopedAndSealed(t *testing.T) {
 	u, _ := url.Parse(ts.URL)
 	client.Jar.SetCookies(u, []*http.Cookie{{Name: "beacon_session", Value: session, Path: "/"}})
 
-	privB64 := "kkaOEMtAGbjNKyXqJqzDTP9Un3oUWnyjkGqP9ZuXVbw="
-	privRaw, _ := base64.StdEncoding.DecodeString(privB64)
-	var priv [32]byte
-	copy(priv[:], privRaw)
 	msg := []byte(`{"legal_name":"Secret Name","refugee_id":"UN-99"}`)
 	ct, err := box.SealAnonymous(nil, msg, &pub, rand.Reader)
 	if err != nil {

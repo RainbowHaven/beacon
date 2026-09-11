@@ -3,9 +3,10 @@ package server_test
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"database/sql"
-	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -23,6 +24,7 @@ import (
 	"github.com/magiconair/beacon/internal/migrate"
 	"github.com/magiconair/beacon/internal/server"
 	"github.com/magiconair/beacon/internal/store"
+	"golang.org/x/crypto/nacl/box"
 )
 
 func testDB(t *testing.T) *sql.DB {
@@ -124,9 +126,64 @@ func TestInviteRegisterLoginLock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	usersBody, _ := io.ReadAll(res.Body)
+	res.Body.Close()
 	if res.StatusCode != 200 {
 		t.Fatalf("admin users status %d", res.StatusCode)
+	}
+	if !strings.Contains(string(usersBody), "Signed in") {
+		t.Fatal("expected own row to show Signed in instead of Lock/New invite")
+	}
+	invitePage, err := client.Get(ts.URL + "/admin/users/invite")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer invitePage.Body.Close()
+	if invitePage.StatusCode != 200 {
+		t.Fatalf("admin invite status %d", invitePage.StatusCode)
+	}
+	noFollow := &http.Client{Jar: jar, CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}}
+	selfLock, err := noFollow.Post(ts.URL+"/admin/users/"+fmt.Sprintf("%d", admin.ID)+"/lock", "application/x-www-form-urlencoded", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selfLock.Body.Close()
+	if selfLock.StatusCode != http.StatusSeeOther {
+		t.Fatalf("self-lock status=%d", selfLock.StatusCode)
+	}
+	if loc := selfLock.Header.Get("Location"); !strings.Contains(loc, "cannot+modify+yourself") && !strings.Contains(loc, "cannot%20modify%20yourself") {
+		t.Fatalf("self-lock location=%q", loc)
+	}
+	adminAfter, err := st.GetUser(context.Background(), admin.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if adminAfter.Status != domain.UserActive {
+		t.Fatalf("self-lock must not change status; got %q", adminAfter.Status)
+	}
+	selfRe, err := noFollow.Post(ts.URL+"/admin/users/"+fmt.Sprintf("%d", admin.ID)+"/reinvite", "application/x-www-form-urlencoded", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selfRe.Body.Close()
+	if selfRe.StatusCode != http.StatusSeeOther {
+		t.Fatalf("self-reinvite status=%d", selfRe.StatusCode)
+	}
+	adminAfter, err = st.GetUser(context.Background(), admin.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if adminAfter.Status != domain.UserActive {
+		t.Fatalf("self-reinvite must not change status; got %q", adminAfter.Status)
+	}
+	creds, err := st.ListCredentials(context.Background(), admin.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(creds) == 0 {
+		t.Fatal("self-reinvite must not delete own credentials")
 	}
 
 	// Register manager with fresh client
@@ -141,6 +198,38 @@ func TestInviteRegisterLoginLock(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertLoginFails(t, ts.URL, "manager@example.com")
+
+	// Re-invite after lock must unlock to pending and yield a usable invite.
+	if err := st.DeleteCredentialsForUser(context.Background(), manager.ID); err != nil {
+		t.Fatal(err)
+	}
+	newToken, err := st.ReissueInvite(context.Background(), manager.ID, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, err := st.LookupInvite(context.Background(), newToken)
+	if err != nil {
+		t.Fatalf("reinvite after lock should be valid: %v", err)
+	}
+	if u.Status != domain.UserPending {
+		t.Fatalf("status after reinvite: got %q want pending", u.Status)
+	}
+	page, err := client2.Get(ts.URL + "/invite/" + newToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer page.Body.Close()
+	if page.StatusCode != 200 {
+		t.Fatalf("invite page status %d", page.StatusCode)
+	}
+	body, _ := io.ReadAll(page.Body)
+	if strings.Contains(string(body), "Invite not valid") {
+		t.Fatal("invite page showed invalid after lock+reinvite")
+	}
+	auth3 := virtualwebauthn.NewAuthenticator()
+	cred3 := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	register(t, client2, ts.URL, newToken, rp, &auth3, &cred3)
+	login(t, client2, ts.URL, "manager@example.com", rp, auth3, cred3)
 }
 
 func register(t *testing.T, client *http.Client, base, token string, rp virtualwebauthn.RelyingParty, authenticator *virtualwebauthn.Authenticator, credential *virtualwebauthn.Credential) {
@@ -233,14 +322,18 @@ func assertLoginFails(t *testing.T, base, email string) {
 	}
 }
 
-// Local-dev public key (private key must never be loaded by the server).
+// Ephemeral sealed-box keypair for tests (never a checked-in private key).
+func testIdentityKeyPair(t *testing.T) (pub, priv [32]byte) {
+	t.Helper()
+	pubPtr, privPtr, err := box.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("generate identity keypair: %v", err)
+	}
+	return *pubPtr, *privPtr
+}
+
 func testIdentityPublicKey(t *testing.T) [32]byte {
 	t.Helper()
-	raw, err := base64.StdEncoding.DecodeString("OM1ZQIEru2EWDGtgfLzI6tB3KIYZ30L2mVQTffmAxUQ=")
-	if err != nil || len(raw) != 32 {
-		t.Fatalf("test public key: %v len=%d", err, len(raw))
-	}
-	var out [32]byte
-	copy(out[:], raw)
-	return out
+	pub, _ := testIdentityKeyPair(t)
+	return pub
 }

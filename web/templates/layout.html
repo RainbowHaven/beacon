@@ -16,7 +16,11 @@
       <a href="/occupants">Occupants</a>
       <a href="/expenses">Expenses</a>
       <a href="/reports">Reports</a>
-      {{if eq .User.Role "rhc_admin"}}<a href="/admin/users">Users</a>{{end}}
+      {{if eq .User.Role "rhc_admin"}}
+      <a href="/admin/users">Users</a>
+      <a href="/admin/break-glass">Break-glass</a>
+      <a href="/admin/audit">Audit</a>
+      {{end}}
       <form class="inline" method="post" action="/logout"><button class="secondary" type="submit">Log out</button></form>
     {{else}}
       <a href="/login">Log in</a>

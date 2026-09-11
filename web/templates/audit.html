@@ -1,0 +1,31 @@
+{{template "layout_start" .}}
+<h1>Audit log</h1>
+<p class="muted">Recent security and operations events. Break-glass fetches appear as <code>identity.break_glass</code>.</p>
+
+{{if .Events}}
+<table>
+  <thead>
+    <tr>
+      <th>When (UTC)</th>
+      <th>Actor</th>
+      <th>Action</th>
+      <th>Subject</th>
+      <th>Meta</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{range .Events}}
+    <tr>
+      <td class="mono">{{.When}}</td>
+      <td>{{if .ActorEmail}}{{.ActorEmail}}{{else}}—{{end}}</td>
+      <td><code>{{.Action}}</code></td>
+      <td>{{if .SubjectType}}{{.SubjectType}}/{{.SubjectID}}{{else}}—{{end}}</td>
+      <td class="mono">{{if .Meta}}{{.Meta}}{{else}}—{{end}}</td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+{{else}}
+<p class="muted">No audit events yet.</p>
+{{end}}
+{{template "layout_end" .}}

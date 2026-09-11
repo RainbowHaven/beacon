@@ -227,7 +227,8 @@ func (s *Store) ReissueInvite(ctx context.Context, userID int64, inviteTTL time.
 	if _, err := tx.ExecContext(ctx, `UPDATE invites SET used_at = now() WHERE user_id = $1 AND used_at IS NULL`, userID); err != nil {
 		return "", err
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE users SET status = 'pending', updated_at = now() WHERE id = $1 AND status <> 'locked'`, userID); err != nil {
+	// Re-invite is the recovery path after lock or lost device: always return to pending.
+	if _, err := tx.ExecContext(ctx, `UPDATE users SET status = 'pending', updated_at = now() WHERE id = $1`, userID); err != nil {
 		return "", err
 	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO invites (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`, userID, hash, expires); err != nil {

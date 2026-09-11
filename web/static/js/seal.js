@@ -63,4 +63,60 @@ export function sealIdentityPayload(payload, recipientPublicKeyB64) {
   return bytesToB64(sealAnonymous(json, recipientPublicKeyB64));
 }
 
+/**
+ * Open a sealed box produced by sealAnonymous / Go SealAnonymous.
+ * privateKey is the recipient secret key (32 bytes or base64).
+ * Returns plaintext Uint8Array.
+ */
+export function openAnonymous(ciphertext, recipientPublicKey, recipientPrivateKey) {
+  const nacl = globalThis.nacl;
+  if (!nacl || !nacl.box) {
+    throw new Error("nacl is not loaded");
+  }
+  const boxBytes =
+    ciphertext instanceof Uint8Array ? ciphertext : b64ToBytes(ciphertext);
+  const recipientPub =
+    recipientPublicKey instanceof Uint8Array
+      ? recipientPublicKey
+      : b64ToBytes(recipientPublicKey);
+  const recipientPriv =
+    recipientPrivateKey instanceof Uint8Array
+      ? recipientPrivateKey
+      : b64ToBytes(recipientPrivateKey);
+  if (boxBytes.length < 48) {
+    throw new Error("ciphertext too short");
+  }
+  if (recipientPub.length !== 32 || recipientPriv.length !== 32) {
+    throw new Error("keys must be 32 bytes");
+  }
+  const ephemeralPub = boxBytes.subarray(0, 32);
+  const boxed = boxBytes.subarray(32);
+  const nonce = sealNonce(ephemeralPub, recipientPub);
+  const opened = nacl.box.open(boxed, nonce, ephemeralPub, recipientPriv);
+  if (!opened) {
+    throw new Error("decryption failed (wrong key or corrupt ciphertext)");
+  }
+  return opened;
+}
+
+export function openIdentityPayload(ciphertextB64, recipientPublicKeyB64, recipientPrivateKeyB64) {
+  const raw = openAnonymous(ciphertextB64, recipientPublicKeyB64, recipientPrivateKeyB64);
+  return JSON.parse(new TextDecoder().decode(raw));
+}
+
+/** Derive public key from a 32-byte secret key (base64 or bytes). */
+export function publicKeyFromPrivate(privateKey) {
+  const nacl = globalThis.nacl;
+  if (!nacl || !nacl.box) {
+    throw new Error("nacl is not loaded");
+  }
+  const sk =
+    privateKey instanceof Uint8Array ? privateKey : b64ToBytes(privateKey);
+  if (sk.length !== 32) {
+    throw new Error("private key must be 32 bytes");
+  }
+  const kp = nacl.box.keyPair.fromSecretKey(sk);
+  return kp.publicKey;
+}
+
 export { b64ToBytes, bytesToB64 };

@@ -1,0 +1,33 @@
+{{template "layout_start" .}}
+<h1>Invite user</h1>
+<p class="muted"><a href="/admin/users">← Users</a></p>
+{{if .Error}}<div class="flash error">{{.Error}}</div>{{end}}
+
+<form method="post" action="/admin/users/invite" class="stack" style="max-width:28rem">
+  <label>Email <input type="email" name="email" required autofocus></label>
+  <label>Display name <input type="text" name="display_name"></label>
+  <label>Role
+    <select name="role" id="role" required>
+      <option value="rhc_admin">RHC admin</option>
+      <option value="rhl_admin">RHL admin</option>
+      <option value="safe_house_manager">Safe house manager</option>
+    </select>
+  </label>
+  <label>RHL (for RHL admin)
+    <select name="rhl_id">
+      <option value="">—</option>
+      {{range .RHLs}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+    </select>
+  </label>
+  <label>Safe house (for manager)
+    <select name="safe_house_id">
+      <option value="">—</option>
+      {{range .SafeHouses}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+    </select>
+  </label>
+  <p class="actions">
+    <button type="submit">Create invite</button>
+    <a class="btn secondary" href="/admin/users">Cancel</a>
+  </p>
+</form>
+{{template "layout_end" .}}
