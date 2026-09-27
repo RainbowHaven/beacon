@@ -35,7 +35,6 @@ func TestOccupantCreateScopedAndSealed(t *testing.T) {
 		WebAuthnRPOrigins: []string{"http://localhost"},
 		IdentityPublicKey: pub,
 		IdentityKeyID:     "test-key-1",
-		ReceiptDir:        t.TempDir(),
 	}
 	srv, err := server.New(logger, db, cfg)
 	if err != nil {

@@ -1,0 +1,37 @@
+# Optional Compose shape for Railway import (drag onto canvas) or local reference.
+# Prefer Railway's managed Postgres plugin over the `db` service below.
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Railway injects PORT; ADDR is optional when PORT is set.
+      PORT: "8080"
+      DATABASE_URL: ${DATABASE_URL}
+      BASE_URL: https://beacon.magiconair.net
+      SECURE_COOKIES: "true"
+      WEBAUTHN_RP_ID: beacon.magiconair.net
+      WEBAUTHN_RP_DISPLAY_NAME: Beacon
+      WEBAUTHN_RP_ORIGINS: https://beacon.magiconair.net
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL}
+      BOOTSTRAP_REISSUE: "false"
+      IDENTITY_PUBLIC_KEY_B64: ${IDENTITY_PUBLIC_KEY_B64}
+      IDENTITY_KEY_ID: ${IDENTITY_KEY_ID:-prod-1}
+    depends_on:
+      - db
+
+  # Prefer: Railway → New → Database → PostgreSQL, then set app DATABASE_URL
+  # to ${{Postgres.DATABASE_URL}} instead of this service.
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: beacon
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a strong password}
+      POSTGRES_DB: beacon
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

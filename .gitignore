@@ -5,6 +5,7 @@ data/receipts/
 *.out
 .DS_Store
 .env
+deploy/.env
 .local/
 *.priv.b64
 identity.priv.b64

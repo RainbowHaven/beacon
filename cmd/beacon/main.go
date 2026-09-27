@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -27,7 +28,7 @@ func main() {
 }
 
 func run(logger *slog.Logger) error {
-	addr := envOr("ADDR", ":8080")
+	addr := listenAddr()
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
 		return errors.New("DATABASE_URL is required")
@@ -70,7 +71,6 @@ func run(logger *slog.Logger) error {
 		BootstrapReissue:    os.Getenv("BOOTSTRAP_REISSUE") == "true",
 		IdentityPublicKey:   pub,
 		IdentityKeyID:       keyID,
-		ReceiptDir:          envOr("RECEIPT_DIR", "data/receipts"),
 		MaxReceiptBytes:     5 << 20,
 	}
 	srvApp, err := server.New(logger, db, cfg)
@@ -107,6 +107,20 @@ func run(logger *slog.Logger) error {
 		}
 		return err
 	}
+}
+
+// listenAddr prefers ADDR; otherwise PORT (Railway/PaaS); default :8080.
+func listenAddr() string {
+	if v := os.Getenv("ADDR"); v != "" {
+		return v
+	}
+	if p := os.Getenv("PORT"); p != "" {
+		if strings.HasPrefix(p, ":") {
+			return p
+		}
+		return ":" + p
+	}
+	return ":8080"
 }
 
 func parsePublicKey(b64 string) ([32]byte, error) {

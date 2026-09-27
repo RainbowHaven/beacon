@@ -92,7 +92,6 @@ type Expense struct {
 	Currency           string
 	Note               string
 	SpentOn            time.Time
-	ReceiptKey         *string
 	ReceiptContentType *string
 	ReceiptBytes       *int
 	CreatedBy          *int64
@@ -100,7 +99,7 @@ type Expense struct {
 	UpdatedAt          time.Time
 }
 
-func (e Expense) HasReceipt() bool { return e.ReceiptKey != nil && *e.ReceiptKey != "" }
+func (e Expense) HasReceipt() bool { return e.ReceiptBytes != nil && *e.ReceiptBytes > 0 }
 
 type ExpenseTotals struct {
 	SafeHouseID   int64

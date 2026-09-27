@@ -17,7 +17,7 @@ type CreateExpenseInput struct {
 	Currency           string
 	Note               string
 	SpentOn            time.Time
-	ReceiptKey         *string
+	ReceiptData        []byte
 	ReceiptContentType *string
 	ReceiptBytes       *int
 	CreatedBy          *int64
@@ -32,15 +32,29 @@ func (s *Store) CreateExpense(ctx context.Context, in CreateExpenseInput) (domai
 		cur = "CAD"
 	}
 	spent := in.SpentOn.UTC().Truncate(24 * time.Hour)
+
+	hasReceipt := len(in.ReceiptData) > 0
+	if hasReceipt {
+		if in.ReceiptContentType == nil || strings.TrimSpace(*in.ReceiptContentType) == "" {
+			return domain.Expense{}, errors.New("receipt content type required")
+		}
+		n := len(in.ReceiptData)
+		in.ReceiptBytes = &n
+	} else {
+		in.ReceiptData = nil
+		in.ReceiptContentType = nil
+		in.ReceiptBytes = nil
+	}
+
 	var id int64
 	err := s.db.QueryRowContext(ctx, `
 		INSERT INTO expenses (
 			safe_house_id, amount_cents, currency, note, spent_on,
-			receipt_key, receipt_content_type, receipt_bytes, created_by
+			receipt_data, receipt_content_type, receipt_bytes, created_by
 		) VALUES ($1,$2,$3,$4,$5::date,$6,$7,$8,$9)
 		RETURNING id`,
 		in.SafeHouseID, in.AmountCents, cur, strings.TrimSpace(in.Note), spent,
-		in.ReceiptKey, in.ReceiptContentType, in.ReceiptBytes, in.CreatedBy,
+		in.ReceiptData, in.ReceiptContentType, in.ReceiptBytes, in.CreatedBy,
 	).Scan(&id)
 	if err != nil {
 		return domain.Expense{}, err
@@ -50,21 +64,17 @@ func (s *Store) CreateExpense(ctx context.Context, in CreateExpenseInput) (domai
 
 func scanExpense(row interface{ Scan(dest ...any) error }) (domain.Expense, error) {
 	var e domain.Expense
-	var receiptKey, receiptCT sql.NullString
+	var receiptCT sql.NullString
 	var receiptBytes sql.NullInt64
 	var createdBy sql.NullInt64
 	err := row.Scan(
 		&e.ID, &e.SafeHouseID, &e.AmountCents, &e.Currency, &e.Note, &e.SpentOn,
-		&receiptKey, &receiptCT, &receiptBytes, &createdBy, &e.CreatedAt, &e.UpdatedAt,
+		&receiptCT, &receiptBytes, &createdBy, &e.CreatedAt, &e.UpdatedAt,
 	)
 	if err != nil {
 		return domain.Expense{}, err
 	}
 	e.SpentOn = e.SpentOn.UTC().Truncate(24 * time.Hour)
-	if receiptKey.Valid {
-		v := receiptKey.String
-		e.ReceiptKey = &v
-	}
 	if receiptCT.Valid {
 		v := receiptCT.String
 		e.ReceiptContentType = &v
@@ -80,7 +90,8 @@ func scanExpense(row interface{ Scan(dest ...any) error }) (domain.Expense, erro
 	return e, nil
 }
 
-const expenseCols = `id, safe_house_id, amount_cents, currency, note, spent_on, receipt_key, receipt_content_type, receipt_bytes, created_by, created_at, updated_at`
+// expenseCols omits receipt_data so list/get stay lightweight.
+const expenseCols = `id, safe_house_id, amount_cents, currency, note, spent_on, receipt_content_type, receipt_bytes, created_by, created_at, updated_at`
 
 func (s *Store) GetExpense(ctx context.Context, id int64) (domain.Expense, error) {
 	e, err := scanExpense(s.db.QueryRowContext(ctx, `SELECT `+expenseCols+` FROM expenses WHERE id = $1`, id))
@@ -88,6 +99,27 @@ func (s *Store) GetExpense(ctx context.Context, id int64) (domain.Expense, error
 		return domain.Expense{}, ErrNotFound
 	}
 	return e, err
+}
+
+// GetExpenseReceipt returns receipt bytes and content type for an expense.
+func (s *Store) GetExpenseReceipt(ctx context.Context, id int64) (data []byte, contentType string, err error) {
+	var ct sql.NullString
+	err = s.db.QueryRowContext(ctx, `
+		SELECT receipt_data, receipt_content_type
+		FROM expenses WHERE id = $1`, id).Scan(&data, &ct)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, "", ErrNotFound
+	}
+	if err != nil {
+		return nil, "", err
+	}
+	if len(data) == 0 {
+		return nil, "", ErrNotFound
+	}
+	if ct.Valid {
+		contentType = ct.String
+	}
+	return data, contentType, nil
 }
 
 func (s *Store) ListExpensesByHouses(ctx context.Context, houseIDs []int64, limit int) ([]domain.Expense, error) {
@@ -143,7 +175,7 @@ func (s *Store) ExpenseTotalsByHouses(ctx context.Context, houseIDs []int64, fro
 	q := `
 		SELECT sh.id, sh.name,
 			COUNT(e.id)::int,
-			COUNT(e.receipt_key)::int,
+			COUNT(e.receipt_data)::int,
 			SUM(e.amount_cents)::bigint,
 			e.currency
 		FROM expenses e

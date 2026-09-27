@@ -1,13 +1,9 @@
 package server
 
 import (
-	"bytes"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
-	"path"
 	"strings"
 	"time"
 
@@ -171,23 +167,12 @@ func (s *Server) handleExpenseCreate(w http.ResponseWriter, r *http.Request) {
 				ct = "image/jpeg"
 			}
 		}
-		ext, ok := allowedReceiptTypes[ct]
-		if !ok {
+		if _, ok := allowedReceiptTypes[ct]; !ok {
 			http.Redirect(w, r, "/expenses/new?error=receipt+must+be+jpeg+png+webp+or+pdf", http.StatusSeeOther)
 			return
 		}
-		key, err := newReceiptKey(houseID, ext)
-		if err != nil {
-			http.Error(w, "server error", http.StatusInternalServerError)
-			return
-		}
-		if err := s.blobs.Put(r.Context(), key, bytes.NewReader(data), int64(len(data))); err != nil {
-			s.log.Error("receipt put", "err", err)
-			http.Redirect(w, r, "/expenses/new?error=could+not+store+receipt", http.StatusSeeOther)
-			return
-		}
 		n := len(data)
-		in.ReceiptKey = &key
+		in.ReceiptData = data
 		in.ReceiptContentType = &ct
 		in.ReceiptBytes = &n
 	case err == http.ErrMissingFile:
@@ -199,9 +184,6 @@ func (s *Server) handleExpenseCreate(w http.ResponseWriter, r *http.Request) {
 
 	e, err := s.store.CreateExpense(r.Context(), in)
 	if err != nil {
-		if in.ReceiptKey != nil {
-			_ = s.blobs.Delete(r.Context(), *in.ReceiptKey)
-		}
 		s.log.Error("create expense", "err", err)
 		http.Redirect(w, r, "/expenses/new?error=could+not+save", http.StatusSeeOther)
 		return
@@ -235,17 +217,17 @@ func (s *Server) handleExpenseReceipt(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no receipt", http.StatusNotFound)
 		return
 	}
-	rc, err := s.blobs.Open(r.Context(), *e.ReceiptKey)
+	data, ct, err := s.store.GetExpenseReceipt(r.Context(), id)
 	if err != nil {
 		http.Error(w, "receipt missing", http.StatusNotFound)
 		return
 	}
-	defer rc.Close()
-	if e.ReceiptContentType != nil {
-		w.Header().Set("Content-Type", *e.ReceiptContentType)
+	if ct != "" {
+		w.Header().Set("Content-Type", ct)
 	}
 	w.Header().Set("Content-Disposition", "inline; filename=\"receipt-"+idString(e.ID)+"\"")
-	_, _ = io.Copy(w, rc)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
+	_, _ = w.Write(data)
 }
 
 func (s *Server) handleExpenseDelete(w http.ResponseWriter, r *http.Request) {
@@ -268,9 +250,6 @@ func (s *Server) handleExpenseDelete(w http.ResponseWriter, r *http.Request) {
 	if err := s.store.DeleteExpense(r.Context(), id); err != nil {
 		http.Redirect(w, r, "/expenses?error=could+not+delete", http.StatusSeeOther)
 		return
-	}
-	if e.HasReceipt() {
-		_ = s.blobs.Delete(r.Context(), *e.ReceiptKey)
 	}
 	_ = s.store.Audit(r.Context(), &u.ID, "expense.delete", "expense", idString(id), nil)
 	http.Redirect(w, r, "/expenses?ok=deleted", http.StatusSeeOther)
@@ -367,13 +346,4 @@ func (s *Server) handleReports(w http.ResponseWriter, r *http.Request) {
 		"SumReceipts":    sumReceipts,
 		"Error":          r.URL.Query().Get("error"),
 	})
-}
-
-func newReceiptKey(houseID int64, ext string) (string, error) {
-	var b [16]byte
-	if _, err := rand.Read(b[:]); err != nil {
-		return "", err
-	}
-	day := time.Now().UTC().Format("2006/01/02")
-	return path.Join("receipts", fmt.Sprintf("%d", houseID), day, hex.EncodeToString(b[:])+ext), nil
 }
