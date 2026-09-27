@@ -25,8 +25,11 @@ Beacon helps Rainbow Haven run LGBTQ safe houses: occupancy, expenses, and RHC r
 - Verify Phase 3: `make verify-phase3`
 - Verify Phase 4: `make verify-phase4`
 - Verify Phase 5: `make verify-phase5`
+- Verify Phase 6: `make verify-phase6`
 - Verify CLA docs/workflow: `make verify-cla`
 - Identity keys: `make keys` → `.local/` (gitignored). Never commit private keys.
+- **Receipts** are stored in Postgres (`BYTEA` on expenses), not on the filesystem.
+- **Production:** Railway (Dockerfile + managed Postgres); see [OPERATOR.md](./OPERATOR.md) and [deploy/.env.example](./deploy/.env.example).
 
 ## Roles
 

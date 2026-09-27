@@ -1,5 +1,5 @@
 .PHONY: help setup keys env db-up db-down test run run-tunnel tunnel compose-up compose-down \
-	verify verify-cla verify-phase1 verify-phase2 verify-phase3 verify-phase4 verify-phase5
+	verify verify-cla verify-phase1 verify-phase2 verify-phase3 verify-phase4 verify-phase5 verify-phase6
 
 GOTOOLCHAIN ?= auto
 LOCAL_DIR := .local
@@ -19,7 +19,7 @@ help:
 	@echo "  make tunnel        Cloudflare quick tunnel to :8080 (phone access)"
 	@echo "  make run-tunnel    Run app using .env + .local/tunnel.env (after make tunnel)"
 	@echo "  make test          go test ./..."
-	@echo "  make verify-phaseN Run phase N verify script (1–5)"
+	@echo "  make verify-phaseN Run phase N verify script (1–6)"
 	@echo "  make verify        Compose bootstrap verify"
 	@echo "  make verify-cla    CLA docs/workflow check"
 	@echo "  make compose-up    Full Compose stack (needs IDENTITY_* in environment/.env)"
@@ -58,7 +58,6 @@ env: keys
 		'BOOTSTRAP_REISSUE=false' \
 		"IDENTITY_PUBLIC_KEY_B64=$$pub" \
 		'IDENTITY_KEY_ID=local-dev-1' \
-		'RECEIPT_DIR=data/receipts' \
 		> $(ENV_FILE)
 	@echo "Wrote $(ENV_FILE) (public key only). Private key remains in $(PRIV_FILE)."
 
@@ -117,6 +116,9 @@ verify-phase4:
 
 verify-phase5:
 	./scripts/verify-phase5.sh
+
+verify-phase6:
+	./scripts/verify-phase6.sh
 
 verify-cla:
 	./scripts/verify-cla.sh

@@ -74,7 +74,6 @@ func TestInviteRegisterLoginLock(t *testing.T) {
 		BootstrapAdminEmail: "",
 		IdentityPublicKey:   testIdentityPublicKey(t),
 		IdentityKeyID:       "test-key-1",
-		ReceiptDir:          t.TempDir(),
 	}
 	srv, err := server.New(logger, db, cfg)
 	if err != nil {

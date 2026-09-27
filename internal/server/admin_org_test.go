@@ -35,7 +35,6 @@ func TestOrgHousesAndUserScope(t *testing.T) {
 		WebAuthnRPOrigins: []string{"http://localhost"},
 		IdentityPublicKey: testIdentityPublicKey(t),
 		IdentityKeyID:     "test-key-1",
-		ReceiptDir:        t.TempDir(),
 	}
 	srv, err := server.New(logger, db, cfg)
 	if err != nil {

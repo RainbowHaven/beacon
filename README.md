@@ -50,7 +50,7 @@ make run             # keys + env + db + go run ./cmd/beacon
 make tunnel          # Cloudflare quick tunnel (phone); writes .local/tunnel.env
 make run-tunnel      # app with tunnel WebAuthn host (use with make tunnel)
 make test            # go test ./...
-make verify-phase1   # … through verify-phase5
+make verify-phase1   # … through verify-phase6
 make verify          # Compose full-stack smoke
 make verify-cla      # CLA docs/workflow check
 make compose-up      # app + db via Compose (uses .env)
@@ -81,6 +81,7 @@ Prefer Make so everyone runs the same commands:
 ```bash
 make test
 make verify-phase5   # org/houses + scope isolation (does not drop DB)
+make verify-phase6   # receipts-in-DB + Docker image + Railway deploy config
 make verify-phase4   # break-glass routes (does not drop DB)
 make verify-phase3   # drops schema — use a disposable local DB
 make verify-phase2
@@ -89,6 +90,17 @@ make verify-cla
 ```
 
 Phases 1–3 **drop** the local schema. Do not point them at data you care about.
+
+## Production (Railway)
+
+Deploy target: **Railway** + managed Postgres at `https://beacon.magiconair.net`.
+
+- Config: [railway.toml](./railway.toml), env template [deploy/.env.example](./deploy/.env.example)
+- Cutover + backups: [OPERATOR.md](./OPERATOR.md) (Production section)
+- Local check: `make verify-phase6`
+- Receipts are stored **in Postgres** (no file volume)
+
+Passkeys are bound to the production hostname — enroll again after cutover.
 
 ## After login
 

@@ -19,14 +19,12 @@ export BASE_URL="${BASE_URL:-http://localhost:8080}"
 export WEBAUTHN_RP_ID="${WEBAUTHN_RP_ID:-localhost}"
 export WEBAUTHN_RP_ORIGINS="${WEBAUTHN_RP_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}"
 export SECURE_COOKIES=false
-export RECEIPT_DIR="${RECEIPT_DIR:-/tmp/beacon-phase4-receipts}"
 # shellcheck disable=SC1091
 source "$ROOT/scripts/lib/identity-env.sh"
 identity_env_prepare "$ROOT"
 CRYPTO_PRIV="${IDENTITY_PRIVATE_KEY_B64}"
 
 chmod +x scripts/compose.sh scripts/verify-phase4.sh
-mkdir -p "$RECEIPT_DIR"
 
 ./scripts/compose.sh up -d db
 echo "Waiting for Postgres..."

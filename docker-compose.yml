@@ -35,13 +35,9 @@ services:
       # Public key only — export via `make env` / `.env`. Never put the private key here.
       IDENTITY_PUBLIC_KEY_B64: ${IDENTITY_PUBLIC_KEY_B64:?Run make env or export IDENTITY_PUBLIC_KEY_B64}
       IDENTITY_KEY_ID: ${IDENTITY_KEY_ID:-local-dev-1}
-      RECEIPT_DIR: /data/receipts
-    volumes:
-      - beacon_receipts:/data/receipts
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   beacon_pg:
-  beacon_receipts:

@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/magiconair/beacon/internal/blob"
 	"github.com/magiconair/beacon/internal/domain"
 	"github.com/magiconair/beacon/internal/store"
 	"github.com/magiconair/beacon/internal/wauser"
@@ -43,7 +42,6 @@ type Config struct {
 	BootstrapReissue    bool
 	IdentityPublicKey   [32]byte
 	IdentityKeyID       string
-	ReceiptDir          string
 	MaxReceiptBytes     int64
 }
 
@@ -51,7 +49,6 @@ type Server struct {
 	cfg        Config
 	log        *slog.Logger
 	store      *store.Store
-	blobs      blob.Store
 	webauthn   *webauthn.WebAuthn
 	templates  *template.Template
 	static     http.Handler
@@ -77,16 +74,8 @@ func New(log *slog.Logger, db *sql.DB, cfg Config) (*Server, error) {
 	if cfg.IdentityPublicKey == ([32]byte{}) {
 		return nil, errors.New("IdentityPublicKey is required")
 	}
-	if cfg.ReceiptDir == "" {
-		cfg.ReceiptDir = "data/receipts"
-	}
 	if cfg.MaxReceiptBytes <= 0 {
 		cfg.MaxReceiptBytes = 5 << 20 // 5 MiB
-	}
-
-	blobs, err := blob.NewFS(cfg.ReceiptDir)
-	if err != nil {
-		return nil, fmt.Errorf("receipt storage: %w", err)
 	}
 
 	wa, err := webauthn.New(&webauthn.Config{
@@ -123,7 +112,6 @@ func New(log *slog.Logger, db *sql.DB, cfg Config) (*Server, error) {
 		cfg:        cfg,
 		log:        log,
 		store:      store.New(db),
-		blobs:      blobs,
 		webauthn:   wa,
 		templates:  tmpl,
 		static:     http.FileServer(http.FS(staticFS)),

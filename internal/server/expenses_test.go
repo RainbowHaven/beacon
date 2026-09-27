@@ -33,7 +33,6 @@ func TestExpenseCreateAndMonthlyTotals(t *testing.T) {
 		WebAuthnRPOrigins: []string{"http://localhost"},
 		IdentityPublicKey: testIdentityPublicKey(t),
 		IdentityKeyID:     "test-key-1",
-		ReceiptDir:        t.TempDir(),
 		MaxReceiptBytes:   1 << 20,
 	}
 	srv, err := server.New(logger, db, cfg)
