@@ -34,6 +34,8 @@ Do not share a Postgres instance between staging and production.
    - **Disable** automatic deploys from GitHub (Actions will call `railway up`).
 6. Wait for a first manual/Action deploy. Check `/healthz`, then bootstrap invite + enroll a passkey on the **staging** hostname (passkeys are host-bound).
 
+**Staging DB wipe from Actions:** Railway Postgres → **Connect** / **Networking** → enable **TCP proxy** (public). Copy that URL into GitHub secret `STAGING_DATABASE_URL`. Leave the app’s `DATABASE_URL` on the private `${{Postgres.DATABASE_URL}}` (`*.railway.internal`). The wipe step talks to the public proxy only; deploy still uses `railway up` (CLI), not a DB tunnel.
+
 ### GitHub Actions secrets & variables
 
 Repository **Secrets**:
@@ -41,7 +43,7 @@ Repository **Secrets**:
 | Secret | Purpose |
 |--------|---------|
 | `RAILWAY_STAGING_TOKEN` | Railway API token with deploy access to the **staging** environment (map to CLI `RAILWAY_TOKEN` in Actions). Use a separate `RAILWAY_PRODUCTION_TOKEN` later if you automate prod. |
-| `STAGING_DATABASE_URL` | Staging Postgres URL used **only** to wipe the schema before deploy |
+| `STAGING_DATABASE_URL` | Staging Postgres **public TCP proxy** URL for schema wipe from GitHub Actions. **Not** `postgres.railway.internal` (private; unreachable from Actions). App service keeps `DATABASE_URL=${{Postgres.DATABASE_URL}}` (private). |
 
 Repository **Variables**:
 
