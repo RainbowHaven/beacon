@@ -59,8 +59,8 @@ Full staging + promote workflow: [deploy/README.md](./deploy/README.md).
 
 | | Staging | Production |
 |--|---------|------------|
-| Purpose | Try a PR (or `main`) before prod | Live `beacon.magiconair.net` |
-| Deploy | Auto on every PR open/push; PR close restores `main` | **Manual** until staging is trusted |
+| Purpose | Try a commit before prod | Live `beacon.magiconair.net` |
+| Deploy | `make publish-staging SUFFIX=…` | `make publish-patch` / `minor` / `major` |
 | DB | Separate staging Postgres; wiped via Railway pre-deploy on each deploy | Separate production Postgres |
 | Host | `beacon-staging.magiconair.net` or Railway `*.up.railway.app` | `beacon.magiconair.net` |
 | Env template | [deploy/.env.staging.example](./deploy/.env.staging.example) | [deploy/.env.example](./deploy/.env.example) |
@@ -71,7 +71,7 @@ After deploying the identity-vault removal, **delete any leftover `IDENTITY_*` v
 
 ### One-time production cutover
 
-1. Create a Railway project from the `RainbowHaven/beacon` GitHub repo (Dockerfile / `railway.toml`).
+1. Create a Railway project from the `RainbowHaven/beacon` GitHub repo (Dockerfile / `.railway/railway.ts`).
 2. Add **PostgreSQL**. On the app service, set `DATABASE_URL` to the Postgres reference variable (e.g. `${{Postgres.DATABASE_URL}}`).
 3. Set variables from [deploy/.env.example](./deploy/.env.example): host/WebAuthn (`BASE_URL`, `WEBAUTHN_*`, `SECURE_COOKIES=true`), `BOOTSTRAP_ADMIN_EMAIL`.
 4. **Networking** → custom domain `beacon.magiconair.net` → add the CNAME Railway shows at your DNS. Wait until HTTPS is ready.
@@ -79,13 +79,13 @@ After deploying the identity-vault removal, **delete any leftover `IDENTITY_*` v
 6. Use the bootstrap invite from logs (set `BOOTSTRAP_REISSUE=true` once if needed), enroll the RHC **passkey on that hostname**.
 7. Set `BOOTSTRAP_REISSUE=false` and redeploy if you temporarily enabled it.
 8. Run a backup once (below) and store the file off Railway.
-9. Add the **staging** environment (see [deploy/README.md](./deploy/README.md)), wire GitHub Actions secrets/variables, and **disable** Railway auto-deploy on staging.
+9. Add the **staging** environment (see [deploy/README.md](./deploy/README.md)), store the Railway tokens in the macOS keychain, and **disable** Railway auto-deploy from GitHub on staging and production.
 
 ### Promote a change
 
-1. Open or push to a PR → staging auto-deploys → smoke-test the staging host.
-2. Merge the PR (staging restores to `main` automatically).
-3. In Railway **production**, deploy / redeploy latest `main`.
+1. From a clean checkout, run `make publish-staging SUFFIX=menu.1` (use a new suffix) and smoke-test the staging host.
+2. Merge the PR.
+3. From `main`, run `make publish-patch` (or `make publish-minor` / `make publish-major`).
 4. Confirm `https://beacon.magiconair.net/healthz`.
 
 ### Backup / restore
