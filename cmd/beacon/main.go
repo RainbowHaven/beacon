@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -28,6 +29,9 @@ func main() {
 }
 
 func run(logger *slog.Logger) error {
+	wipeSchema := flag.Bool("wipe-schema", false, "drop and recreate the public schema before migrate (requires BEACON_ALLOW_SCHEMA_WIPE=true)")
+	flag.Parse()
+
 	addr := listenAddr()
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
@@ -48,6 +52,17 @@ func run(logger *slog.Logger) error {
 	if err := db.PingContext(ctx); err != nil {
 		return fmt.Errorf("ping database: %w", err)
 	}
+
+	if *wipeSchema {
+		if os.Getenv("BEACON_ALLOW_SCHEMA_WIPE") != "true" {
+			return errors.New("--wipe-schema requires BEACON_ALLOW_SCHEMA_WIPE=true")
+		}
+		logger.Warn("wiping public schema before migrate")
+		if err := migrate.WipePublicSchema(ctx, db); err != nil {
+			return fmt.Errorf("wipe schema: %w", err)
+		}
+	}
+
 	if err := migrate.Up(ctx, db); err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}

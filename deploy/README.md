@@ -25,8 +25,10 @@ Do not share a Postgres instance between staging and production.
 3. In `staging`:
    - Add **PostgreSQL**.
    - Add / duplicate the **app** service from the same GitHub repo (`RainbowHaven/beacon`), Dockerfile root.
-   - Set variables from [`.env.staging.example`](./.env.staging.example), including `DATABASE_URL` → staging Postgres reference.
-   - For pre-pilot, keep `BOOTSTRAP_ADMIN_EMAIL` set and `BOOTSTRAP_REISSUE=true` so each schema wipe yields a fresh invite in the logs (then enroll the staging passkey once per wipe if needed).
+   - Set variables from [`.env.staging.example`](./.env.staging.example), including `DATABASE_URL` → staging Postgres reference (private `*.railway.internal` is fine).
+   - Set **`BEACON_ALLOW_SCHEMA_WIPE=true`**.
+   - Custom **start command**: `/app/beacon --wipe-schema` (wipes public schema on every container start, then migrates). Never set this on production.
+   - For pre-pilot, keep `BOOTSTRAP_ADMIN_EMAIL` set and `BOOTSTRAP_REISSUE=true` so each wipe yields a fresh invite in the logs.
 4. **Networking**
    - Generate a Railway domain, *or* attach `beacon-staging.magiconair.net` (CNAME as Railway instructs).
    - Target port: whatever the logs show (`PORT` from Railway, often `8080`).
@@ -34,7 +36,7 @@ Do not share a Postgres instance between staging and production.
    - **Disable** automatic deploys from GitHub (Actions will call `railway up`).
 6. Wait for a first manual/Action deploy. Check `/healthz`, then bootstrap invite + enroll a passkey on the **staging** hostname (passkeys are host-bound).
 
-**Staging DB wipe from Actions:** Railway Postgres → **Connect** / **Networking** → enable **TCP proxy** (public). Copy that URL into GitHub secret `STAGING_DATABASE_URL`. Leave the app’s `DATABASE_URL` on the private `${{Postgres.DATABASE_URL}}` (`*.railway.internal`). The wipe step talks to the public proxy only; deploy still uses `railway up` (CLI), not a DB tunnel.
+Schema wipe stays on the private network: the running container uses `DATABASE_URL` and `--wipe-schema`. GitHub Actions only uploads a new image; it does not connect to Postgres.
 
 ### GitHub Actions secrets & variables
 
@@ -43,7 +45,6 @@ Repository **Secrets**:
 | Secret | Purpose |
 |--------|---------|
 | `RAILWAY_STAGING_TOKEN` | Railway API token with deploy access to the **staging** environment (map to CLI `RAILWAY_TOKEN` in Actions). Use a separate `RAILWAY_PRODUCTION_TOKEN` later if you automate prod. |
-| `STAGING_DATABASE_URL` | Staging Postgres **public TCP proxy** URL for schema wipe from GitHub Actions. **Not** `postgres.railway.internal` (private; unreachable from Actions). App service keeps `DATABASE_URL=${{Postgres.DATABASE_URL}}` (private). |
 
 Repository **Variables**:
 
@@ -58,12 +59,14 @@ Repository **Variables**:
 
 1. Open a PR from a branch **in this repo** (forks are rejected).
 2. Comment **`/deploy-staging`** on the PR (OWNER / MEMBER / COLLABORATOR only).
-3. Actions wipes the staging schema, deploys that PR’s head commit, and comments the SHA.
+3. Actions deploys that PR’s head; the container boots with `--wipe-schema`, migrates, bootstraps.
 4. Smoke-test staging (passkeys are host-bound to the staging hostname).
-5. Merge (or close) the PR → Actions redeploys **`main`** to staging (schema wipe again).
-6. Promote production when ready: Railway **production** → Deploy / Redeploy `main`.
+5. Merge (or close) the PR → Actions redeploys **`main`** to staging (wipe + migrate again).
+6. Promote production when ready: Railway **production** → Deploy / Redeploy `main` (no wipe flag).
 
 Staging is **shared**: the latest `/deploy-staging` (or a PR close restoring `main`) wins. Only one deploy runs at a time (`concurrency: staging-deploy`).
+
+Note: staging wipes on **every** container start (including crash restarts) while the start command includes `--wipe-schema`. That is intentional for pre-pilot shared staging.
 
 ## Production triggers (recommended for now)
 
@@ -71,19 +74,20 @@ On the **production** environment app service:
 
 - Keep the GitHub repo connected.
 - Prefer **manual Deploy** / “Redeploy” after you have verified staging.
+- **Do not** set `BEACON_ALLOW_SCHEMA_WIPE` or `--wipe-schema` on production.
 - Turn on auto-deploy to `main` only after you trust the pipeline.
 
 ## Wipe a database (allowed while pre-pilot)
 
-`/deploy-staging` and the PR-close restore already wipe staging via `scripts/wipe-postgres-schema.sh`.
+Staging: use `/app/beacon --wipe-schema` with `BEACON_ALLOW_SCHEMA_WIPE=true` (see above).
 
-Manual wipe:
+Local optional helper (needs a reachable `DATABASE_URL`):
 
 ```bash
-DATABASE_URL='postgres://…staging…' ./scripts/wipe-postgres-schema.sh
+DATABASE_URL='postgres://…' ./scripts/wipe-postgres-schema.sh
 ```
 
-Then redeploy the app so migrations run. Never point that script at production unless you set `FORCE_WIPE=1` deliberately.
+Never point wipe tooling at production unless you set `FORCE_WIPE=1` deliberately.
 
 Never run local `verify-phase{1,2,3}` scripts against Railway databases.
 
@@ -95,4 +99,5 @@ Never run local `verify-phase{1,2,3}` scripts against Railway databases.
 - [ ] No leftover `IDENTITY_*` variables  
 - [ ] `/healthz` returns OK  
 - [ ] Passkey enrolled on that host  
-- [ ] Staging GitHub secrets/variables set; Railway staging auto-deploy **off**  
+- [ ] Staging: `BEACON_ALLOW_SCHEMA_WIPE=true` + start command `/app/beacon --wipe-schema`; Railway auto-deploy **off**  
+- [ ] Production: **no** wipe flag / allow env  

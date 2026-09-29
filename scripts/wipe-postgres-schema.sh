@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Wipe the public schema of a Postgres database (pre-pilot / staging only).
-# Usage: DATABASE_URL='postgres://…' ./scripts/wipe-postgres-schema.sh
+# Optional local helper: wipe public schema via psql.
+# Prefer: BEACON_ALLOW_SCHEMA_WIPE=true go run ./cmd/beacon --wipe-schema
+# (or the same flags on a deployed staging container).
 #
-# For Railway: use the Postgres *public TCP proxy* URL (Connect → public URL),
-# not postgres.railway.internal — GitHub Actions cannot reach the private host.
+# Usage: DATABASE_URL='postgres://…' ./scripts/wipe-postgres-schema.sh
 set -euo pipefail
 
 if [[ -z "${DATABASE_URL:-}" ]]; then
@@ -14,15 +14,12 @@ fi
 case "$DATABASE_URL" in
   *railway.internal*)
     echo "DATABASE_URL uses railway.internal (private network)." >&2
-    echo "GitHub Actions cannot reach it. In Railway → staging Postgres →" >&2
-    echo "Connect / Networking, enable the public TCP proxy and put that URL" >&2
-    echo "in the STAGING_DATABASE_URL GitHub secret. Keep the app's DATABASE_URL" >&2
-    echo "as \${{Postgres.DATABASE_URL}} (private) for the service itself." >&2
+    echo "Run wipe inside Railway instead: start command /app/beacon --wipe-schema" >&2
+    echo "with BEACON_ALLOW_SCHEMA_WIPE=true on the staging service." >&2
     exit 1
     ;;
 esac
 
-# Refuse obvious production hostnames unless FORCE_WIPE=1
 if [[ "${FORCE_WIPE:-}" != "1" ]]; then
   case "$DATABASE_URL" in
     *beacon.magiconair.net*|*production*)

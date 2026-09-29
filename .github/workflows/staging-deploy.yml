@@ -1,6 +1,5 @@
 # Required secrets:
 #   RAILWAY_STAGING_TOKEN
-#   STAGING_DATABASE_URL
 #
 # Required vars:
 #   RAILWAY_PROJECT_ID
@@ -9,6 +8,8 @@
 # Optional vars:
 #   STAGING_URL
 #
+# Staging Railway service must use start command `/app/beacon --wipe-schema`
+# and BEACON_ALLOW_SCHEMA_WIPE=true (private DB; wipe happens in-process on boot).
 # Turn OFF Railway auto-deploy on staging — this workflow owns it.
 name: Staging deploy
 
@@ -84,20 +85,11 @@ jobs:
           gh api "repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions" \
             -f content='rocket' || true
           gh pr comment "${{ steps.pr.outputs.number }}" --body \
-            "Deploying \`${{ steps.pr.outputs.sha }}\` to staging (DB wipe + Railway deploy)…"
+            "Deploying \`${{ steps.pr.outputs.sha }}\` to staging (in-app schema wipe on boot + Railway deploy)…"
 
       - uses: actions/checkout@v5
         with:
           ref: ${{ steps.pr.outputs.sha }}
-
-      - name: Wipe staging schema
-        env:
-          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client
-          chmod +x ./scripts/wipe-postgres-schema.sh
-          ./scripts/wipe-postgres-schema.sh
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
@@ -133,7 +125,7 @@ jobs:
               "**Staging updated** from PR #${{ steps.pr.outputs.number }} @ \`${{ steps.pr.outputs.sha }}\`.
 
           - Host: ${URL}
-          - Schema was wiped; app migrations run on boot. Check logs for bootstrap invite if needed.
+          - Container boots with \`--wipe-schema\` (requires \`BEACON_ALLOW_SCHEMA_WIPE=true\` on staging); migrations run afterward. Check logs for bootstrap invite if needed.
           - Staging is shared — a later \`/deploy-staging\` or closing this PR (redeploys \`main\`) will replace this build."
           else
             gh pr comment "${{ steps.pr.outputs.number }}" --body \
@@ -148,15 +140,6 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: main
-
-      - name: Wipe staging schema
-        env:
-          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client
-          chmod +x ./scripts/wipe-postgres-schema.sh
-          ./scripts/wipe-postgres-schema.sh
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
@@ -189,7 +172,7 @@ jobs:
           URL="${STAGING_URL:-staging}"
           if [[ "${{ job.status }}" == "success" ]]; then
             gh pr comment "${{ github.event.pull_request.number }}" --body \
-              "PR closed — staging restored to \`main\` (${URL}). Schema wiped; migrations run on boot."
+              "PR closed — staging restored to \`main\` (${URL}). Schema wipe + migrate happen on boot."
           else
             gh pr comment "${{ github.event.pull_request.number }}" --body \
               "Failed to restore staging to \`main\`. See the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
