@@ -98,6 +98,7 @@ func (s *Server) arrivalTooFarAhead(arrived time.Time) bool {
 
 type occupantFormView struct {
 	Title           string
+	BodyClass       string
 	User            *domain.User
 	Houses          []domain.SafeHouse
 	House           domain.SafeHouse

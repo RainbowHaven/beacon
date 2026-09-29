@@ -182,4 +182,15 @@ func TestOccupantCreateScoped(t *testing.T) {
 	if !strings.Contains(html, `class="profile-menu"`) || !strings.Contains(html, `action="/logout"`) {
 		t.Fatalf("home missing profile logout: %s", html[:min(500, len(html))])
 	}
+
+	// New-occupant form must render (layout fields present on typed view).
+	resNew, err := client.Get(ts.URL + "/occupants/new")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resNew.Body.Close()
+	newBody, _ := io.ReadAll(resNew.Body)
+	if resNew.StatusCode != http.StatusOK || !strings.Contains(string(newBody), "Add occupant") {
+		t.Fatalf("GET /occupants/new status=%d body=%s", resNew.StatusCode, newBody[:min(400, len(newBody))])
+	}
 }
