@@ -112,6 +112,25 @@ func TestOccupantCreateScoped(t *testing.T) {
 	if !strings.Contains(loc, "error=") || !strings.Contains(strings.ToLower(loc), "taken") {
 		t.Fatalf("expected nickname-taken redirect, got %q", loc)
 	}
+
+	// Spaced letters must also collide ("tom" vs "T O M").
+	spaced := url.Values{
+		"safe_house_id": {strconv.FormatInt(house.ID, 10)},
+		"arrived_at":    {time.Now().UTC().Format("2006-01-02")},
+		"nickname":      {"S p a r r o w"},
+	}
+	resSpaced, err := client.PostForm(ts.URL+"/occupants", spaced)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resSpaced.Body.Close()
+	if resSpaced.StatusCode != http.StatusSeeOther {
+		t.Fatalf("spaced status %d", resSpaced.StatusCode)
+	}
+	locSpaced := resSpaced.Header.Get("Location")
+	if !strings.Contains(locSpaced, "error=") || !strings.Contains(strings.ToLower(locSpaced), "taken") {
+		t.Fatalf("expected spaced nickname-taken redirect, got %q", locSpaced)
+	}
 	list, err = st.ListOccupantsByHouses(context.Background(), []int64{house.ID}, true)
 	if err != nil {
 		t.Fatal(err)

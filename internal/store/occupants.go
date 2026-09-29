@@ -15,13 +15,22 @@ import (
 
 var multiSpace = regexp.MustCompile(`\s+`)
 
-// NormalizeNickname trims ends and collapses internal whitespace.
+// NormalizeNickname trims ends and collapses internal whitespace for storage/display.
 func NormalizeNickname(s string) string {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return ""
 	}
 	return multiSpace.ReplaceAllString(s, " ")
+}
+
+// NicknameKey is the uniqueness key: lowercased with all whitespace removed.
+func NicknameKey(s string) string {
+	s = NormalizeNickname(s)
+	if s == "" {
+		return ""
+	}
+	return strings.ToLower(multiSpace.ReplaceAllString(s, ""))
 }
 
 type CreateOccupantInput struct {
@@ -106,15 +115,15 @@ func (s *Store) SuggestNickname(ctx context.Context, houseID int64, desired stri
 }
 
 func (s *Store) nicknameTaken(ctx context.Context, houseID int64, nickname string, excludeID int64) (bool, error) {
-	nick := NormalizeNickname(nickname)
+	key := NicknameKey(nickname)
 	var exists bool
 	err := s.db.QueryRowContext(ctx, `
 		SELECT EXISTS(
 			SELECT 1 FROM occupants
 			WHERE safe_house_id = $1
-			  AND lower(nickname) = lower($2)
+			  AND lower(regexp_replace(nickname, '\s+', '', 'g')) = $2
 			  AND id <> $3
-		)`, houseID, nick, excludeID).Scan(&exists)
+		)`, houseID, key, excludeID).Scan(&exists)
 	return exists, err
 }
 
