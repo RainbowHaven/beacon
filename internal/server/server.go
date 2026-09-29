@@ -18,6 +18,7 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/magiconair/beacon/internal/domain"
 	"github.com/magiconair/beacon/internal/store"
+	"github.com/magiconair/beacon/internal/version"
 	"github.com/magiconair/beacon/internal/wauser"
 	"github.com/magiconair/beacon/web"
 )
@@ -99,6 +100,7 @@ func New(log *slog.Logger, db *sql.DB, cfg Config) (*Server, error) {
 			path = strings.TrimPrefix(path, "static/")
 			return "/static/" + path + "?" + assetQuery
 		},
+		"appVersion": version.Line,
 	})
 	if _, err := tmpl.ParseFS(web.Templates, "templates/*.html"); err != nil {
 		return nil, fmt.Errorf("templates: %w", err)

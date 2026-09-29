@@ -59,9 +59,9 @@ Full staging + promote workflow: [deploy/README.md](./deploy/README.md).
 
 | | Staging | Production |
 |--|---------|------------|
-| Purpose | Try each `main` merge before prod | Live `beacon.magiconair.net` |
-| Deploy | **Auto** on push to `main` | **Manual** until staging is trusted |
-| DB | Separate staging Postgres | Separate production Postgres |
+| Purpose | Try a PR (or `main`) before prod | Live `beacon.magiconair.net` |
+| Deploy | Auto on every PR open/push; PR close restores `main` | **Manual** until staging is trusted |
+| DB | Separate staging Postgres; wiped via Railway pre-deploy on each deploy | Separate production Postgres |
 | Host | `beacon-staging.magiconair.net` or Railway `*.up.railway.app` | `beacon.magiconair.net` |
 | Env template | [deploy/.env.staging.example](./deploy/.env.staging.example) | [deploy/.env.example](./deploy/.env.example) |
 
@@ -79,12 +79,12 @@ After deploying the identity-vault removal, **delete any leftover `IDENTITY_*` v
 6. Use the bootstrap invite from logs (set `BOOTSTRAP_REISSUE=true` once if needed), enroll the RHC **passkey on that hostname**.
 7. Set `BOOTSTRAP_REISSUE=false` and redeploy if you temporarily enabled it.
 8. Run a backup once (below) and store the file off Railway.
-9. Add the **staging** environment (see [deploy/README.md](./deploy/README.md)) and point auto-deploy at `main`.
+9. Add the **staging** environment (see [deploy/README.md](./deploy/README.md)), wire GitHub Actions secrets/variables, and **disable** Railway auto-deploy on staging.
 
 ### Promote a change
 
-1. Merge PR → `main`.
-2. Confirm staging auto-deployed and `/healthz` + login work on the staging host.
+1. Open or push to a PR → staging auto-deploys → smoke-test the staging host.
+2. Merge the PR (staging restores to `main` automatically).
 3. In Railway **production**, deploy / redeploy latest `main`.
 4. Confirm `https://beacon.magiconair.net/healthz`.
 

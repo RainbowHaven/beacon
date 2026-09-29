@@ -1,0 +1,141 @@
+# Required secrets:
+#   RAILWAY_STAGING_TOKEN
+#
+# Required vars:
+#   RAILWAY_PROJECT_ID
+#   RAILWAY_STAGING_SERVICE
+#   RAILWAY_STAGING_ENVIRONMENT
+# Optional vars:
+#   STAGING_URL
+#
+# Staging Railway: pre-deploy wipe + start `/app/beacon server`, auto-deploy off.
+# Production: no wipe pre-deploy.
+name: Staging deploy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  deploy-pr:
+    name: Deploy PR to staging
+    if: >
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway staging
+        id: deploy
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_STAGING_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          SERVICE="${{ vars.RAILWAY_STAGING_SERVICE }}"
+          ENV_NAME="${{ vars.RAILWAY_STAGING_ENVIRONMENT }}"
+          PROJECT="${{ vars.RAILWAY_PROJECT_ID }}"
+          if [[ -z "$SERVICE" || -z "$ENV_NAME" || -z "$PROJECT" ]]; then
+            echo "Missing GitHub Actions repository variables." >&2
+            echo "Set all of: RAILWAY_PROJECT_ID, RAILWAY_STAGING_SERVICE, RAILWAY_STAGING_ENVIRONMENT" >&2
+            echo "(Settings → Secrets and variables → Actions → Variables). See deploy/README.md." >&2
+            exit 1
+          fi
+          if [[ -z "${RAILWAY_TOKEN:-}" ]]; then
+            echo "Set repository secret RAILWAY_STAGING_TOKEN" >&2
+            exit 1
+          fi
+          COMMIT="$(git rev-parse --short=7 HEAD)"
+          DATE="$(TZ=UTC git show -s --format=%cd --date=format:%Y-%m-%dT%H:%MZ HEAD)"
+          # railway up has no --build-arg; service vars matching Dockerfile ARG are passed in.
+          railway variable set --skip-deploys \
+            --service "$SERVICE" --environment "$ENV_NAME" \
+            "VERSION=0.0.0" "GIT_COMMIT=${COMMIT}" "GIT_DATE=${DATE}"
+          echo "Deploying PR #${{ github.event.pull_request.number }} @ ${{ github.event.pull_request.head.sha }} (GIT_COMMIT=${COMMIT} GIT_DATE=${DATE})"
+          railway up --ci --detach --service "$SERVICE" --environment "$ENV_NAME"
+
+      - name: Comment result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STAGING_URL: ${{ vars.STAGING_URL }}
+        run: |
+          SHA="${{ github.event.pull_request.head.sha }}"
+          PR="${{ github.event.pull_request.number }}"
+          if [[ "${{ job.status }}" == "success" ]]; then
+            URL="${STAGING_URL:-staging}"
+            gh pr comment "$PR" --body \
+              "**Staging updated** from PR #${PR} @ \`${SHA}\` → ${URL}"
+          else
+            gh pr comment "$PR" --body \
+              "Staging deploy **failed** for \`${SHA}\`.
+
+          Common cause: missing Actions variables \`RAILWAY_PROJECT_ID\`, \`RAILWAY_STAGING_SERVICE\`, \`RAILWAY_STAGING_ENVIRONMENT\` (secret \`RAILWAY_STAGING_TOKEN\` alone is not enough). See [deploy/README.md](${{ github.server_url }}/${{ github.repository }}/blob/main/deploy/README.md) and the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+          fi
+
+  restore-main:
+    name: Restore staging from main
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy main to Railway staging
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_STAGING_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          SERVICE="${{ vars.RAILWAY_STAGING_SERVICE }}"
+          ENV_NAME="${{ vars.RAILWAY_STAGING_ENVIRONMENT }}"
+          PROJECT="${{ vars.RAILWAY_PROJECT_ID }}"
+          if [[ -z "$SERVICE" || -z "$ENV_NAME" || -z "$PROJECT" ]]; then
+            echo "Set repository variables RAILWAY_PROJECT_ID, RAILWAY_STAGING_SERVICE, RAILWAY_STAGING_ENVIRONMENT" >&2
+            exit 1
+          fi
+          if [[ -z "${RAILWAY_TOKEN:-}" ]]; then
+            echo "Set repository secret RAILWAY_STAGING_TOKEN" >&2
+            exit 1
+          fi
+          COMMIT="$(git rev-parse --short=7 HEAD)"
+          DATE="$(TZ=UTC git show -s --format=%cd --date=format:%Y-%m-%dT%H:%MZ HEAD)"
+          railway variable set --skip-deploys \
+            --service "$SERVICE" --environment "$ENV_NAME" \
+            "VERSION=0.0.0" "GIT_COMMIT=${COMMIT}" "GIT_DATE=${DATE}"
+          echo "Restoring main @ ${COMMIT} (${DATE})"
+          railway up --ci --detach --service "$SERVICE" --environment "$ENV_NAME"
+
+      - name: Comment on PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STAGING_URL: ${{ vars.STAGING_URL }}
+        run: |
+          URL="${STAGING_URL:-staging}"
+          PR="${{ github.event.pull_request.number }}"
+          if [[ "${{ job.status }}" == "success" ]]; then
+            gh pr comment "$PR" --body \
+              "PR closed — staging restored to \`main\` (${URL})."
+          else
+            gh pr comment "$PR" --body \
+              "Failed to restore staging to \`main\`. See the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+          fi
