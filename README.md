@@ -93,14 +93,15 @@ Phases 1–3 **drop** the local schema. Do not point them at data you care about
 
 ## Production (Railway)
 
-Deploy target: **Railway** + managed Postgres at `https://beacon.magiconair.net`.
+Deploy target: **Railway** + managed Postgres.
 
-- Config: [railway.toml](./railway.toml), env template [deploy/.env.example](./deploy/.env.example)
-- Cutover + backups: [OPERATOR.md](./OPERATOR.md) (Production section)
-- Local check: `make verify-phase6`
-- Receipts are stored **in Postgres** (no file volume)
+- **Production:** `https://beacon.magiconair.net`
+- **Staging:** separate Railway environment; auto-deploy on push to `main` (see [deploy/README.md](./deploy/README.md))
+- Env templates: [deploy/.env.example](./deploy/.env.example), [deploy/.env.staging.example](./deploy/.env.staging.example)
+- Cutover, promote, backups: [OPERATOR.md](./OPERATOR.md)
 
-Passkeys are bound to the production hostname — enroll again after cutover.
+Passkeys are bound to each hostname — enroll separately on staging and production.
+Receipts are stored **in Postgres** (no file volume).
 
 ## After login
 

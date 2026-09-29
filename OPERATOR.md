@@ -53,9 +53,24 @@ Do not commit identity private keys. Each developer’s `make keys` output is lo
 
 Beacon runs on **Railway** (container + managed Postgres). Receipts live in Postgres, so a DB backup covers them.
 
-### One-time cutover
+Repo: [RainbowHaven/beacon](https://github.com/RainbowHaven/beacon).  
+Full staging + promote workflow: [deploy/README.md](./deploy/README.md).
 
-1. Create a Railway project from the `magiconair/beacon` GitHub repo (Dockerfile / `railway.toml`).
+### Staging vs production
+
+| | Staging | Production |
+|--|---------|------------|
+| Purpose | Try each `main` merge before prod | Live `beacon.magiconair.net` |
+| Deploy | **Auto** on push to `main` | **Manual** until staging is trusted |
+| DB | Separate staging Postgres | Separate production Postgres |
+| Host | `beacon-staging.magiconair.net` or Railway `*.up.railway.app` | `beacon.magiconair.net` |
+| Env template | [deploy/.env.staging.example](./deploy/.env.staging.example) | [deploy/.env.example](./deploy/.env.example) |
+
+Passkeys are bound to the hostname — enroll separately on staging and production.
+
+### One-time production cutover
+
+1. Create a Railway project from the `RainbowHaven/beacon` GitHub repo (Dockerfile / `railway.toml`).
 2. Add **PostgreSQL**. On the app service, set `DATABASE_URL` to the Postgres reference variable (e.g. `${{Postgres.DATABASE_URL}}`).
 3. Set variables from [deploy/.env.example](./deploy/.env.example): host/WebAuthn (`BASE_URL`, `WEBAUTHN_*`, `SECURE_COOKIES=true`), `BOOTSTRAP_ADMIN_EMAIL`, and any other required app env listed there.
 4. **Networking** → custom domain `beacon.magiconair.net` → add the CNAME Railway shows at your DNS. Wait until HTTPS is ready.
@@ -63,6 +78,14 @@ Beacon runs on **Railway** (container + managed Postgres). Receipts live in Post
 6. Use the bootstrap invite from logs (set `BOOTSTRAP_REISSUE=true` once if needed), enroll the RHC **passkey on that hostname**. Localhost/tunnel passkeys do not work on production.
 7. Set `BOOTSTRAP_REISSUE=false` and redeploy if you temporarily enabled it.
 8. Run a backup once (below) and store the file off Railway.
+9. Add the **staging** environment (see [deploy/README.md](./deploy/README.md)) and point auto-deploy at `main`.
+
+### Promote a change
+
+1. Merge PR → `main`.
+2. Confirm staging auto-deployed and `/healthz` + login work on the staging host.
+3. In Railway **production**, deploy / redeploy latest `main`.
+4. Confirm `https://beacon.magiconair.net/healthz`.
 
 ### Backup / restore
 

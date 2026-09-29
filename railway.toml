@@ -1,6 +1,6 @@
 # Railway service config for Beacon.
-# Create the project from this GitHub repo, add a Postgres plugin, then set variables
-# (see deploy/.env.example). Custom domain: beacon.magiconair.net
+# See deploy/README.md for staging vs production environments and auto-deploy.
+# Production domain: beacon.magiconair.net
 
 [build]
 builder = "DOCKERFILE"
