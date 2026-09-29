@@ -1,5 +1,5 @@
 # Required secrets:
-#   RAILWAY_TOKEN
+#   RAILWAY_STAGING_TOKEN
 #   STAGING_DATABASE_URL
 #
 # Required vars:
@@ -104,7 +104,7 @@ jobs:
 
       - name: Deploy to Railway staging
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_STAGING_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
         run: |
           set -euo pipefail
@@ -113,6 +113,10 @@ jobs:
           PROJECT="${{ vars.RAILWAY_PROJECT_ID }}"
           if [[ -z "$SERVICE" || -z "$ENV_NAME" || -z "$PROJECT" ]]; then
             echo "Set repository variables RAILWAY_PROJECT_ID, RAILWAY_STAGING_SERVICE, RAILWAY_STAGING_ENVIRONMENT" >&2
+            exit 1
+          fi
+          if [[ -z "${RAILWAY_TOKEN:-}" ]]; then
+            echo "Set repository secret RAILWAY_STAGING_TOKEN" >&2
             exit 1
           fi
           railway up --ci --detach --service "$SERVICE" --environment "$ENV_NAME"
@@ -138,7 +142,7 @@ jobs:
 
   restore-main:
     name: Restore staging from main
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    if: github.event.pull_request && github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -159,7 +163,7 @@ jobs:
 
       - name: Deploy main to Railway staging
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_STAGING_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
         run: |
           set -euo pipefail
@@ -168,6 +172,10 @@ jobs:
           PROJECT="${{ vars.RAILWAY_PROJECT_ID }}"
           if [[ -z "$SERVICE" || -z "$ENV_NAME" || -z "$PROJECT" ]]; then
             echo "Set repository variables RAILWAY_PROJECT_ID, RAILWAY_STAGING_SERVICE, RAILWAY_STAGING_ENVIRONMENT" >&2
+            exit 1
+          fi
+          if [[ -z "${RAILWAY_TOKEN:-}" ]]; then
+            echo "Set repository secret RAILWAY_STAGING_TOKEN" >&2
             exit 1
           fi
           railway up --ci --detach --service "$SERVICE" --environment "$ENV_NAME"

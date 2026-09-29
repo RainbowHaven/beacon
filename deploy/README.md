@@ -40,7 +40,7 @@ Repository **Secrets**:
 
 | Secret | Purpose |
 |--------|---------|
-| `RAILWAY_TOKEN` | Railway API token with deploy access to the project |
+| `RAILWAY_STAGING_TOKEN` | Railway API token with deploy access to the **staging** environment (map to CLI `RAILWAY_TOKEN` in Actions). Use a separate `RAILWAY_PRODUCTION_TOKEN` later if you automate prod. |
 | `STAGING_DATABASE_URL` | Staging Postgres URL used **only** to wipe the schema before deploy |
 
 Repository **Variables**:
