@@ -1,9 +1,11 @@
 package store
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"golang.org/x/text/unicode/norm"
 )
@@ -59,4 +61,43 @@ func NicknameKey(s string) string {
 		}
 	}
 	return b.String()
+}
+
+// PrepareNickname normalizes and validates a nickname for create/rename.
+// Nicknames must be non-empty, start with a letter, and yield a non-empty uniqueness key.
+func PrepareNickname(s string) (normalized, key string, err error) {
+	normalized = NormalizeNickname(s)
+	if normalized == "" {
+		return "", "", ErrNicknameInvalid
+	}
+	r, _ := utf8.DecodeRuneInString(normalized)
+	if !unicode.IsLetter(r) {
+		return "", "", ErrNicknameInvalid
+	}
+	key = NicknameKey(normalized)
+	if key == "" {
+		return "", "", ErrNicknameInvalid
+	}
+	return normalized, key, nil
+}
+
+// NicknameSuggestionStem is the kebab stem used for alternatives (trailing digits stripped).
+func NicknameSuggestionStem(s string) string {
+	stem := strings.TrimRightFunc(NicknameKey(s), unicode.IsDigit)
+	if stem == "" {
+		return "resident"
+	}
+	r, _ := utf8.DecodeRuneInString(stem)
+	if !unicode.IsLetter(r) {
+		return "resident"
+	}
+	return stem
+}
+
+// KebabSuggestion formats stem or stem-N (N >= 2) for copyable alternatives.
+func KebabSuggestion(stem string, n int) string {
+	if n <= 1 {
+		return stem
+	}
+	return fmt.Sprintf("%s-%d", stem, n)
 }

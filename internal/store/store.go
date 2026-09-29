@@ -15,11 +15,12 @@ import (
 )
 
 var (
-	ErrNotFound      = errors.New("not found")
-	ErrEmailTaken    = errors.New("email already registered")
-	ErrInviteInvalid = errors.New("invite invalid or expired")
-	ErrUserLocked    = errors.New("user locked")
-	ErrNicknameTaken = errors.New("nickname taken")
+	ErrNotFound        = errors.New("not found")
+	ErrEmailTaken      = errors.New("email already registered")
+	ErrInviteInvalid   = errors.New("invite invalid or expired")
+	ErrUserLocked      = errors.New("user locked")
+	ErrNicknameTaken   = errors.New("nickname taken")
+	ErrNicknameInvalid = errors.New("nickname invalid")
 )
 
 type Store struct {

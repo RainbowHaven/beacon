@@ -103,7 +103,7 @@ func TestNicknameKey(t *testing.T) {
 		{"dotted initials", "T.O.M", "tom"},
 		{"umlaut plus hyphen and digit", "Alf\u00f6ns-2", "alfons2"},
 		{"punctuation only", "!!!", ""},
-		{"exclamation vs hyphenated", "tom!", "tom"},
+		{"exclamation folds to plain", "tom!", "tom"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -144,6 +144,29 @@ func TestNicknameKey(t *testing.T) {
 		}
 		if NicknameKey("tom#1") != NicknameKey("tom1") {
 			t.Fatal("tom#1 and tom1 must share a key")
+		}
+	})
+	t.Run("prepare requires leading letter", func(t *testing.T) {
+		if _, _, err := PrepareNickname("1tom"); err != ErrNicknameInvalid {
+			t.Fatalf("err=%v", err)
+		}
+		if _, _, err := PrepareNickname("!tom"); err != ErrNicknameInvalid {
+			t.Fatalf("err=%v", err)
+		}
+		nick, key, err := PrepareNickname("Tom!")
+		if err != nil || nick != "Tom!" || key != "tom" {
+			t.Fatalf("nick=%q key=%q err=%v", nick, key, err)
+		}
+	})
+	t.Run("kebab suggestions", func(t *testing.T) {
+		if got := NicknameSuggestionStem("tom!"); got != "tom" {
+			t.Fatalf("stem=%q", got)
+		}
+		if got := KebabSuggestion("tom", 1); got != "tom" {
+			t.Fatalf("n1=%q", got)
+		}
+		if got := KebabSuggestion("tom", 2); got != "tom-2" {
+			t.Fatalf("n2=%q", got)
 		}
 	})
 }

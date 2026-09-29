@@ -41,6 +41,7 @@ type Config struct {
 	BootstrapAdminEmail string
 	BootstrapReissue    bool
 	MaxReceiptBytes     int64
+	ArrivalFutureDays   int // max days arrival may be after today (UTC); default 1
 }
 
 type Server struct {
@@ -68,6 +69,9 @@ func New(log *slog.Logger, db *sql.DB, cfg Config) (*Server, error) {
 	}
 	if cfg.MaxReceiptBytes <= 0 {
 		cfg.MaxReceiptBytes = 5 << 20 // 5 MiB
+	}
+	if cfg.ArrivalFutureDays < 0 {
+		cfg.ArrivalFutureDays = 0
 	}
 
 	wa, err := webauthn.New(&webauthn.Config{

@@ -29,6 +29,7 @@ func TestOccupantCreateScoped(t *testing.T) {
 		WebAuthnRPID:      "localhost",
 		WebAuthnRPName:    "Beacon",
 		WebAuthnRPOrigins: []string{"http://localhost"},
+		ArrivalFutureDays: 1,
 	}
 	srv, err := server.New(logger, db, cfg)
 	if err != nil {
@@ -64,9 +65,10 @@ func TestOccupantCreateScoped(t *testing.T) {
 	u, _ := url.Parse(ts.URL)
 	client.Jar.SetCookies(u, []*http.Cookie{{Name: "beacon_session", Value: session, Path: "/"}})
 
+	today := time.Now().UTC().Format("2006-01-02")
 	form := url.Values{
 		"safe_house_id": {strconv.FormatInt(house.ID, 10)},
-		"arrived_at":    {time.Now().UTC().Format("2006-01-02")},
+		"arrived_at":    {today},
 		"nickname":      {"Sparrow"},
 	}
 	res, err := client.PostForm(ts.URL+"/occupants", form)
@@ -94,68 +96,61 @@ func TestOccupantCreateScoped(t *testing.T) {
 		t.Fatalf("headcount=%+v", counts)
 	}
 
-	// Duplicate nickname (case/spacing) must fail with suggestion.
-	dup := url.Values{
-		"safe_house_id": {strconv.FormatInt(house.ID, 10)},
-		"arrived_at":    {time.Now().UTC().Format("2006-01-02")},
-		"nickname":      {"  sparrow  "},
-	}
-	res2, err := client.PostForm(ts.URL+"/occupants", dup)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res2.Body.Close()
-	if res2.StatusCode != http.StatusSeeOther {
-		t.Fatalf("dup status %d", res2.StatusCode)
-	}
-	loc := res2.Header.Get("Location")
-	if !strings.Contains(loc, "error=") || !strings.Contains(strings.ToLower(loc), "taken") {
-		t.Fatalf("expected nickname-taken redirect, got %q", loc)
-	}
-
-	// Spaced letters must also collide ("tom" vs "T O M").
-	spaced := url.Values{
-		"safe_house_id": {strconv.FormatInt(house.ID, 10)},
-		"arrived_at":    {time.Now().UTC().Format("2006-01-02")},
-		"nickname":      {"S p a r r o w"},
-	}
-	resSpaced, err := client.PostForm(ts.URL+"/occupants", spaced)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resSpaced.Body.Close()
-	if resSpaced.StatusCode != http.StatusSeeOther {
-		t.Fatalf("spaced status %d", resSpaced.StatusCode)
-	}
-	locSpaced := resSpaced.Header.Get("Location")
-	if !strings.Contains(locSpaced, "error=") || !strings.Contains(strings.ToLower(locSpaced), "taken") {
-		t.Fatalf("expected spaced nickname-taken redirect, got %q", locSpaced)
-	}
-
-	// Accents, punctuation, and Cyrillic look-alikes collide with the base spelling.
-	for _, nick := range []string{"Sp\u00e4rr\u00f6w", "Sp\u0430rrow", "S-p-a-r-r-o-w", "Sparrow!"} {
-		form := url.Values{
+	mustFormError := func(t *testing.T, nick string, wantSubstrings ...string) {
+		t.Helper()
+		f := url.Values{
 			"safe_house_id": {strconv.FormatInt(house.ID, 10)},
-			"arrived_at":    {time.Now().UTC().Format("2006-01-02")},
+			"arrived_at":    {today},
 			"nickname":      {nick},
 		}
-		resFold, err := client.PostForm(ts.URL+"/occupants", form)
+		res, err := client.PostForm(ts.URL+"/occupants", f)
 		if err != nil {
 			t.Fatal(err)
 		}
-		locFold := resFold.Header.Get("Location")
-		resFold.Body.Close()
-		if resFold.StatusCode != http.StatusSeeOther || !strings.Contains(strings.ToLower(locFold), "taken") {
-			t.Fatalf("expected fold collision for %q, status=%d loc=%q", nick, resFold.StatusCode, locFold)
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("nick %q status %d want 200 form re-render", nick, res.StatusCode)
+		}
+		body, _ := io.ReadAll(res.Body)
+		html := string(body)
+		for _, want := range wantSubstrings {
+			if !strings.Contains(html, want) {
+				t.Fatalf("nick %q missing %q in body:\n%s", nick, want, html)
+			}
+		}
+		list, err := st.ListOccupantsByHouses(context.Background(), []int64{house.ID}, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(list) != 1 {
+			t.Fatalf("nick %q should not insert, list=%+v", nick, list)
 		}
 	}
 
-	list, err = st.ListOccupantsByHouses(context.Background(), []int64{house.ID}, true)
+	mustFormError(t, "  sparrow  ", "already taken.", `value="sparrow-2"`, `class="nick-suggest"`)
+	mustFormError(t, "S p a r r o w", "already taken.", `value="sparrow-2"`)
+	mustFormError(t, "Sp\u00e4rr\u00f6w", "already taken.", `value="sparrow-2"`)
+	mustFormError(t, "Sp\u0430rrow", "already taken.", `value="sparrow-2"`)
+	mustFormError(t, "S-p-a-r-r-o-w", "already taken.", `value="sparrow-2"`)
+	mustFormError(t, "Sparrow!", "already taken.", `value="sparrow-2"`)
+	mustFormError(t, "1bad", "Nickname must start with a letter.")
+	mustFormError(t, "!tom", "Nickname must start with a letter.")
+
+	// Arrival too far ahead (beyond ArrivalFutureDays=1).
+	far := time.Now().UTC().AddDate(0, 0, 5).Format("2006-01-02")
+	farForm := url.Values{
+		"safe_house_id": {strconv.FormatInt(house.ID, 10)},
+		"arrived_at":    {far},
+		"nickname":      {"Later"},
+	}
+	resFar, err := client.PostForm(ts.URL+"/occupants", farForm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(list) != 1 {
-		t.Fatalf("dup should not insert, list=%+v", list)
+	defer resFar.Body.Close()
+	farBody, _ := io.ReadAll(resFar.Body)
+	if resFar.StatusCode != http.StatusOK || !strings.Contains(string(farBody), "future") {
+		t.Fatalf("future arrival status=%d body=%s", resFar.StatusCode, farBody)
 	}
 
 	// Rename in place.
