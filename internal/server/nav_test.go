@@ -71,6 +71,9 @@ func TestLayoutNavRenders(t *testing.T) {
 		`href="/expenses"`,
 		`href="/reports"`,
 		`href="/admin/users" aria-current="page"`,
+		`class="app-footer`,
+		`<hr>`,
+		`class="app-version"`,
 		`class="profile-menu"`,
 		`action="/logout"`,
 	} {

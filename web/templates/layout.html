@@ -11,7 +11,6 @@
 <div class="app-chrome no-print">
   <div class="brand">
     <strong><a href="/">Beacon</a></strong>
-    <span class="app-version">{{appVersion}}</span>
   </div>
   <nav class="app-nav" aria-label="Primary">
     <a href="/occupants"{{if navCurrent .Path "/occupants"}} aria-current="page"{{end}}>Occupants</a>
@@ -48,7 +47,6 @@
 <header class="app no-print">
   <div class="brand">
     <strong><a href="/">Beacon</a></strong>
-    <span class="app-version">{{appVersion}}</span>
   </div>
   <nav><a href="/login">Log in</a></nav>
 </header>
@@ -57,6 +55,10 @@
 {{end}}
 
 {{define "layout_end"}}
+<footer class="app-footer no-print">
+  <hr>
+  <p class="app-version">{{appVersion}}</p>
+</footer>
 </main>
 </body>
 </html>

@@ -11,6 +11,9 @@
 [hidden] { display: none !important; }
 body {
   margin: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   font-family: system-ui, -apple-system, "Segoe UI", "Helvetica Neue", sans-serif;
   background: radial-gradient(circle at top left, #fff8e8, var(--bg));
   color: var(--ink);
@@ -31,7 +34,17 @@ a { color: var(--accent); }
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
+.app-footer {
+  margin-top: auto;
+  padding-top: 2.5rem;
+}
+.app-footer hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 0 0 0.75rem;
+}
 .app-version {
+  margin: 0;
   font-size: 0.72rem;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
@@ -61,6 +74,7 @@ header.app nav { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
 body.app-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas:
     "brand account"
     "main main";
@@ -219,6 +233,7 @@ body.app-shell main.wrap {
 @media (min-width: 900px) {
   body.app-shell {
     grid-template-columns: 14rem minmax(0, 1fr);
+    grid-template-rows: minmax(100dvh, auto);
     grid-template-areas: "side main";
   }
   body.app-shell .app-chrome {
@@ -250,7 +265,7 @@ body.app-shell main.wrap {
     display: block;
   }
   body.app-shell main.wrap {
-    padding-bottom: 4rem;
+    padding-bottom: 1.25rem;
   }
   .app-nav {
     position: static;
@@ -295,6 +310,10 @@ body.app-shell main.wrap {
 }
 
 main.wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  width: 100%;
   max-width: 52rem;
   margin: 0 auto;
   padding-top: 1.5rem;
@@ -409,11 +428,6 @@ form.inline { display: inline; }
   .record-actions form.inline button {
     width: auto;
   }
-}
-
-@media (max-width: 899px) {
-  /* The bottom bar is the menu on a phone. These shortcuts repeat it. */
-  .home-shortcuts { display: none; }
 }
 
 @media (max-width: 640px) {
