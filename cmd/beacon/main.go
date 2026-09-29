@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -22,30 +21,38 @@ import (
 
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	if err := run(logger); err != nil {
-		logger.Error("server stopped", "err", err)
+	if err := run(logger, os.Args[1:]); err != nil {
+		logger.Error("command failed", "err", err)
 		os.Exit(1)
 	}
 }
 
-func run(logger *slog.Logger) error {
-	wipeSchema := flag.Bool("wipe-schema", false, "drop and recreate the public schema before migrate (requires BEACON_ALLOW_SCHEMA_WIPE=true)")
-	flag.Parse()
-
-	addr := listenAddr()
-	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL == "" {
-		return errors.New("DATABASE_URL is required")
+func run(logger *slog.Logger, args []string) error {
+	if len(args) == 0 {
+		return errors.New("usage: beacon <server|wipe-schema>")
 	}
+	switch args[0] {
+	case "server":
+		return runServer(logger)
+	case "wipe-schema":
+		return runWipeSchema(logger)
+	default:
+		return fmt.Errorf("unknown command %q (want server or wipe-schema)", args[0])
+	}
+}
 
-	db, err := sql.Open("pgx", databaseURL)
+func runWipeSchema(logger *slog.Logger) error {
+	if os.Getenv("BEACON_ALLOW_SCHEMA_WIPE") != "true" {
+		return errors.New("wipe-schema requires BEACON_ALLOW_SCHEMA_WIPE=true")
+	}
+	db, err := openDB()
 	if err != nil {
-		return fmt.Errorf("open database: %w", err)
+		return err
 	}
 	defer db.Close()
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(30 * time.Minute)
+	// Single connection: avoid the pool racing terminate_backend against ourselves.
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -53,14 +60,25 @@ func run(logger *slog.Logger) error {
 		return fmt.Errorf("ping database: %w", err)
 	}
 
-	if *wipeSchema {
-		if os.Getenv("BEACON_ALLOW_SCHEMA_WIPE") != "true" {
-			return errors.New("--wipe-schema requires BEACON_ALLOW_SCHEMA_WIPE=true")
-		}
-		logger.Warn("wiping public schema before migrate")
-		if err := migrate.WipePublicSchema(ctx, db); err != nil {
-			return fmt.Errorf("wipe schema: %w", err)
-		}
+	logger.Warn("wiping public schema")
+	if err := migrate.WipePublicSchema(ctx, db); err != nil {
+		return fmt.Errorf("wipe schema: %w", err)
+	}
+	logger.Info("public schema wiped")
+	return nil
+}
+
+func runServer(logger *slog.Logger) error {
+	db, err := openDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := db.PingContext(ctx); err != nil {
+		return fmt.Errorf("ping database: %w", err)
 	}
 
 	if err := migrate.Up(ctx, db); err != nil {
@@ -87,14 +105,14 @@ func run(logger *slog.Logger) error {
 	}
 
 	httpSrv := &http.Server{
-		Addr:              addr,
+		Addr:              listenAddr(),
 		Handler:           srvApp.Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	errCh := make(chan error, 1)
 	go func() {
-		logger.Info("listening", "addr", addr)
+		logger.Info("listening", "addr", httpSrv.Addr)
 		errCh <- httpSrv.ListenAndServe()
 	}()
 
@@ -112,6 +130,21 @@ func run(logger *slog.Logger) error {
 		}
 		return err
 	}
+}
+
+func openDB() (*sql.DB, error) {
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		return nil, errors.New("DATABASE_URL is required")
+	}
+	db, err := sql.Open("pgx", databaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("open database: %w", err)
+	}
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(30 * time.Minute)
+	return db, nil
 }
 
 // listenAddr prefers ADDR; otherwise PORT (Railway/PaaS); default :8080.

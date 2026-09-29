@@ -49,7 +49,7 @@ fi
 
 pkill -f '/tmp/beacon-phase4' >/dev/null 2>&1 || true
 go build -o /tmp/beacon-phase4 ./cmd/beacon
-/tmp/beacon-phase4 > /tmp/beacon-phase4.log 2>&1 &
+/tmp/beacon-phase4 server > /tmp/beacon-phase4.log 2>&1 &
 APP_PID=$!
 cleanup() {
   kill "$APP_PID" >/dev/null 2>&1 || true

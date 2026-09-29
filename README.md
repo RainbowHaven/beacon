@@ -36,7 +36,7 @@ make run
 make setup           # brew install go, cloudflared
 make env             # write .env
 make db-up           # Postgres on host port 5433
-make run             # env + db + go run ./cmd/beacon
+make run             # env + db + go run ./cmd/beacon server
 make tunnel          # Cloudflare quick tunnel (phone); writes .local/tunnel.env
 make run-tunnel      # app with tunnel WebAuthn host (use with make tunnel)
 make test            # go test ./...
@@ -84,7 +84,7 @@ Phases 1–3 **drop** the local schema. Do not point them at data you care about
 Deploy target: **Railway** + managed Postgres.
 
 - **Production:** `https://beacon.magiconair.net`
-- **Staging:** `/deploy-staging` on a PR (shared env; wipe + deploy); PR close restores `main` — see [deploy/README.md](./deploy/README.md)
+- **Staging:** auto-deploys on every PR open/push; PR close restores `main` — see [deploy/README.md](./deploy/README.md)
 - Env templates: [deploy/.env.example](./deploy/.env.example), [deploy/.env.staging.example](./deploy/.env.staging.example)
 - Cutover, promote, backups: [OPERATOR.md](./OPERATOR.md)
 

@@ -27,7 +27,7 @@ Beacon helps Rainbow Haven run LGBTQ safe houses: occupancy, expenses, and RHC r
 - Verify Phase 6: `make verify-phase6`
 - Verify CLA docs/workflow: `make verify-cla`
 - **Receipts** are stored in Postgres (`BYTEA` on expenses), not on the filesystem.
-- **Production:** Railway (Dockerfile + managed Postgres); staging via `/deploy-staging` — see [deploy/README.md](./deploy/README.md) and [OPERATOR.md](./OPERATOR.md).
+- **Production:** Railway (Dockerfile + managed Postgres); staging deploys automatically on every PR open/push/close — see [deploy/README.md](./deploy/README.md) and [OPERATOR.md](./OPERATOR.md).
 
 ## Roles
 

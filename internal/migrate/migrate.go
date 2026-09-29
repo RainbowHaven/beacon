@@ -13,8 +13,21 @@ import (
 var files embed.FS
 
 // WipePublicSchema drops and recreates the public schema (all tables gone).
-// Callers must gate this behind an explicit operator control (CLI flag + env).
+// Callers must gate this behind an explicit operator control (CLI + env).
+//
+// Other sessions are terminated first: Railway pre-deploy runs while the
+// previous deploy may still hold connections, and DROP SCHEMA CASCADE would
+// otherwise wait forever on locks (Railway pre-deploy has no default timeout).
 func WipePublicSchema(ctx context.Context, db *sql.DB) error {
+	if _, err := db.ExecContext(ctx, `
+		SELECT pg_terminate_backend(pid)
+		FROM pg_stat_activity
+		WHERE datname = current_database()
+		  AND pid <> pg_backend_pid()
+		  AND backend_type = 'client backend'`); err != nil {
+		return fmt.Errorf("terminate other sessions: %w", err)
+	}
+
 	_, err := db.ExecContext(ctx, `
 		DROP SCHEMA public CASCADE;
 		CREATE SCHEMA public;

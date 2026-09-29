@@ -6,6 +6,16 @@ LOCAL_DIR := .local
 ENV_FILE := .env
 TUNNEL_ENV := $(LOCAL_DIR)/tunnel.env
 
+VERSION ?= $(shell git describe --tags --exact-match 2>/dev/null | sed 's/^v//')
+ifeq ($(strip $(VERSION)),)
+VERSION := 0.0.0
+endif
+COMMIT  ?= $(shell git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)
+DATE    ?= $(shell git show -s --format=%cs HEAD 2>/dev/null || date -u +%Y-%m-%d)
+LDFLAGS := -X github.com/magiconair/beacon/internal/version.Version=$(VERSION) \
+	-X github.com/magiconair/beacon/internal/version.Commit=$(COMMIT) \
+	-X github.com/magiconair/beacon/internal/version.Date=$(DATE)
+
 help:
 	@echo "Beacon local development"
 	@echo ""
@@ -63,7 +73,7 @@ run: env db-up
 		./scripts/compose.sh exec -T db pg_isready -U beacon -d beacon >/dev/null 2>&1 && break; \
 		sleep 0.5; \
 	done
-	set -a; . ./$(ENV_FILE); set +a; GOTOOLCHAIN=$(GOTOOLCHAIN) go run ./cmd/beacon
+	set -a; . ./$(ENV_FILE); set +a; GOTOOLCHAIN=$(GOTOOLCHAIN) go run -ldflags "$(LDFLAGS)" ./cmd/beacon server
 
 # Phone access: terminal A → make tunnel; terminal B → make run-tunnel
 tunnel:
@@ -78,7 +88,7 @@ run-tunnel: env db-up
 		sleep 0.5; \
 	done
 	@echo "Loading $(ENV_FILE) + $(TUNNEL_ENV)"
-	set -a; . ./$(ENV_FILE); . ./$(TUNNEL_ENV); set +a; GOTOOLCHAIN=$(GOTOOLCHAIN) go run ./cmd/beacon
+	set -a; . ./$(ENV_FILE); . ./$(TUNNEL_ENV); set +a; GOTOOLCHAIN=$(GOTOOLCHAIN) go run -ldflags "$(LDFLAGS)" ./cmd/beacon server
 
 compose-up: env
 	./scripts/compose.sh --env-file $(ENV_FILE) up -d --build

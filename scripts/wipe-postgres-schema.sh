@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Optional local helper: wipe public schema via psql.
-# Prefer: BEACON_ALLOW_SCHEMA_WIPE=true go run ./cmd/beacon --wipe-schema
-# (or the same flags on a deployed staging container).
+# Prefer: BEACON_ALLOW_SCHEMA_WIPE=true go run ./cmd/beacon wipe-schema
+# (or Railway staging pre-deploy: /app/beacon wipe-schema).
 #
 # Usage: DATABASE_URL='postgres://…' ./scripts/wipe-postgres-schema.sh
 set -euo pipefail
@@ -14,7 +14,7 @@ fi
 case "$DATABASE_URL" in
   *railway.internal*)
     echo "DATABASE_URL uses railway.internal (private network)." >&2
-    echo "Run wipe inside Railway instead: start command /app/beacon --wipe-schema" >&2
+    echo "Run wipe inside Railway instead: pre-deploy /app/beacon wipe-schema" >&2
     echo "with BEACON_ALLOW_SCHEMA_WIPE=true on the staging service." >&2
     exit 1
     ;;

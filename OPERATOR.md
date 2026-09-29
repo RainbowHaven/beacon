@@ -60,8 +60,8 @@ Full staging + promote workflow: [deploy/README.md](./deploy/README.md).
 | | Staging | Production |
 |--|---------|------------|
 | Purpose | Try a PR (or `main`) before prod | Live `beacon.magiconair.net` |
-| Deploy | Comment **`/deploy-staging`** on a PR; PR close restores `main` (container wipes schema on boot) | **Manual** until staging is trusted |
-| DB | Separate staging Postgres (wiped in-process on each container start via `--wipe-schema`) | Separate production Postgres |
+| Deploy | Auto on every PR open/push; PR close restores `main` | **Manual** until staging is trusted |
+| DB | Separate staging Postgres; wiped via Railway pre-deploy on each deploy | Separate production Postgres |
 | Host | `beacon-staging.magiconair.net` or Railway `*.up.railway.app` | `beacon.magiconair.net` |
 | Env template | [deploy/.env.staging.example](./deploy/.env.staging.example) | [deploy/.env.example](./deploy/.env.example) |
 
@@ -83,7 +83,7 @@ After deploying the identity-vault removal, **delete any leftover `IDENTITY_*` v
 
 ### Promote a change
 
-1. On the PR, comment **`/deploy-staging`** → smoke-test the staging host.
+1. Open or push to a PR → staging auto-deploys → smoke-test the staging host.
 2. Merge the PR (staging restores to `main` automatically).
 3. In Railway **production**, deploy / redeploy latest `main`.
 4. Confirm `https://beacon.magiconair.net/healthz`.

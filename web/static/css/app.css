@@ -159,6 +159,15 @@ main.wrap {
   padding-left: max(1.5rem, calc(env(safe-area-inset-left, 0px) + 1.25rem));
   padding-right: max(1.5rem, calc(env(safe-area-inset-right, 0px) + 1.25rem));
 }
+.app-footer {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 0.75rem 1.5rem 1.5rem;
+  padding-left: max(1.5rem, calc(env(safe-area-inset-left, 0px) + 1.25rem));
+  padding-right: max(1.5rem, calc(env(safe-area-inset-right, 0px) + 1.25rem));
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
 h1 { font-size: clamp(1.6rem, 5vw, 2.2rem); letter-spacing: -0.03em; margin: 0 0 0.75rem; color: var(--accent); font-weight: 700; }
 .muted { opacity: 0.8; }
 .flash { padding: 0.75rem 1rem; border: 1px solid var(--line); background: var(--card); margin-bottom: 1rem; }
