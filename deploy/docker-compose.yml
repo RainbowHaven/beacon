@@ -17,8 +17,6 @@ services:
       WEBAUTHN_RP_ORIGINS: https://beacon.magiconair.net
       BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL}
       BOOTSTRAP_REISSUE: "false"
-      IDENTITY_PUBLIC_KEY_B64: ${IDENTITY_PUBLIC_KEY_B64}
-      IDENTITY_KEY_ID: ${IDENTITY_KEY_ID:-prod-1}
     depends_on:
       - db
 

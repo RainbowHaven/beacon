@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase 2 local verification: sealed-box JS↔Go roundtrip, occupant tests, HTTP smoke.
+# Phase 2 local verification: occupant create/list tests + HTTP smoke.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -18,11 +18,6 @@ export BASE_URL="${BASE_URL:-http://localhost:8080}"
 export WEBAUTHN_RP_ID="${WEBAUTHN_RP_ID:-localhost}"
 export WEBAUTHN_RP_ORIGINS="${WEBAUTHN_RP_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}"
 export SECURE_COOKIES=false
-# shellcheck disable=SC1091
-source "$ROOT/scripts/lib/identity-env.sh"
-identity_env_prepare "$ROOT"
-# Private key only for the crypto round-trip below — never for the app process.
-CRYPTO_PRIV="${IDENTITY_PRIVATE_KEY_B64}"
 
 chmod +x scripts/compose.sh scripts/verify-phase2.sh
 
@@ -35,28 +30,8 @@ for _ in $(seq 1 40); do
   sleep 1
 done
 
-# JS sealed box must open with Go OpenAnonymous (browser crypto compatibility).
-if command -v bun >/dev/null 2>&1; then
-  CT_B64="$(bun -e '
-import { readFileSync } from "fs";
-eval(readFileSync("./web/static/js/vendor/nacl-fast.min.js","utf8"));
-const { sealAnonymous, bytesToB64 } = await import("./web/static/js/seal.js");
-const pub = process.env.IDENTITY_PUBLIC_KEY_B64;
-const ct = sealAnonymous(JSON.stringify({legal_name:"Verify",refugee_id:"V-1"}), pub);
-process.stdout.write(bytesToB64(ct));
-')"
-  go run ./scripts/internal/openseal -pub "$IDENTITY_PUBLIC_KEY_B64" -priv "$CRYPTO_PRIV" -ct "$CT_B64" \
-    | grep -q '"legal_name":"Verify"' || fail "JS→Go sealed-box roundtrip"
-  pass "JS→Go sealed-box roundtrip"
-else
-  echo "WARN: bun not found; skipping browser seal roundtrip (go tests still cover SealAnonymous)"
-fi
-
-unset IDENTITY_PRIVATE_KEY_B64
-unset CRYPTO_PRIV
-
-go test ./...
-pass "go test ./..."
+go test ./internal/server/ -run 'TestOccupantCreateScoped' -count=1
+pass "occupant tests"
 
 ./scripts/compose.sh exec -T db psql -U beacon -d beacon -v ON_ERROR_STOP=1 <<'SQL'
 DROP TABLE IF EXISTS expenses, occupants, audit_events, sessions, webauthn_challenges, webauthn_credentials, invites, users, safe_houses, rhls, schema_migrations CASCADE;
@@ -70,7 +45,6 @@ if command -v lsof >/dev/null 2>&1; then
     sleep 0.5
   fi
 fi
-pkill -f '/tmp/beacon-phase1' >/dev/null 2>&1 || true
 pkill -f '/tmp/beacon-phase2' >/dev/null 2>&1 || true
 go build -o /tmp/beacon-phase2 ./cmd/beacon
 /tmp/beacon-phase2 > /tmp/beacon-phase2.log 2>&1 &
@@ -101,10 +75,10 @@ code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/occupants)"
 [[ "$code" == "303" || "$code" == "302" ]] || fail "occupants should redirect when logged out (got $code)"
 pass "occupants requires auth"
 
-curl -fsS "http://127.0.0.1:8080/static/js/seal.js" | grep -q sealAnonymous || fail "seal.js missing"
-pass "seal.js served"
+code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/admin/break-glass)"
+[[ "$code" == "404" ]] || fail "break-glass should be gone (got $code)"
+pass "break-glass removed"
 
 echo
 echo "Phase 2 local verification passed."
-echo "Manual check: log in, open /occupants/new, hand off to resident form, confirm nickname-only list."
-echo "Keep IDENTITY private key offline — never set it as a server env var."
+echo "Manual check: log in, add an occupant with nickname + arrival only."

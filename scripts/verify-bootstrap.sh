@@ -15,10 +15,6 @@ command -v go >/dev/null || fail "go not installed"
 GOTOOLCHAIN="${GOTOOLCHAIN:-auto}"
 export GOTOOLCHAIN
 
-# shellcheck disable=SC1091
-source "$ROOT/scripts/lib/identity-env.sh"
-identity_env_prepare "$ROOT"
-unset IDENTITY_PRIVATE_KEY_B64
 
 go test ./...
 pass "go test ./..."

@@ -3,7 +3,6 @@ package server_test
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -24,7 +23,6 @@ import (
 	"github.com/magiconair/beacon/internal/migrate"
 	"github.com/magiconair/beacon/internal/server"
 	"github.com/magiconair/beacon/internal/store"
-	"golang.org/x/crypto/nacl/box"
 )
 
 func testDB(t *testing.T) *sql.DB {
@@ -72,8 +70,6 @@ func TestInviteRegisterLoginLock(t *testing.T) {
 		WebAuthnRPName:      "Beacon",
 		WebAuthnRPOrigins:   []string{"http://localhost"},
 		BootstrapAdminEmail: "",
-		IdentityPublicKey:   testIdentityPublicKey(t),
-		IdentityKeyID:       "test-key-1",
 	}
 	srv, err := server.New(logger, db, cfg)
 	if err != nil {
@@ -319,20 +315,4 @@ func assertLoginFails(t *testing.T, base, email string) {
 	if res.StatusCode == 200 {
 		t.Fatal("expected locked login begin to fail")
 	}
-}
-
-// Ephemeral sealed-box keypair for tests (never a checked-in private key).
-func testIdentityKeyPair(t *testing.T) (pub, priv [32]byte) {
-	t.Helper()
-	pubPtr, privPtr, err := box.GenerateKey(rand.Reader)
-	if err != nil {
-		t.Fatalf("generate identity keypair: %v", err)
-	}
-	return *pubPtr, *privPtr
-}
-
-func testIdentityPublicKey(t *testing.T) [32]byte {
-	t.Helper()
-	pub, _ := testIdentityKeyPair(t)
-	return pub
 }

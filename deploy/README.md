@@ -62,5 +62,6 @@ Never run local `verify-phase{1,2,3}` scripts against Railway databases.
 - [ ] `DATABASE_URL` points at **this** environment’s Postgres  
 - [ ] `BASE_URL` / `WEBAUTHN_RP_ID` / `WEBAUTHN_RP_ORIGINS` match the public HTTPS host  
 - [ ] `SECURE_COOKIES=true`  
+- [ ] No leftover `IDENTITY_*` variables  
 - [ ] `/healthz` returns OK  
 - [ ] Passkey enrolled on that host  

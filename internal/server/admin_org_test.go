@@ -2,8 +2,6 @@ package server_test
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"log/slog"
@@ -19,7 +17,6 @@ import (
 	"github.com/magiconair/beacon/internal/domain"
 	"github.com/magiconair/beacon/internal/server"
 	"github.com/magiconair/beacon/internal/store"
-	"golang.org/x/crypto/nacl/box"
 )
 
 func TestOrgHousesAndUserScope(t *testing.T) {
@@ -33,8 +30,6 @@ func TestOrgHousesAndUserScope(t *testing.T) {
 		WebAuthnRPID:      "localhost",
 		WebAuthnRPName:    "Beacon",
 		WebAuthnRPOrigins: []string{"http://localhost"},
-		IdentityPublicKey: testIdentityPublicKey(t),
-		IdentityKeyID:     "test-key-1",
 	}
 	srv, err := server.New(logger, db, cfg)
 	if err != nil {
@@ -117,17 +112,10 @@ func TestOrgHousesAndUserScope(t *testing.T) {
 		t.Fatal("expected House B on admin houses page")
 	}
 
-	pub := cfg.IdentityPublicKey
-	ctRaw, err := box.SealAnonymous(nil, []byte(`{"legal_name":"X","refugee_id":"1"}`), &pub, rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
 	form := url.Values{
-		"safe_house_id":       {strconv.FormatInt(houseA.ID, 10)},
-		"arrived_at":          {time.Now().UTC().Format("2006-01-02")},
-		"nickname":            {"OnlyA"},
-		"key_id":              {"test-key-1"},
-		"identity_ciphertext": {base64.StdEncoding.EncodeToString(ctRaw)},
+		"safe_house_id": {strconv.FormatInt(houseA.ID, 10)},
+		"arrived_at":    {time.Now().UTC().Format("2006-01-02")},
+		"nickname":      {"OnlyA"},
 	}
 	res, err := clientWith(sessA).PostForm(ts.URL+"/occupants", form)
 	if err != nil {

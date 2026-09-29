@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/base64"
 	"net/http"
 	"strconv"
 	"strings"
@@ -150,42 +149,6 @@ func (s *Server) handleOccupantNew(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Server) handleOccupantHandoff(w http.ResponseWriter, r *http.Request) {
-	u, _ := s.currentUser(r)
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad form", http.StatusBadRequest)
-		return
-	}
-	houseID, err := parseID(r.FormValue("safe_house_id"))
-	if err != nil {
-		http.Redirect(w, r, "/occupants/new?error=invalid+house", http.StatusSeeOther)
-		return
-	}
-	arrived := strings.TrimSpace(r.FormValue("arrived_at"))
-	if arrived == "" {
-		http.Redirect(w, r, "/occupants/new?error=arrival+date+required", http.StatusSeeOther)
-		return
-	}
-	if _, err := time.Parse("2006-01-02", arrived); err != nil {
-		http.Redirect(w, r, "/occupants/new?error=invalid+arrival+date", http.StatusSeeOther)
-		return
-	}
-	house, err := s.store.GetSafeHouse(r.Context(), houseID)
-	if err != nil || !s.canAccessHouse(u, house) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-	s.render(w, "occupant_handoff.html", map[string]any{
-		"Title":             "Resident handoff",
-		"User":              &u,
-		"House":             house,
-		"ArrivedAt":         arrived,
-		"IdentityPublicKey": base64.StdEncoding.EncodeToString(s.cfg.IdentityPublicKey[:]),
-		"IdentityKeyID":     s.cfg.IdentityKeyID,
-		"Handoff":           true,
-	})
-}
-
 func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 	u, _ := s.currentUser(r)
 	if err := r.ParseForm(); err != nil {
@@ -207,39 +170,26 @@ func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/occupants/new?error=invalid+arrival+date", http.StatusSeeOther)
 		return
 	}
-	keyID := strings.TrimSpace(r.FormValue("key_id"))
-	if keyID != s.cfg.IdentityKeyID {
-		http.Redirect(w, r, "/occupants?error=unexpected+key_id", http.StatusSeeOther)
-		return
-	}
-	ctB64 := strings.TrimSpace(r.FormValue("identity_ciphertext"))
-	ct, err := base64.StdEncoding.DecodeString(ctB64)
-	if err != nil || len(ct) < 48 {
-		http.Redirect(w, r, "/occupants?error=missing+sealed+identity", http.StatusSeeOther)
-		return
-	}
-	if strings.TrimSpace(r.FormValue("legal_name")) != "" || strings.TrimSpace(r.FormValue("refugee_id")) != "" {
-		http.Redirect(w, r, "/occupants?error=identity+must+be+sealed+client-side", http.StatusSeeOther)
+	nick := strings.TrimSpace(r.FormValue("nickname"))
+	if nick == "" {
+		http.Redirect(w, r, "/occupants/new?error=nickname+required", http.StatusSeeOther)
 		return
 	}
 
 	uid := u.ID
 	o, err := s.store.CreateOccupant(r.Context(), store.CreateOccupantInput{
-		SafeHouseID:        houseID,
-		Nickname:           r.FormValue("nickname"),
-		ArrivedAt:          arrived,
-		IdentityCiphertext: ct,
-		KeyID:              keyID,
-		CreatedBy:          &uid,
+		SafeHouseID: houseID,
+		Nickname:    nick,
+		ArrivedAt:   arrived,
+		CreatedBy:   &uid,
 	})
 	if err != nil {
 		s.log.Error("create occupant", "err", err)
-		http.Redirect(w, r, "/occupants?error=could+not+save+occupant", http.StatusSeeOther)
+		http.Redirect(w, r, "/occupants/new?error=could+not+save+occupant", http.StatusSeeOther)
 		return
 	}
 	_ = s.store.Audit(r.Context(), &uid, "occupant.create", "occupant", idString(o.ID), map[string]any{
 		"safe_house_id": houseID,
-		"key_id":        keyID,
 	})
 	http.Redirect(w, r, "/occupants?ok=added", http.StatusSeeOther)
 }

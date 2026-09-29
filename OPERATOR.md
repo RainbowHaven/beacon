@@ -2,20 +2,11 @@
 
 Short procedures for Rainbow Haven Coordinating (RHC). No Go knowledge required.
 
-## Keys (identity vault)
-
-- **Public key** lives in app config (`IDENTITY_PUBLIC_KEY_B64` + `IDENTITY_KEY_ID`). Generate locally with `make keys` / `make env`.
-- **Private key** stays offline (printed / vault / `.local/identity.priv.b64` on your laptop). Never put it in env committed to git, Docker, DB, or manager devices.
-- Break-glass: RHC opens `/admin/break-glass`, pastes the private key in the browser, decrypts one nickname at a time, then clicks **Clear key**.
-- Each sealed-identity fetch is audited as `identity.break_glass`.
-
-Do not commit identity private keys. Each developer’s `make keys` output is local-only.
-
 ## Invite a manager
 
 1. Log in as RHC → **Users** → **Invite user**.
 2. Create user (role + house/RHL scope) → copy invite URL (shown once on Users).
-3. Manager opens the URL on `http://localhost:8080` (or the real `BASE_URL` host) and enrolls a passkey.
+3. Manager opens the URL on the real `BASE_URL` host and enrolls a passkey.
 
 ## Change role or house without a new invite
 
@@ -40,9 +31,14 @@ Do not commit identity private keys. Each developer’s `make keys` output is lo
 2. Sessions are revoked immediately.
 3. Re-invite later when safe.
 
+## Residents
+
+- Record **nickname + arrival** only. Do not enter legal names or government IDs in Beacon.
+- Mark departure when the resident leaves.
+
 ## Monthly reporting
 
-- **Reports** needs no private key (headcount + expense totals by currency).
+- **Reports** shows headcount and expense totals from live data.
 - Print from the browser if RHC needs a paper copy.
 
 ## Local DB tip
@@ -68,14 +64,16 @@ Full staging + promote workflow: [deploy/README.md](./deploy/README.md).
 
 Passkeys are bound to the hostname — enroll separately on staging and production.
 
+After deploying the identity-vault removal, **delete any leftover `IDENTITY_*` variables** from Railway and wipe/recreate the DB (or let migration `007_drop_identity_vault.sql` run on existing data).
+
 ### One-time production cutover
 
 1. Create a Railway project from the `RainbowHaven/beacon` GitHub repo (Dockerfile / `railway.toml`).
 2. Add **PostgreSQL**. On the app service, set `DATABASE_URL` to the Postgres reference variable (e.g. `${{Postgres.DATABASE_URL}}`).
-3. Set variables from [deploy/.env.example](./deploy/.env.example): host/WebAuthn (`BASE_URL`, `WEBAUTHN_*`, `SECURE_COOKIES=true`), `BOOTSTRAP_ADMIN_EMAIL`, and any other required app env listed there.
+3. Set variables from [deploy/.env.example](./deploy/.env.example): host/WebAuthn (`BASE_URL`, `WEBAUTHN_*`, `SECURE_COOKIES=true`), `BOOTSTRAP_ADMIN_EMAIL`.
 4. **Networking** → custom domain `beacon.magiconair.net` → add the CNAME Railway shows at your DNS. Wait until HTTPS is ready.
 5. Deploy. Open `https://beacon.magiconair.net/healthz`.
-6. Use the bootstrap invite from logs (set `BOOTSTRAP_REISSUE=true` once if needed), enroll the RHC **passkey on that hostname**. Localhost/tunnel passkeys do not work on production.
+6. Use the bootstrap invite from logs (set `BOOTSTRAP_REISSUE=true` once if needed), enroll the RHC **passkey on that hostname**.
 7. Set `BOOTSTRAP_REISSUE=false` and redeploy if you temporarily enabled it.
 8. Run a backup once (below) and store the file off Railway.
 9. Add the **staging** environment (see [deploy/README.md](./deploy/README.md)) and point auto-deploy at `main`.

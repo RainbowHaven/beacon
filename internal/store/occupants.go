@@ -12,12 +12,10 @@ import (
 )
 
 type CreateOccupantInput struct {
-	SafeHouseID        int64
-	Nickname           string
-	ArrivedAt          time.Time
-	IdentityCiphertext []byte
-	KeyID              string
-	CreatedBy          *int64
+	SafeHouseID int64
+	Nickname    string
+	ArrivedAt   time.Time
+	CreatedBy   *int64
 }
 
 func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (domain.Occupant, error) {
@@ -25,20 +23,14 @@ func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (dom
 	if nick == "" {
 		return domain.Occupant{}, errors.New("nickname required")
 	}
-	if len(in.IdentityCiphertext) < 48 {
-		return domain.Occupant{}, errors.New("identity ciphertext too short")
-	}
-	if strings.TrimSpace(in.KeyID) == "" {
-		return domain.Occupant{}, errors.New("key_id required")
-	}
 	arrived := in.ArrivedAt.UTC().Truncate(24 * time.Hour)
 	var id int64
 	err := s.db.QueryRowContext(ctx, `
 		INSERT INTO occupants (
-			safe_house_id, nickname, arrived_at, identity_ciphertext, key_id, created_by
-		) VALUES ($1, $2, $3::date, $4, $5, $6)
+			safe_house_id, nickname, arrived_at, created_by
+		) VALUES ($1, $2, $3::date, $4)
 		RETURNING id`,
-		in.SafeHouseID, nick, arrived, in.IdentityCiphertext, in.KeyID, in.CreatedBy).Scan(&id)
+		in.SafeHouseID, nick, arrived, in.CreatedBy).Scan(&id)
 	if err != nil {
 		return domain.Occupant{}, err
 	}
@@ -51,7 +43,7 @@ func scanOccupant(row interface{ Scan(dest ...any) error }) (domain.Occupant, er
 	var createdBy sql.NullInt64
 	err := row.Scan(
 		&o.ID, &o.SafeHouseID, &o.Nickname, &o.ArrivedAt, &departed,
-		&o.IdentityCiphertext, &o.KeyID, &createdBy, &o.CreatedAt, &o.UpdatedAt,
+		&createdBy, &o.CreatedAt, &o.UpdatedAt,
 	)
 	if err != nil {
 		return domain.Occupant{}, err
@@ -68,7 +60,7 @@ func scanOccupant(row interface{ Scan(dest ...any) error }) (domain.Occupant, er
 	return o, nil
 }
 
-const occupantCols = `id, safe_house_id, nickname, arrived_at, departed_at, identity_ciphertext, key_id, created_by, created_at, updated_at`
+const occupantCols = `id, safe_house_id, nickname, arrived_at, departed_at, created_by, created_at, updated_at`
 
 func (s *Store) GetOccupant(ctx context.Context, id int64) (domain.Occupant, error) {
 	o, err := scanOccupant(s.db.QueryRowContext(ctx, `SELECT `+occupantCols+` FROM occupants WHERE id = $1`, id))
