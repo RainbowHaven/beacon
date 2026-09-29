@@ -26,13 +26,16 @@ test -f deploy/.env.staging.example || fail "deploy/.env.staging.example missing
 test -f deploy/README.md || fail "deploy/README.md missing"
 test -f deploy/docker-compose.yml || fail "deploy/docker-compose.yml missing"
 test -f scripts/backup-prod.sh || fail "scripts/backup-prod.sh missing"
+test -f scripts/wipe-postgres-schema.sh || fail "scripts/wipe-postgres-schema.sh missing"
+test -f .github/workflows/staging-deploy.yml || fail "staging-deploy workflow missing"
 grep -q 'beacon.magiconair.net' deploy/.env.example || fail "deploy/.env.example missing hostname"
-grep -q 'staging' deploy/README.md || fail "deploy/README.md missing staging"
+grep -q '/deploy-staging' deploy/README.md || fail "deploy/README.md missing /deploy-staging"
+grep -q '/deploy-staging' .github/workflows/staging-deploy.yml || fail "staging-deploy workflow missing slash command"
 ! grep -q 'IDENTITY_PUBLIC_KEY' deploy/.env.example || fail "deploy/.env.example still has IDENTITY_*"
 grep -q 'healthcheckPath' railway.toml || fail "railway.toml missing healthcheck"
 pass "deploy config present"
 
-chmod +x scripts/compose.sh scripts/verify-phase6.sh scripts/backup-prod.sh
+chmod +x scripts/compose.sh scripts/verify-phase6.sh scripts/backup-prod.sh scripts/wipe-postgres-schema.sh
 
 ./scripts/compose.sh up -d db
 echo "Waiting for Postgres..."

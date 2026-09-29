@@ -84,7 +84,7 @@ Phases 1–3 **drop** the local schema. Do not point them at data you care about
 Deploy target: **Railway** + managed Postgres.
 
 - **Production:** `https://beacon.magiconair.net`
-- **Staging:** separate Railway environment; auto-deploy on push to `main` (see [deploy/README.md](./deploy/README.md))
+- **Staging:** `/deploy-staging` on a PR (shared env; wipe + deploy); PR close restores `main` — see [deploy/README.md](./deploy/README.md)
 - Env templates: [deploy/.env.example](./deploy/.env.example), [deploy/.env.staging.example](./deploy/.env.staging.example)
 - Cutover, promote, backups: [OPERATOR.md](./OPERATOR.md)
 

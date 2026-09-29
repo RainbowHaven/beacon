@@ -1,5 +1,5 @@
 # Railway service config for Beacon.
-# See deploy/README.md for staging vs production environments and auto-deploy.
+# See deploy/README.md for staging (GitHub /deploy-staging) vs production.
 # Production domain: beacon.magiconair.net
 
 [build]
