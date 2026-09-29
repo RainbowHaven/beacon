@@ -1,20 +1,28 @@
 {{template "layout_start" .}}
 <h1>Add occupant</h1>
-{{if .Error}}<p class="flash error">{{.Error}}</p>{{end}}
-<p class="muted">Record nickname and arrival only. Nicknames must be unique per house (case, spaces, punctuation, accents, and look-alike letters ignored; including departed). Do not enter legal names or government IDs.</p>
+{{if .Error}}
+<p class="flash error" role="alert">
+  {{.Error}}
+  {{if .Suggestion}}
+  Try
+  <input class="nick-suggest" type="text" readonly value="{{.Suggestion}}" onclick="this.select()" aria-label="Suggested nickname">
+  {{end}}
+</p>
+{{end}}
+<p class="muted">Record nickname and arrival only. Nicknames must start with a letter and be unique per house (case, spaces, punctuation, accents, and look-alike letters ignored; including departed). Do not enter legal names or government IDs.</p>
 <form class="stack" method="post" action="/occupants" style="max-width:28rem">
   <label>Safe house
     <select name="safe_house_id" required>
       {{range .Houses}}
-      <option value="{{.ID}}">{{.Name}}</option>
+      <option value="{{.ID}}"{{if eq .ID $.SelectedHouseID}} selected{{end}}>{{.Name}}</option>
       {{end}}
     </select>
   </label>
   <label>Nickname
-    <input name="nickname" required maxlength="80" autocomplete="off" autocapitalize="words">
+    <input name="nickname" required maxlength="80" autocomplete="off" autocapitalize="words" value="{{.Nickname}}">
   </label>
   <label>Arrival date
-    <input type="date" name="arrived_at" value="{{.Today}}" required>
+    <input type="date" name="arrived_at" value="{{.ArrivedAt}}" max="{{.MaxArrived}}" required>
   </label>
   <button type="submit">Save</button>
 </form>

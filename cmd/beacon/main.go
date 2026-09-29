@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -60,6 +61,7 @@ func run(logger *slog.Logger) error {
 		BootstrapAdminEmail: os.Getenv("BOOTSTRAP_ADMIN_EMAIL"),
 		BootstrapReissue:    os.Getenv("BOOTSTRAP_REISSUE") == "true",
 		MaxReceiptBytes:     5 << 20,
+		ArrivalFutureDays:   envInt("ARRIVAL_FUTURE_DAYS", 1),
 	}
 	srvApp, err := server.New(logger, db, cfg)
 	if err != nil {
@@ -116,4 +118,16 @@ func envOr(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func envInt(key string, fallback int) int {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return fallback
+	}
+	return n
 }

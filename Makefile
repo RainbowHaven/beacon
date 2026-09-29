@@ -44,6 +44,7 @@ env:
 		'WEBAUTHN_RP_ORIGINS=http://localhost:8080,http://127.0.0.1:8080' \
 		'BOOTSTRAP_ADMIN_EMAIL=rhc@example.com' \
 		'BOOTSTRAP_REISSUE=false' \
+		'ARRIVAL_FUTURE_DAYS=1' \
 		> $(ENV_FILE)
 	@echo "Wrote $(ENV_FILE)"
 

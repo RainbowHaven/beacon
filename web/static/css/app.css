@@ -163,6 +163,20 @@ h1 { font-size: clamp(1.6rem, 5vw, 2.2rem); letter-spacing: -0.03em; margin: 0 0
 .muted { opacity: 0.8; }
 .flash { padding: 0.75rem 1rem; border: 1px solid var(--line); background: var(--card); margin-bottom: 1rem; }
 .flash.error { border-color: var(--danger); color: var(--danger); }
+.nick-suggest {
+  display: inline-block;
+  width: auto;
+  max-width: 100%;
+  margin-left: 0.25rem;
+  padding: 0.2rem 0.45rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px dashed var(--danger);
+  vertical-align: baseline;
+  cursor: text;
+}
 .stack { display: grid; gap: 1rem; }
 form.stack { width: 100%; max-width: 28rem; }
 label { display: grid; gap: 0.35rem; font-size: 0.95rem; }

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/magiconair/beacon/internal/domain"
 )
@@ -20,17 +19,13 @@ type CreateOccupantInput struct {
 }
 
 func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (domain.Occupant, error) {
-	nick := NormalizeNickname(in.Nickname)
-	if nick == "" {
-		return domain.Occupant{}, errors.New("nickname required")
-	}
-	key := NicknameKey(nick)
-	if key == "" {
-		return domain.Occupant{}, errors.New("nickname required")
+	nick, key, err := PrepareNickname(in.Nickname)
+	if err != nil {
+		return domain.Occupant{}, err
 	}
 	arrived := in.ArrivedAt.UTC().Truncate(24 * time.Hour)
 	var id int64
-	err := s.db.QueryRowContext(ctx, `
+	err = s.db.QueryRowContext(ctx, `
 		INSERT INTO occupants (
 			safe_house_id, nickname, nickname_key, arrived_at, created_by
 		) VALUES ($1, $2, $3, $4::date, $5)
@@ -46,13 +41,9 @@ func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (dom
 }
 
 func (s *Store) RenameOccupant(ctx context.Context, id int64, nickname string) (domain.Occupant, error) {
-	nick := NormalizeNickname(nickname)
-	if nick == "" {
-		return domain.Occupant{}, errors.New("nickname required")
-	}
-	key := NicknameKey(nick)
-	if key == "" {
-		return domain.Occupant{}, errors.New("nickname required")
+	nick, key, err := PrepareNickname(nickname)
+	if err != nil {
+		return domain.Occupant{}, err
 	}
 	res, err := s.db.ExecContext(ctx, `
 		UPDATE occupants
@@ -71,25 +62,11 @@ func (s *Store) RenameOccupant(ctx context.Context, id int64, nickname string) (
 	return s.GetOccupant(ctx, id)
 }
 
-// SuggestNickname returns nick if free in the house, otherwise stem2, stem3, …
+// SuggestNickname returns a free kebab-case alternative (stem, stem-2, stem-3, …).
 func (s *Store) SuggestNickname(ctx context.Context, houseID int64, desired string, excludeID int64) (string, error) {
-	base := NormalizeNickname(desired)
-	if base == "" {
-		base = "Resident"
-	}
-	taken, err := s.nicknameTaken(ctx, houseID, base, excludeID)
-	if err != nil {
-		return "", err
-	}
-	if !taken {
-		return base, nil
-	}
-	stem := strings.TrimRightFunc(base, unicode.IsDigit)
-	if stem == "" {
-		stem = base
-	}
-	for n := 2; n < 1002; n++ {
-		candidate := fmt.Sprintf("%s%d", stem, n)
+	stem := NicknameSuggestionStem(desired)
+	for n := 1; n < 1002; n++ {
+		candidate := KebabSuggestion(stem, n)
 		taken, err := s.nicknameTaken(ctx, houseID, candidate, excludeID)
 		if err != nil {
 			return "", err

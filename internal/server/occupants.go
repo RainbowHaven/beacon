@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -87,6 +86,30 @@ func idString(id int64) string {
 	return strconv.FormatInt(id, 10)
 }
 
+func (s *Server) maxArrivedDate() time.Time {
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	return today.AddDate(0, 0, s.cfg.ArrivalFutureDays)
+}
+
+func (s *Server) arrivalTooFarAhead(arrived time.Time) bool {
+	day := arrived.UTC().Truncate(24 * time.Hour)
+	return day.After(s.maxArrivedDate())
+}
+
+type occupantFormView struct {
+	Title           string
+	User            *domain.User
+	Houses          []domain.SafeHouse
+	House           domain.SafeHouse
+	Occupant        domain.Occupant
+	SelectedHouseID int64
+	Nickname        string
+	ArrivedAt       string
+	MaxArrived      string
+	Error           string
+	Suggestion      string
+}
+
 func (s *Server) handleOccupants(w http.ResponseWriter, r *http.Request) {
 	u, _ := s.currentUser(r)
 	houses, err := s.housesForUser(r, u)
@@ -142,24 +165,54 @@ func (s *Server) handleOccupantNew(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no safe house in scope", http.StatusForbidden)
 		return
 	}
-	s.render(w, "occupant_new.html", map[string]any{
-		"Title":  "Add occupant",
-		"User":   &u,
-		"Houses": houses,
-		"Today":  time.Now().UTC().Format("2006-01-02"),
-		"Error":  r.URL.Query().Get("error"),
+	today := time.Now().UTC().Format("2006-01-02")
+	s.render(w, "occupant_new.html", occupantFormView{
+		Title:           "Add occupant",
+		User:            &u,
+		Houses:          houses,
+		SelectedHouseID: houses[0].ID,
+		Nickname:        "",
+		ArrivedAt:       today,
+		MaxArrived:      s.maxArrivedDate().Format("2006-01-02"),
+	})
+}
+
+func (s *Server) renderOccupantNew(w http.ResponseWriter, u domain.User, houses []domain.SafeHouse, houseID int64, nickname, arrivedAt, errMsg, suggestion string) {
+	if arrivedAt == "" {
+		arrivedAt = time.Now().UTC().Format("2006-01-02")
+	}
+	if houseID == 0 && len(houses) > 0 {
+		houseID = houses[0].ID
+	}
+	s.render(w, "occupant_new.html", occupantFormView{
+		Title:           "Add occupant",
+		User:            &u,
+		Houses:          houses,
+		SelectedHouseID: houseID,
+		Nickname:        nickname,
+		ArrivedAt:       arrivedAt,
+		MaxArrived:      s.maxArrivedDate().Format("2006-01-02"),
+		Error:           errMsg,
+		Suggestion:      suggestion,
 	})
 }
 
 func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 	u, _ := s.currentUser(r)
+	houses, err := s.housesForUser(r, u)
+	if err != nil || len(houses) == 0 {
+		http.Error(w, "no safe house in scope", http.StatusForbidden)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad form", http.StatusBadRequest)
 		return
 	}
+	nick := strings.TrimSpace(r.FormValue("nickname"))
+	arrivedRaw := strings.TrimSpace(r.FormValue("arrived_at"))
 	houseID, err := parseID(r.FormValue("safe_house_id"))
 	if err != nil {
-		http.Redirect(w, r, "/occupants/new?error=invalid+house", http.StatusSeeOther)
+		s.renderOccupantNew(w, u, houses, 0, nick, arrivedRaw, "Invalid safe house.", "")
 		return
 	}
 	house, err := s.store.GetSafeHouse(r.Context(), houseID)
@@ -167,14 +220,21 @@ func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	arrived, err := time.Parse("2006-01-02", strings.TrimSpace(r.FormValue("arrived_at")))
+	arrived, err := time.Parse("2006-01-02", arrivedRaw)
 	if err != nil {
-		http.Redirect(w, r, "/occupants/new?error=invalid+arrival+date", http.StatusSeeOther)
+		s.renderOccupantNew(w, u, houses, houseID, nick, arrivedRaw, "Invalid arrival date.", "")
 		return
 	}
-	nick := strings.TrimSpace(r.FormValue("nickname"))
+	if s.arrivalTooFarAhead(arrived) {
+		msg := "Arrival date cannot be in the future."
+		if s.cfg.ArrivalFutureDays > 0 {
+			msg = "Arrival date cannot be more than " + strconv.Itoa(s.cfg.ArrivalFutureDays) + " day(s) in the future."
+		}
+		s.renderOccupantNew(w, u, houses, houseID, nick, arrivedRaw, msg, "")
+		return
+	}
 	if nick == "" {
-		http.Redirect(w, r, "/occupants/new?error=nickname+required", http.StatusSeeOther)
+		s.renderOccupantNew(w, u, houses, houseID, nick, arrivedRaw, "Nickname is required.", "")
 		return
 	}
 
@@ -186,16 +246,20 @@ func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 		CreatedBy:   &uid,
 	})
 	if err != nil {
+		if errors.Is(err, store.ErrNicknameInvalid) {
+			s.renderOccupantNew(w, u, houses, houseID, nick, arrivedRaw, "Nickname must start with a letter.", "")
+			return
+		}
 		if errors.Is(err, store.ErrNicknameTaken) {
-			msg := "Nickname already used in this house"
-			if sug, sugErr := s.store.SuggestNickname(r.Context(), houseID, nick, 0); sugErr == nil && sug != "" {
-				msg = "Nickname taken. Try " + sug
+			suggestion := ""
+			if sug, sugErr := s.store.SuggestNickname(r.Context(), houseID, nick, 0); sugErr == nil {
+				suggestion = sug
 			}
-			http.Redirect(w, r, "/occupants/new?error="+url.QueryEscape(msg), http.StatusSeeOther)
+			s.renderOccupantNew(w, u, houses, houseID, nick, arrivedRaw, "already taken.", suggestion)
 			return
 		}
 		s.log.Error("create occupant", "err", err)
-		http.Redirect(w, r, "/occupants/new?error=could+not+save+occupant", http.StatusSeeOther)
+		s.renderOccupantNew(w, u, houses, houseID, nick, arrivedRaw, "Could not save occupant.", "")
 		return
 	}
 	_ = s.store.Audit(r.Context(), &uid, "occupant.create", "occupant", idString(o.ID), map[string]any{
@@ -221,12 +285,24 @@ func (s *Server) handleOccupantEdit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	s.render(w, "occupant_edit.html", map[string]any{
-		"Title":    "Rename occupant",
-		"User":     &u,
-		"Occupant": o,
-		"House":    house,
-		"Error":    r.URL.Query().Get("error"),
+	s.render(w, "occupant_edit.html", occupantFormView{
+		Title:    "Rename occupant",
+		User:     &u,
+		Occupant: o,
+		House:    house,
+		Nickname: o.Nickname,
+	})
+}
+
+func (s *Server) renderOccupantEdit(w http.ResponseWriter, u domain.User, o domain.Occupant, house domain.SafeHouse, nickname, errMsg, suggestion string) {
+	s.render(w, "occupant_edit.html", occupantFormView{
+		Title:      "Rename occupant",
+		User:       &u,
+		Occupant:   o,
+		House:      house,
+		Nickname:   nickname,
+		Error:      errMsg,
+		Suggestion: suggestion,
 	})
 }
 
@@ -253,20 +329,24 @@ func (s *Server) handleOccupantRename(w http.ResponseWriter, r *http.Request) {
 	}
 	nick := strings.TrimSpace(r.FormValue("nickname"))
 	if nick == "" {
-		http.Redirect(w, r, "/occupants/"+idString(id)+"/edit?error=nickname+required", http.StatusSeeOther)
+		s.renderOccupantEdit(w, u, o, house, nick, "Nickname is required.", "")
 		return
 	}
 	updated, err := s.store.RenameOccupant(r.Context(), id, nick)
 	if err != nil {
-		if errors.Is(err, store.ErrNicknameTaken) {
-			msg := "Nickname already used in this house"
-			if sug, sugErr := s.store.SuggestNickname(r.Context(), o.SafeHouseID, nick, id); sugErr == nil && sug != "" {
-				msg = "Nickname taken. Try " + sug
-			}
-			http.Redirect(w, r, "/occupants/"+idString(id)+"/edit?error="+url.QueryEscape(msg), http.StatusSeeOther)
+		if errors.Is(err, store.ErrNicknameInvalid) {
+			s.renderOccupantEdit(w, u, o, house, nick, "Nickname must start with a letter.", "")
 			return
 		}
-		http.Redirect(w, r, "/occupants/"+idString(id)+"/edit?error=could+not+rename", http.StatusSeeOther)
+		if errors.Is(err, store.ErrNicknameTaken) {
+			suggestion := ""
+			if sug, sugErr := s.store.SuggestNickname(r.Context(), o.SafeHouseID, nick, id); sugErr == nil {
+				suggestion = sug
+			}
+			s.renderOccupantEdit(w, u, o, house, nick, "already taken.", suggestion)
+			return
+		}
+		s.renderOccupantEdit(w, u, o, house, nick, "Could not rename.", "")
 		return
 	}
 	uid := u.ID
