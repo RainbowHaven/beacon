@@ -9,14 +9,14 @@ Repo: [RainbowHaven/beacon](https://github.com/RainbowHaven/beacon)
 
 Use **one Railway project** with **two environments**:
 
-| Environment | Deploy trigger | Domain | Database |
-|-------------|----------------|--------|----------|
-| **staging** | GitHub Actions (every PR open/push; restore `main` on PR close) | staging host | Staging Postgres only |
-| **production** | Manual deploy (for now) | `beacon.magiconair.net` | Production Postgres only |
+| Environment | Deploy | Domain | Database |
+|-------------|--------|--------|----------|
+| **staging** | `make publish-staging SUFFIX=…` | staging host | Staging Postgres only |
+| **production** | `make publish-patch` / `publish-minor` / `publish-major` | `beacon.magiconair.net` | Production Postgres only |
 
 Do not share a Postgres instance between staging and production.
 
-**Turn off Railway auto-deploy** on the staging app service. Staging deploys are owned by [`.github/workflows/staging-deploy.yml`](../.github/workflows/staging-deploy.yml) so a PR can be tested before merge without fighting Railway’s “watch `main`” trigger.
+**Turn off Railway auto-deploy from GitHub** on both app services. Releases are annotated git tags created on a laptop, then uploaded with `railway up`. There is no GitHub Actions deploy workflow.
 
 ## Create staging (one-time)
 
@@ -34,50 +34,60 @@ Do not share a Postgres instance between staging and production.
 4. **Networking**
    - Generate a Railway domain, *or* attach `beacon-staging.magiconair.net` (CNAME as Railway instructs).
    - Target port: whatever the logs show (`PORT` from Railway, often `8080`).
-5. **Source / Triggers** (staging app service)
-   - **Disable** automatic deploys from GitHub (Actions will call `railway up`).
-6. Wait for a first manual/Action deploy. Check `/healthz`, then bootstrap invite + enroll a passkey on the **staging** hostname (passkeys are host-bound).
+5. **Source / Triggers** (staging and production app services)
+   - **Disable** automatic deploys from GitHub.
+6. Publish once with `make publish-staging` (below). Check `/healthz`, then bootstrap invite + enroll a passkey on the **staging** hostname (passkeys are host-bound).
 
-Schema wipe stays on the private network: Railway’s pre-deploy runs `/app/beacon wipe-schema` inside the staging service; then `/app/beacon server` migrates and listens. GitHub Actions only uploads a new image; it does not connect to Postgres.
+Schema wipe stays on the private network: Railway’s pre-deploy runs `/app/beacon wipe-schema` inside the staging service; then `/app/beacon server` migrates and listens. `make publish-*` only uploads a new image; it does not connect to Postgres.
 
-### GitHub Actions secrets & variables
+Railway project id: `c8091dad-9100-4147-a749-f5baea7a3372`. Service name: `beacon`.
 
-Repository **Secrets**:
+### Keychain tokens
 
-| Secret | Purpose |
-|--------|---------|
-| `RAILWAY_STAGING_TOKEN` | Railway API token with deploy access to the **staging** environment (map to CLI `RAILWAY_TOKEN` in Actions). Use a separate `RAILWAY_PRODUCTION_TOKEN` later if you automate prod. |
+`make publish-*` reads the Railway token from the macOS login keychain (the item’s service name):
 
-Repository **Variables**:
+| Keychain service | Environment |
+|------------------|-------------|
+| `RAILWAY_BEACON_STAGING_TOKEN` | `staging` |
+| `RAILWAY_BEACON_PRODUCTION_TOKEN` | `production` |
 
-| Variable | Example | Purpose |
-|----------|---------|---------|
-| `RAILWAY_PROJECT_ID` | (from Railway project settings) | Project for `railway up` |
-| `RAILWAY_STAGING_SERVICE` | `beacon` | App service name in staging |
-| `RAILWAY_STAGING_ENVIRONMENT` | `staging` | Environment name |
-| `STAGING_URL` | `https://beacon-staging.magiconair.net` | Linked in PR comments |
+```bash
+security add-generic-password -s RAILWAY_BEACON_STAGING_TOKEN -a "$USER" -w
+security add-generic-password -s RAILWAY_BEACON_PRODUCTION_TOKEN -a "$USER" -w
+```
+
+Install the CLI once: `brew install railway`.
+
+The working tree must be clean. The command creates an annotated tag, stamps `VERSION` / `GIT_COMMIT` / `GIT_DATE` on the service, runs `railway up`, then pushes the tag to `origin`.
 
 ## Day-to-day workflow
 
-1. Open a PR from a branch **in this repo** (forks are skipped).
-2. Actions deploys that PR’s head to staging automatically (also on every push to the PR).
-3. Smoke-test staging (passkeys are host-bound to the staging hostname).
-4. Merge (or close) the PR → Actions redeploys **`main`** to staging.
-5. Promote production when ready: Railway **production** → Deploy / Redeploy `main` (no wipe pre-deploy).
+Staging requires a suffix. The annotated tag is `<latest version>-<suffix>`, where the latest version is the semver from `git describe --tags --abbrev=0` (`v1.2.3` and `v1.2.3-menu.1` both use base `v1.2.3`). With no tags yet, the base is `v0.0.0`.
 
-Staging is **shared**: the latest PR deploy wins. Concurrent deploys cancel in favor of the newest (`concurrency: staging-deploy`).
+```bash
+make publish-staging SUFFIX=menu.1
+# tag: v1.2.3-menu.1  →  Railway environment staging
+```
 
-Note: staging wipes on **each deploy** (Railway pre-deploy), not on crash restarts of a running container.
+Smoke-test staging (passkeys are host-bound to the staging hostname). Staging is **shared**: the latest publish wins. Staging wipes on **each deploy** (Railway pre-deploy), not on crash restarts of a running container.
 
-## Production triggers (recommended for now)
+Production bumps the highest exact `vMAJOR.MINOR.PATCH` tag and deploys that commit to environment `production`:
+
+```bash
+make publish-patch   # v1.2.3 → v1.2.4
+make publish-minor   # v1.2.3 → v1.3.0
+make publish-major   # v1.2.3 → v2.0.0
+```
+
+HEAD must already contain that previous release tag. There is no wipe pre-deploy on production.
+
+## Production service
 
 On the **production** environment app service:
 
-- Keep the GitHub repo connected.
-- Prefer **manual Deploy** / “Redeploy” after you have verified staging.
+- **Disable** automatic deploys from GitHub.
 - Start command: `/app/beacon server` (default in `railway.toml`).
 - **Do not** set a wipe pre-deploy command or `BEACON_ALLOW_SCHEMA_WIPE` on production.
-- Turn on auto-deploy to `main` only after you trust the pipeline.
 
 ## Wipe a database (allowed while pre-pilot)
 

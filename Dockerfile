@@ -7,7 +7,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 # Railway passes matching service variables as Docker build-args.
-# CI sets GIT_COMMIT/GIT_DATE via `railway variable set --skip-deploys` before `railway up`
+# scripts/publish-release.sh sets VERSION/GIT_COMMIT/GIT_DATE via
+# `railway variable set --skip-deploys` before `railway up`
 # (railway up has no --build-arg and does not upload .git).
 ARG VERSION=0.0.0
 ARG GIT_COMMIT=

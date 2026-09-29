@@ -1,6 +1,6 @@
 # Railway service config for Beacon (production defaults).
 # Staging: set Pre-deploy command to `/app/beacon wipe-schema` (never on production).
-# See deploy/README.md for staging (auto PR deploy) vs production.
+# See deploy/README.md. GitHub auto-deploy stays off; releases use make publish-*.
 # Production domain: beacon.magiconair.net
 
 [build]

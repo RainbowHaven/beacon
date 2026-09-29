@@ -1,5 +1,6 @@
 .PHONY: help setup env db-up db-down test run run-tunnel tunnel compose-up compose-down \
-	verify verify-cla verify-phase1 verify-phase2 verify-phase3 verify-phase4 verify-phase5 verify-phase6
+	verify verify-cla verify-phase1 verify-phase2 verify-phase3 verify-phase4 verify-phase5 verify-phase6 \
+	publish-staging publish-major publish-minor publish-patch
 
 GOTOOLCHAIN ?= auto
 LOCAL_DIR := .local
@@ -31,6 +32,11 @@ help:
 	@echo "  make verify-cla    CLA docs/workflow check"
 	@echo "  make compose-up    Full Compose stack"
 	@echo "  make compose-down  Stop Compose and remove volumes"
+	@echo "  make publish-staging SUFFIX=menu.1"
+	@echo "                     Tag <latest>-SUFFIX and deploy Railway staging"
+	@echo "  make publish-patch Tag the next patch release and deploy production"
+	@echo "  make publish-minor Tag the next minor release and deploy production"
+	@echo "  make publish-major Tag the next major release and deploy production"
 	@echo ""
 	@echo "Never commit .env"
 
@@ -119,3 +125,19 @@ verify-phase6:
 
 verify-cla:
 	./scripts/verify-cla.sh
+
+# Staging: annotated tag <latest version>-$(SUFFIX), Railway environment staging.
+# Production: annotated semver bump, Railway environment production.
+# Tokens: macOS keychain RAILWAY_BEACON_STAGING_TOKEN / RAILWAY_BEACON_PRODUCTION_TOKEN.
+publish-staging:
+	@test -n "$(SUFFIX)" || { echo "Usage: make publish-staging SUFFIX=menu.1" >&2; exit 1; }
+	./scripts/publish-release.sh staging "$(SUFFIX)"
+
+publish-major:
+	./scripts/publish-release.sh major
+
+publish-minor:
+	./scripts/publish-release.sh minor
+
+publish-patch:
+	./scripts/publish-release.sh patch
