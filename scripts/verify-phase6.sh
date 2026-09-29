@@ -20,7 +20,8 @@ export WEBAUTHN_RP_ID="${WEBAUTHN_RP_ID:-localhost}"
 export WEBAUTHN_RP_ORIGINS="${WEBAUTHN_RP_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}"
 export SECURE_COOKIES=false
 
-test -f railway.toml || fail "railway.toml missing"
+test -f .railway/railway.ts || fail ".railway/railway.ts missing"
+! test -e railway.toml || fail "railway.toml should be removed; Railway config as code is deprecated"
 test -f deploy/.env.example || fail "deploy/.env.example missing"
 test -f deploy/.env.staging.example || fail "deploy/.env.staging.example missing"
 test -f deploy/README.md || fail "deploy/README.md missing"
@@ -47,7 +48,8 @@ grep -q 'BEACON_ALLOW_SCHEMA_WIPE' deploy/.env.staging.example || fail "staging 
 grep -q 'wipe-schema' deploy/README.md || fail "deploy/README.md missing wipe-schema pre-deploy"
 ! grep -q 'Dockerfile.staging' deploy/README.md || fail "deploy/README.md should not reference Dockerfile.staging"
 ! grep -q 'IDENTITY_PUBLIC_KEY' deploy/.env.example || fail "deploy/.env.example still has IDENTITY_*"
-grep -q 'healthcheckPath' railway.toml || fail "railway.toml missing healthcheck"
+grep -q 'healthcheck: "/healthz"' .railway/railway.ts || fail ".railway/railway.ts missing healthcheck"
+grep -q 'ctx.environment === "staging"' .railway/railway.ts || fail "staging wipe must be limited to the staging environment"
 pass "deploy config present"
 
 chmod +x scripts/compose.sh scripts/verify-phase6.sh scripts/backup-prod.sh scripts/wipe-postgres-schema.sh scripts/publish-release.sh scripts/publish-release_test.sh

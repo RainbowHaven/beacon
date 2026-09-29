@@ -71,7 +71,7 @@ After deploying the identity-vault removal, **delete any leftover `IDENTITY_*` v
 
 ### One-time production cutover
 
-1. Create a Railway project from the `RainbowHaven/beacon` GitHub repo (Dockerfile / `railway.toml`).
+1. Create a Railway project from the `RainbowHaven/beacon` GitHub repo (Dockerfile / `.railway/railway.ts`).
 2. Add **PostgreSQL**. On the app service, set `DATABASE_URL` to the Postgres reference variable (e.g. `${{Postgres.DATABASE_URL}}`).
 3. Set variables from [deploy/.env.example](./deploy/.env.example): host/WebAuthn (`BASE_URL`, `WEBAUTHN_*`, `SECURE_COOKIES=true`), `BOOTSTRAP_ADMIN_EMAIL`.
 4. **Networking** → custom domain `beacon.magiconair.net` → add the CNAME Railway shows at your DNS. Wait until HTTPS is ready.

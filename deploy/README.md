@@ -18,6 +18,8 @@ Do not share a Postgres instance between staging and production.
 
 **Turn off Railway auto-deploy from GitHub** on both app services. Releases are annotated git tags created on a laptop, then uploaded with `railway up`. There is no GitHub Actions deploy workflow.
 
+Service settings live in [`.railway/railway.ts`](../.railway/railway.ts). `railway up` does not apply that file. After pulling this change, review once per environment with `railway config plan`, then `railway config apply`. Do not apply a plan that deletes Postgres, variables, or the staging wipe. Restart policy stays on the service in the dashboard (`ON_FAILURE`, 5 retries); Infrastructure as Code has no field for it.
+
 ## Create staging (one-time)
 
 1. Open the existing Beacon Railway project (the one that already serves production).
@@ -86,7 +88,7 @@ HEAD must already contain that previous release tag. There is no wipe pre-deploy
 On the **production** environment app service:
 
 - **Disable** automatic deploys from GitHub.
-- Start command: `/app/beacon server` (default in `railway.toml`).
+- Start command: `/app/beacon server` (default in [`.railway/railway.ts`](../.railway/railway.ts)).
 - **Do not** set a wipe pre-deploy command or `BEACON_ALLOW_SCHEMA_WIPE` on production.
 
 ## Wipe a database (allowed while pre-pilot)
