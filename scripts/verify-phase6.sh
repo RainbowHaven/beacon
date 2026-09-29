@@ -26,9 +26,12 @@ unset IDENTITY_PRIVATE_KEY_B64
 
 test -f railway.toml || fail "railway.toml missing"
 test -f deploy/.env.example || fail "deploy/.env.example missing"
+test -f deploy/.env.staging.example || fail "deploy/.env.staging.example missing"
+test -f deploy/README.md || fail "deploy/README.md missing"
 test -f deploy/docker-compose.yml || fail "deploy/docker-compose.yml missing"
 test -f scripts/backup-prod.sh || fail "scripts/backup-prod.sh missing"
 grep -q 'beacon.magiconair.net' deploy/.env.example || fail "deploy/.env.example missing hostname"
+grep -q 'staging' deploy/README.md || fail "deploy/README.md missing staging"
 grep -q 'IDENTITY_PUBLIC_KEY_B64' deploy/.env.example || fail "deploy/.env.example missing identity key"
 grep -q 'healthcheckPath' railway.toml || fail "railway.toml missing healthcheck"
 pass "deploy config present"
