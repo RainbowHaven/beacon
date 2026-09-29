@@ -25,6 +25,9 @@ func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (dom
 		return domain.Occupant{}, errors.New("nickname required")
 	}
 	key := NicknameKey(nick)
+	if key == "" {
+		return domain.Occupant{}, errors.New("nickname required")
+	}
 	arrived := in.ArrivedAt.UTC().Truncate(24 * time.Hour)
 	var id int64
 	err := s.db.QueryRowContext(ctx, `
@@ -48,6 +51,9 @@ func (s *Store) RenameOccupant(ctx context.Context, id int64, nickname string) (
 		return domain.Occupant{}, errors.New("nickname required")
 	}
 	key := NicknameKey(nick)
+	if key == "" {
+		return domain.Occupant{}, errors.New("nickname required")
+	}
 	res, err := s.db.ExecContext(ctx, `
 		UPDATE occupants
 		SET nickname = $2, nickname_key = $3, updated_at = now()

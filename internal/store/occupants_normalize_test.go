@@ -65,42 +65,45 @@ func TestNicknameKey(t *testing.T) {
 		{"greek omicron inside word", "t\u03bfm", "tom"},
 		{"all greek look-alikes string", "\u03b1\u03bf\u03bd\u03b9\u03b7\u03c1\u03c4\u03c7\u03ba\u03bc\u03b3", "aovinptxkmy"},
 
-		// Punctuation kept in the key
-		{"hyphen suffix", "tom-", "tom-"},
-		{"en dash U+2013 suffix", "tom\u2013", "tom\u2013"},
-		{"em dash U+2014 suffix", "tom\u2014", "tom\u2014"},
-		{"hyphens between letters", "t-o-m", "t-o-m"},
-		{"dot suffix", "tom.", "tom."},
-		{"double dot suffix", "tom..", "tom.."},
-		{"semicolon suffix", "tom;", "tom;"},
-		{"colon suffix", "tom:", "tom:"},
-		{"comma suffix", "tom,", "tom,"},
-		{"exclamation suffix", "tom!", "tom!"},
-		{"question suffix", "tom?", "tom?"},
-		{"hash prefix", "#tom", "#tom"},
-		{"hash infix", "tom#1", "tom#1"},
-		{"slash infix", "tom/1", "tom/1"},
-		{"backslash infix", `tom\1`, `tom\1`},
-		{"pipe infix", "tom|1", "tom|1"},
-		{"underscore infix", "tom_1", "tom_1"},
-		{"apostrophe infix", "tom'1", "tom'1"},
-		{"double quote infix", "tom\"1", "tom\"1"},
-		{"parens", "tom(1)", "tom(1)"},
-		{"brackets", "tom[1]", "tom[1]"},
-		{"braces", "tom{1}", "tom{1}"},
-		{"at sign", "tom@house", "tom@house"},
-		{"plus", "tom+1", "tom+1"},
-		{"equals", "tom=1", "tom=1"},
-		{"asterisk", "tom*1", "tom*1"},
-		{"percent", "tom%1", "tom%1"},
-		{"ampersand", "tom&1", "tom&1"},
-		{"caret", "tom^1", "tom^1"},
-		{"tilde", "tom~1", "tom~1"},
-		{"backtick", "tom`1", "tom`1"},
-		{"angle brackets", "tom<1>", "tom<1>"},
-		{"spaces around hyphen removed", "tom  -  1", "tom-1"},
-		{"dotted initials", "T.O.M", "t.o.m"},
-		{"umlaut plus hyphen", "Alf\u00f6ns-2", "alfons-2"},
+		// Punctuation stripped from the key (letters/digits only)
+		{"hyphen suffix", "tom-", "tom"},
+		{"en dash U+2013 suffix", "tom\u2013", "tom"},
+		{"em dash U+2014 suffix", "tom\u2014", "tom"},
+		{"hyphens between letters", "t-o-m", "tom"},
+		{"mixed case hyphens", "T-o-M", "tom"},
+		{"dot suffix", "tom.", "tom"},
+		{"double dot suffix", "tom..", "tom"},
+		{"semicolon suffix", "tom;", "tom"},
+		{"colon suffix", "tom:", "tom"},
+		{"comma suffix", "tom,", "tom"},
+		{"exclamation suffix", "tom!", "tom"},
+		{"question suffix", "tom?", "tom"},
+		{"hash prefix", "#tom", "tom"},
+		{"hash infix keeps digits", "tom#1", "tom1"},
+		{"slash infix keeps digits", "tom/1", "tom1"},
+		{"backslash infix keeps digits", `tom\1`, "tom1"},
+		{"pipe infix keeps digits", "tom|1", "tom1"},
+		{"underscore infix keeps digits", "tom_1", "tom1"},
+		{"apostrophe infix keeps digits", "tom'1", "tom1"},
+		{"double quote infix keeps digits", "tom\"1", "tom1"},
+		{"parens keep digits", "tom(1)", "tom1"},
+		{"brackets keep digits", "tom[1]", "tom1"},
+		{"braces keep digits", "tom{1}", "tom1"},
+		{"at sign stripped", "tom@house", "tomhouse"},
+		{"plus keeps digits", "tom+1", "tom1"},
+		{"equals keeps digits", "tom=1", "tom1"},
+		{"asterisk keeps digits", "tom*1", "tom1"},
+		{"percent keeps digits", "tom%1", "tom1"},
+		{"ampersand keeps digits", "tom&1", "tom1"},
+		{"caret keeps digits", "tom^1", "tom1"},
+		{"tilde keeps digits", "tom~1", "tom1"},
+		{"backtick keeps digits", "tom`1", "tom1"},
+		{"angle brackets keep digits", "tom<1>", "tom1"},
+		{"spaces around hyphen", "tom  -  1", "tom1"},
+		{"dotted initials", "T.O.M", "tom"},
+		{"umlaut plus hyphen and digit", "Alf\u00f6ns-2", "alfons2"},
+		{"punctuation only", "!!!", ""},
+		{"exclamation vs hyphenated", "tom!", "tom"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -125,16 +128,22 @@ func TestNicknameKey(t *testing.T) {
 			t.Fatal("Latin tom and Greek-ο tom must share a key")
 		}
 	})
-
-	t.Run("punctuation stays distinct from plain", func(t *testing.T) {
+	t.Run("punctuation folds to plain", func(t *testing.T) {
 		for _, other := range []string{
 			"tom-", "tom.", "tom;", "tom:", "tom,", "tom!", "tom?",
-			"#tom", "tom#", "tom/1", `tom\1`, "tom_1", "tom'1",
-			"t-o-m", "t.o.m", "tom(1)",
+			"#tom", "t-o-m", "T-o-M", "t.o.m", "T O M",
 		} {
-			if NicknameKey("tom") == NicknameKey(other) {
-				t.Fatalf("plain tom must not collide with %q (key %q)", other, NicknameKey(other))
+			if NicknameKey("tom") != NicknameKey(other) {
+				t.Fatalf("tom must collide with %q (keys %q vs %q)", other, NicknameKey("tom"), NicknameKey(other))
 			}
+		}
+	})
+	t.Run("digits stay significant", func(t *testing.T) {
+		if NicknameKey("tom") == NicknameKey("tom1") {
+			t.Fatal("tom and tom1 must stay distinct")
+		}
+		if NicknameKey("tom#1") != NicknameKey("tom1") {
+			t.Fatal("tom#1 and tom1 must share a key")
 		}
 	})
 }
