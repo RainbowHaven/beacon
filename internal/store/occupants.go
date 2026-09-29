@@ -12,10 +12,19 @@ import (
 )
 
 type CreateOccupantInput struct {
-	SafeHouseID int64
-	Nickname    string
-	ArrivedAt   time.Time
-	CreatedBy   *int64
+	SafeHouseID     int64
+	Nickname        string
+	ArrivedAt       time.Time
+	CountryOfOrigin string
+	Gender          string
+	BirthYear       *int
+	CreatedBy       *int64
+}
+
+type UpdateOccupantDemographicsInput struct {
+	CountryOfOrigin string
+	Gender          string
+	BirthYear       *int
 }
 
 func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (domain.Occupant, error) {
@@ -24,6 +33,12 @@ func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (dom
 		return domain.Occupant{}, err
 	}
 	arrived := in.ArrivedAt.UTC().Truncate(24 * time.Hour)
+	if in.CountryOfOrigin == "" {
+		in.CountryOfOrigin = "NR"
+	}
+	if in.Gender == "" {
+		in.Gender = "NR"
+	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -38,10 +53,12 @@ func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (dom
 	var id int64
 	err = tx.QueryRowContext(ctx, `
 		INSERT INTO occupants (
-			safe_house_id, nickname, nickname_key, arrived_at, created_by
-		) VALUES ($1, $2, $3, $4::date, $5)
+			safe_house_id, nickname, nickname_key, arrived_at,
+			country_of_origin, gender, birth_year, created_by
+		) VALUES ($1, $2, $3, $4::date, $5, $6, $7, $8)
 		RETURNING id`,
-		in.SafeHouseID, nick, key, arrived, in.CreatedBy).Scan(&id)
+		in.SafeHouseID, nick, key, arrived,
+		in.CountryOfOrigin, in.Gender, in.BirthYear, in.CreatedBy).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return domain.Occupant{}, ErrNicknameTaken
@@ -204,12 +221,29 @@ func (s *Store) SyncNicknameKeys(ctx context.Context) error {
 	return nil
 }
 
+func (s *Store) UpdateOccupantDemographics(ctx context.Context, id int64, in UpdateOccupantDemographicsInput) (domain.Occupant, error) {
+	res, err := s.db.ExecContext(ctx, `
+		UPDATE occupants
+		SET country_of_origin = $2, gender = $3, birth_year = $4, updated_at = now()
+		WHERE id = $1`, id, in.CountryOfOrigin, in.Gender, in.BirthYear)
+	if err != nil {
+		return domain.Occupant{}, err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return domain.Occupant{}, ErrNotFound
+	}
+	return s.GetOccupant(ctx, id)
+}
+
 func scanOccupant(row interface{ Scan(dest ...any) error }) (domain.Occupant, error) {
 	var o domain.Occupant
 	var departed sql.NullTime
 	var createdBy sql.NullInt64
+	var birthYear sql.NullInt64
 	err := row.Scan(
 		&o.ID, &o.SafeHouseID, &o.Nickname, &o.ArrivedAt, &departed,
+		&o.CountryOfOrigin, &o.Gender, &birthYear,
 		&createdBy, &o.CreatedAt, &o.UpdatedAt,
 	)
 	if err != nil {
@@ -220,6 +254,10 @@ func scanOccupant(row interface{ Scan(dest ...any) error }) (domain.Occupant, er
 		d := departed.Time.UTC().Truncate(24 * time.Hour)
 		o.DepartedAt = &d
 	}
+	if birthYear.Valid {
+		y := int(birthYear.Int64)
+		o.BirthYear = &y
+	}
 	if createdBy.Valid {
 		id := createdBy.Int64
 		o.CreatedBy = &id
@@ -227,7 +265,7 @@ func scanOccupant(row interface{ Scan(dest ...any) error }) (domain.Occupant, er
 	return o, nil
 }
 
-const occupantCols = `id, safe_house_id, nickname, arrived_at, departed_at, created_by, created_at, updated_at`
+const occupantCols = `id, safe_house_id, nickname, arrived_at, departed_at, country_of_origin, gender, birth_year, created_by, created_at, updated_at`
 
 func (s *Store) GetOccupant(ctx context.Context, id int64) (domain.Occupant, error) {
 	o, err := scanOccupant(s.db.QueryRowContext(ctx, `SELECT `+occupantCols+` FROM occupants WHERE id = $1`, id))
