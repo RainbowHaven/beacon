@@ -55,16 +55,20 @@ type Invite struct {
 	UsedAt    *time.Time
 }
 
-// Occupant operational fields (nickname + stay dates). No legal identity is stored.
+// Occupant operational fields (nickname + stay dates + reporting demographics).
+// No legal identity is stored.
 type Occupant struct {
-	ID          int64
-	SafeHouseID int64
-	Nickname    string
-	ArrivedAt   time.Time // date
-	DepartedAt  *time.Time
-	CreatedBy   *int64
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID              int64
+	SafeHouseID     int64
+	Nickname        string
+	ArrivedAt       time.Time // date
+	DepartedAt      *time.Time
+	CountryOfOrigin string // ISO 3166-1 alpha-2 or NR/UNK/XXA
+	Gender          string // M, F, X, NR
+	BirthYear       *int
+	CreatedBy       *int64
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 func (o Occupant) Current(asOf time.Time) bool {

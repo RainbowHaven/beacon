@@ -29,6 +29,9 @@
     <tr>
       <th>Nickname</th>
       <th>House</th>
+      <th>Origin</th>
+      <th>Gender</th>
+      <th>YOB</th>
       <th>Arrived</th>
       <th>Departed</th>
       <th></th>
@@ -39,10 +42,13 @@
     <tr>
       <td>{{.Nickname}}</td>
       <td>{{.HouseName}}</td>
+      <td>{{.CountryName}}</td>
+      <td>{{.GenderName}}</td>
+      <td>{{if .BirthYear}}{{.BirthYear}}{{else}}—{{end}}</td>
       <td>{{.ArrivedAt.Format "2006-01-02"}}</td>
       <td>{{if .DepartedAt}}{{.DepartedAt.Format "2006-01-02"}}{{else}}—{{end}}</td>
       <td class="actions">
-        <a class="btn secondary" href="/occupants/{{.ID}}/edit">Correct</a>
+        <a class="btn secondary" href="/occupants/{{.ID}}/edit">Edit</a>
         {{if .Current}}
         <form class="inline" method="post" action="/occupants/{{.ID}}/depart" onsubmit="return confirm('Mark {{.Nickname}} as departed today?')">
           <button class="secondary" type="submit">Depart</button>

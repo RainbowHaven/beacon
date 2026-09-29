@@ -87,6 +87,41 @@ func TestOccupantCreateScoped(t *testing.T) {
 	if len(list) != 1 || list[0].Nickname != "Sparrow" {
 		t.Fatalf("list=%+v", list)
 	}
+	if list[0].CountryOfOrigin != "NR" || list[0].Gender != "NR" {
+		t.Fatalf("demographics defaults=%+v", list[0])
+	}
+
+	// Create with demographics.
+	form = url.Values{
+		"safe_house_id":     {strconv.FormatInt(house.ID, 10)},
+		"arrived_at":        {today},
+		"nickname":          {"Robin"},
+		"country_of_origin": {"DE"},
+		"gender":            {"X"},
+		"birth_year":        {"1995"},
+	}
+	res, err = client.PostForm(ts.URL+"/occupants", form)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("create+demo status %d", res.StatusCode)
+	}
+	list, err = st.ListOccupantsByHouses(context.Background(), []int64{house.ID}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var robin *domain.Occupant
+	for i := range list {
+		if list[i].Nickname == "Robin" {
+			robin = &list[i]
+			break
+		}
+	}
+	if robin == nil || robin.CountryOfOrigin != "DE" || robin.Gender != "X" || robin.BirthYear == nil || *robin.BirthYear != 1995 {
+		t.Fatalf("robin=%+v", robin)
+	}
 
 	counts, err := st.HeadcountByHouses(context.Background(), []int64{house.ID})
 	if err != nil {

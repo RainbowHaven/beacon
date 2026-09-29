@@ -9,7 +9,7 @@
   {{end}}
 </p>
 {{end}}
-<p class="muted">Record nickname and arrival only. Nicknames must start with a letter. Folded keys are permanently reserved per house and cannot be reused after correction or departure. Do not enter legal names or government IDs.</p>
+<p class="muted">Nickname, stay dates, and reporting demographics only. Do not enter legal names or government IDs. Folded nickname keys are permanently reserved per house.</p>
 <form class="stack" method="post" action="/occupants" style="max-width:28rem">
   <label>Safe house
     <select name="safe_house_id" required>
@@ -23,6 +23,23 @@
   </label>
   <label>Arrival date
     <input type="date" name="arrived_at" value="{{.ArrivedAt}}" max="{{.MaxArrived}}" required>
+  </label>
+  <label>Country of origin
+    <select name="country_of_origin" required>
+      {{range .Countries}}
+      <option value="{{.Code}}"{{if eq .Code $.Country}} selected{{end}}>{{.Name}}</option>
+      {{end}}
+    </select>
+  </label>
+  <label>Gender
+    <select name="gender" required>
+      {{range .Genders}}
+      <option value="{{.Code}}"{{if eq .Code $.Gender}} selected{{end}}>{{.Name}}</option>
+      {{end}}
+    </select>
+  </label>
+  <label>Year of birth
+    <input type="number" name="birth_year" min="1900" max="2100" inputmode="numeric" placeholder="Not reported" value="{{.BirthYear}}">
   </label>
   <button type="submit">Save</button>
 </form>
