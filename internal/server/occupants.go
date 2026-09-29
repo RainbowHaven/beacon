@@ -1,7 +1,9 @@
 package server
 
 import (
+	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -184,6 +186,14 @@ func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 		CreatedBy:   &uid,
 	})
 	if err != nil {
+		if errors.Is(err, store.ErrNicknameTaken) {
+			msg := "Nickname already used in this house"
+			if sug, sugErr := s.store.SuggestNickname(r.Context(), houseID, nick, 0); sugErr == nil && sug != "" {
+				msg = "Nickname taken. Try " + sug
+			}
+			http.Redirect(w, r, "/occupants/new?error="+url.QueryEscape(msg), http.StatusSeeOther)
+			return
+		}
 		s.log.Error("create occupant", "err", err)
 		http.Redirect(w, r, "/occupants/new?error=could+not+save+occupant", http.StatusSeeOther)
 		return
@@ -192,6 +202,78 @@ func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 		"safe_house_id": houseID,
 	})
 	http.Redirect(w, r, "/occupants?ok=added", http.StatusSeeOther)
+}
+
+func (s *Server) handleOccupantEdit(w http.ResponseWriter, r *http.Request) {
+	u, _ := s.currentUser(r)
+	id, err := parseID(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "bad id", http.StatusBadRequest)
+		return
+	}
+	o, err := s.store.GetOccupant(r.Context(), id)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	house, err := s.store.GetSafeHouse(r.Context(), o.SafeHouseID)
+	if err != nil || !s.canAccessHouse(u, house) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	s.render(w, "occupant_edit.html", map[string]any{
+		"Title":    "Rename occupant",
+		"User":     &u,
+		"Occupant": o,
+		"House":    house,
+		"Error":    r.URL.Query().Get("error"),
+	})
+}
+
+func (s *Server) handleOccupantRename(w http.ResponseWriter, r *http.Request) {
+	u, _ := s.currentUser(r)
+	id, err := parseID(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "bad id", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	o, err := s.store.GetOccupant(r.Context(), id)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	house, err := s.store.GetSafeHouse(r.Context(), o.SafeHouseID)
+	if err != nil || !s.canAccessHouse(u, house) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	nick := strings.TrimSpace(r.FormValue("nickname"))
+	if nick == "" {
+		http.Redirect(w, r, "/occupants/"+idString(id)+"/edit?error=nickname+required", http.StatusSeeOther)
+		return
+	}
+	updated, err := s.store.RenameOccupant(r.Context(), id, nick)
+	if err != nil {
+		if errors.Is(err, store.ErrNicknameTaken) {
+			msg := "Nickname already used in this house"
+			if sug, sugErr := s.store.SuggestNickname(r.Context(), o.SafeHouseID, nick, id); sugErr == nil && sug != "" {
+				msg = "Nickname taken. Try " + sug
+			}
+			http.Redirect(w, r, "/occupants/"+idString(id)+"/edit?error="+url.QueryEscape(msg), http.StatusSeeOther)
+			return
+		}
+		http.Redirect(w, r, "/occupants/"+idString(id)+"/edit?error=could+not+rename", http.StatusSeeOther)
+		return
+	}
+	uid := u.ID
+	_ = s.store.Audit(r.Context(), &uid, "occupant.rename", "occupant", idString(id), map[string]any{
+		"nickname": updated.Nickname,
+	})
+	http.Redirect(w, r, "/occupants?ok=renamed", http.StatusSeeOther)
 }
 
 func (s *Server) handleOccupantDepart(w http.ResponseWriter, r *http.Request) {

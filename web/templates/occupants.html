@@ -41,7 +41,8 @@
       <td>{{.HouseName}}</td>
       <td>{{.ArrivedAt.Format "2006-01-02"}}</td>
       <td>{{if .DepartedAt}}{{.DepartedAt.Format "2006-01-02"}}{{else}}—{{end}}</td>
-      <td>
+      <td class="actions">
+        <a class="btn secondary" href="/occupants/{{.ID}}/edit">Rename</a>
         {{if .Current}}
         <form class="inline" method="post" action="/occupants/{{.ID}}/depart" onsubmit="return confirm('Mark {{.Nickname}} as departed today?')">
           <button class="secondary" type="submit">Depart</button>

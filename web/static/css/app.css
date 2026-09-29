@@ -35,6 +35,14 @@ header.app {
 header.app strong { color: var(--accent); font-size: 1.2rem; letter-spacing: -0.02em; }
 header.app nav { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
 
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .nav-drawer { position: relative; }
 .nav-toggle {
   list-style: none;
@@ -59,13 +67,67 @@ header.app nav { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
   background: var(--card);
   border: 1px solid var(--line);
   box-shadow: 0 8px 24px color-mix(in srgb, var(--ink) 12%, transparent);
+  z-index: 30;
 }
-.nav-panel a, .nav-panel .nav-user {
+.nav-panel a {
   display: block;
   padding: 0.45rem 0.35rem;
   text-decoration: none;
 }
-.nav-panel .nav-user { font-size: 0.85rem; border-bottom: 1px solid var(--line); margin-bottom: 0.25rem; }
+
+.profile-menu { position: relative; }
+.profile-toggle {
+  list-style: none;
+  cursor: pointer;
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.05rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 0.35rem;
+  max-width: 12rem;
+}
+.profile-toggle::-webkit-details-marker { display: none; }
+.profile-email {
+  font-size: 0.85rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.profile-role {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+.profile-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  min-width: 14rem;
+  padding: 0.75rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--ink) 12%, transparent);
+  z-index: 31;
+}
+.profile-panel .profile-detail {
+  display: block;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.5rem;
+  word-break: break-word;
+}
+.profile-panel button {
+  width: 100%;
+}
 
 @media (min-width: 900px) {
   .nav-drawer { position: static; }
@@ -87,11 +149,6 @@ header.app nav { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
   .nav-drawer { display: block; }
   /* Keep panel visible on desktop even when details is closed */
   .nav-drawer:not([open]) .nav-panel { display: flex; }
-  .nav-panel .nav-user {
-    border: 0;
-    margin: 0;
-    padding: 0;
-  }
 }
 
 main.wrap {

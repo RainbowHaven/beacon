@@ -1,0 +1,12 @@
+{{template "layout_start" .}}
+<h1>Rename occupant</h1>
+{{if .Error}}<p class="flash error">{{.Error}}</p>{{end}}
+<p class="muted">{{.House.Name}} · nicknames must be unique in this house (case-insensitive).</p>
+<form class="stack" method="post" action="/occupants/{{.Occupant.ID}}/rename" style="max-width:28rem">
+  <label>Nickname
+    <input name="nickname" required maxlength="80" autocomplete="off" autocapitalize="words" value="{{.Occupant.Nickname}}">
+  </label>
+  <button type="submit">Save nickname</button>
+</form>
+<p><a href="/occupants">Back</a></p>
+{{template "layout_end" .}}
