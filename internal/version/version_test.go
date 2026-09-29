@@ -21,8 +21,8 @@ func TestLineFormats(t *testing.T) {
 	})
 	version.Version = "v1.2.3"
 	version.Commit = "abcdef0123456789"
-	version.Date = "2026-09-29"
-	if got := version.Line(); got != "v1.2.3 (abcdef0, 2026-09-29)" {
+	version.Date = "2026-09-29T14:32Z"
+	if got := version.Line(); got != "v1.2.3 (abcdef0, 2026-09-29T14:32Z)" {
 		t.Fatalf("got %q", got)
 	}
 }

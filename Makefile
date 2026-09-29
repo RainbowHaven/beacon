@@ -11,7 +11,7 @@ ifeq ($(strip $(VERSION)),)
 VERSION := 0.0.0
 endif
 COMMIT  ?= $(shell git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)
-DATE    ?= $(shell git show -s --format=%cs HEAD 2>/dev/null || date -u +%Y-%m-%d)
+DATE    ?= $(shell TZ=UTC git show -s --format=%cd --date=format:%Y-%m-%dT%H:%MZ HEAD 2>/dev/null || date -u +%Y-%m-%dT%H:%MZ)
 LDFLAGS := -X github.com/magiconair/beacon/internal/version.Version=$(VERSION) \
 	-X github.com/magiconair/beacon/internal/version.Commit=$(COMMIT) \
 	-X github.com/magiconair/beacon/internal/version.Date=$(DATE)

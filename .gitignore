@@ -7,7 +7,6 @@ data/receipts/
 .env
 deploy/.env
 .local/
-version.stamp
 *.priv.b64
 identity.priv.b64
 /bin/

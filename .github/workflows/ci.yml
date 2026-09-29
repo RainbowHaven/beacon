@@ -26,7 +26,7 @@ jobs:
             VERSION="${VERSION#v}"
           fi
           COMMIT="$(git rev-parse --short=7 HEAD)"
-          DATE="$(git show -s --format=%cs HEAD)"
+          DATE="$(TZ=UTC git show -s --format=%cd --date=format:%Y-%m-%dT%H:%MZ HEAD)"
           go build -ldflags "-s -w -X github.com/magiconair/beacon/internal/version.Version=${VERSION} -X github.com/magiconair/beacon/internal/version.Commit=${COMMIT} -X github.com/magiconair/beacon/internal/version.Date=${DATE}" -o /tmp/beacon ./cmd/beacon
       - name: Verify CLA artifacts
         run: ./scripts/verify-cla.sh

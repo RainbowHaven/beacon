@@ -59,14 +59,13 @@ jobs:
             echo "Set repository secret RAILWAY_STAGING_TOKEN" >&2
             exit 1
           fi
-          # railway up does not include .git; stamp commit/date into the build context.
-          {
-            echo "VERSION=0.0.0"
-            echo "COMMIT=$(git rev-parse --short=7 HEAD)"
-            echo "DATE=$(git show -s --format=%cs HEAD)"
-          } > version.stamp
-          echo "version.stamp: $(tr '\n' ' ' < version.stamp)"
-          echo "Deploying PR #${{ github.event.pull_request.number }} @ ${{ github.event.pull_request.head.sha }}"
+          COMMIT="$(git rev-parse --short=7 HEAD)"
+          DATE="$(TZ=UTC git show -s --format=%cd --date=format:%Y-%m-%dT%H:%MZ HEAD)"
+          # railway up has no --build-arg; service vars matching Dockerfile ARG are passed in.
+          railway variable set --skip-deploys \
+            --service "$SERVICE" --environment "$ENV_NAME" \
+            "VERSION=0.0.0" "GIT_COMMIT=${COMMIT}" "GIT_DATE=${DATE}"
+          echo "Deploying PR #${{ github.event.pull_request.number }} @ ${{ github.event.pull_request.head.sha }} (GIT_COMMIT=${COMMIT} GIT_DATE=${DATE})"
           railway up --ci --detach --service "$SERVICE" --environment "$ENV_NAME"
 
       - name: Comment result
@@ -117,12 +116,12 @@ jobs:
             echo "Set repository secret RAILWAY_STAGING_TOKEN" >&2
             exit 1
           fi
-          {
-            echo "VERSION=0.0.0"
-            echo "COMMIT=$(git rev-parse --short=7 HEAD)"
-            echo "DATE=$(git show -s --format=%cs HEAD)"
-          } > version.stamp
-          echo "version.stamp: $(tr '\n' ' ' < version.stamp)"
+          COMMIT="$(git rev-parse --short=7 HEAD)"
+          DATE="$(TZ=UTC git show -s --format=%cd --date=format:%Y-%m-%dT%H:%MZ HEAD)"
+          railway variable set --skip-deploys \
+            --service "$SERVICE" --environment "$ENV_NAME" \
+            "VERSION=0.0.0" "GIT_COMMIT=${COMMIT}" "GIT_DATE=${DATE}"
+          echo "Restoring main @ ${COMMIT} (${DATE})"
           railway up --ci --detach --service "$SERVICE" --environment "$ENV_NAME"
 
       - name: Comment on PR
