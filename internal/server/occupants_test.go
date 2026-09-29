@@ -131,6 +131,25 @@ func TestOccupantCreateScoped(t *testing.T) {
 	if !strings.Contains(locSpaced, "error=") || !strings.Contains(strings.ToLower(locSpaced), "taken") {
 		t.Fatalf("expected spaced nickname-taken redirect, got %q", locSpaced)
 	}
+
+	// Accents and Cyrillic look-alikes collide with the base spelling.
+	for _, nick := range []string{"Spärröw", "Sp\u0430rrow"} { // U+0430 Cyrillic а
+		form := url.Values{
+			"safe_house_id": {strconv.FormatInt(house.ID, 10)},
+			"arrived_at":    {time.Now().UTC().Format("2006-01-02")},
+			"nickname":      {nick},
+		}
+		resFold, err := client.PostForm(ts.URL+"/occupants", form)
+		if err != nil {
+			t.Fatal(err)
+		}
+		locFold := resFold.Header.Get("Location")
+		resFold.Body.Close()
+		if resFold.StatusCode != http.StatusSeeOther || !strings.Contains(strings.ToLower(locFold), "taken") {
+			t.Fatalf("expected fold collision for %q, status=%d loc=%q", nick, resFold.StatusCode, locFold)
+		}
+	}
+
 	list, err = st.ListOccupantsByHouses(context.Background(), []int64{house.ID}, true)
 	if err != nil {
 		t.Fatal(err)

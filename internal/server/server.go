@@ -189,6 +189,9 @@ func (s *Server) Bootstrap(ctx context.Context) error {
 	if _, _, err := s.store.EnsureDemoTenancy(ctx); err != nil {
 		return fmt.Errorf("tenancy seed: %w", err)
 	}
+	if err := s.store.SyncNicknameKeys(ctx); err != nil {
+		return fmt.Errorf("nickname keys: %w", err)
+	}
 
 	email := strings.TrimSpace(s.cfg.BootstrapAdminEmail)
 	if email == "" {

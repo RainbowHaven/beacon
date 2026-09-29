@@ -5,33 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 	"unicode"
 
 	"github.com/magiconair/beacon/internal/domain"
 )
-
-var multiSpace = regexp.MustCompile(`\s+`)
-
-// NormalizeNickname trims ends and collapses internal whitespace for storage/display.
-func NormalizeNickname(s string) string {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return ""
-	}
-	return multiSpace.ReplaceAllString(s, " ")
-}
-
-// NicknameKey is the uniqueness key: lowercased with all whitespace removed.
-func NicknameKey(s string) string {
-	s = NormalizeNickname(s)
-	if s == "" {
-		return ""
-	}
-	return strings.ToLower(multiSpace.ReplaceAllString(s, ""))
-}
 
 type CreateOccupantInput struct {
 	SafeHouseID int64
@@ -45,14 +24,15 @@ func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (dom
 	if nick == "" {
 		return domain.Occupant{}, errors.New("nickname required")
 	}
+	key := NicknameKey(nick)
 	arrived := in.ArrivedAt.UTC().Truncate(24 * time.Hour)
 	var id int64
 	err := s.db.QueryRowContext(ctx, `
 		INSERT INTO occupants (
-			safe_house_id, nickname, arrived_at, created_by
-		) VALUES ($1, $2, $3::date, $4)
+			safe_house_id, nickname, nickname_key, arrived_at, created_by
+		) VALUES ($1, $2, $3, $4::date, $5)
 		RETURNING id`,
-		in.SafeHouseID, nick, arrived, in.CreatedBy).Scan(&id)
+		in.SafeHouseID, nick, key, arrived, in.CreatedBy).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return domain.Occupant{}, ErrNicknameTaken
@@ -67,10 +47,11 @@ func (s *Store) RenameOccupant(ctx context.Context, id int64, nickname string) (
 	if nick == "" {
 		return domain.Occupant{}, errors.New("nickname required")
 	}
+	key := NicknameKey(nick)
 	res, err := s.db.ExecContext(ctx, `
 		UPDATE occupants
-		SET nickname = $2, updated_at = now()
-		WHERE id = $1`, id, nick)
+		SET nickname = $2, nickname_key = $3, updated_at = now()
+		WHERE id = $1`, id, nick, key)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return domain.Occupant{}, ErrNicknameTaken
@@ -121,10 +102,62 @@ func (s *Store) nicknameTaken(ctx context.Context, houseID int64, nickname strin
 		SELECT EXISTS(
 			SELECT 1 FROM occupants
 			WHERE safe_house_id = $1
-			  AND lower(regexp_replace(nickname, '\s+', '', 'g')) = $2
+			  AND nickname_key = $2
 			  AND id <> $3
 		)`, houseID, key, excludeID).Scan(&exists)
 	return exists, err
+}
+
+// SyncNicknameKeys recomputes nickname_key for all occupants (idempotent).
+// Colliding keys after fold get a "-<id>" suffix so the unique index stays valid.
+func (s *Store) SyncNicknameKeys(ctx context.Context) error {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, safe_house_id, nickname, COALESCE(nickname_key, '')
+		FROM occupants
+		ORDER BY safe_house_id, id`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	type row struct {
+		id, houseID int64
+		nick, key   string
+	}
+	var list []row
+	for rows.Next() {
+		var r row
+		if err := rows.Scan(&r.id, &r.houseID, &r.nick, &r.key); err != nil {
+			return err
+		}
+		list = append(list, r)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	used := map[int64]map[string]int64{} // house → key → id
+	for _, r := range list {
+		want := NicknameKey(r.nick)
+		if want == "" {
+			want = fmt.Sprintf("occupant-%d", r.id)
+		}
+		if used[r.houseID] == nil {
+			used[r.houseID] = map[string]int64{}
+		}
+		if other, ok := used[r.houseID][want]; ok && other != r.id {
+			want = fmt.Sprintf("%s-%d", want, r.id)
+		}
+		used[r.houseID][want] = r.id
+		if want == r.key {
+			continue
+		}
+		if _, err := s.db.ExecContext(ctx, `
+			UPDATE occupants SET nickname_key = $2, updated_at = now() WHERE id = $1`, r.id, want); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func scanOccupant(row interface{ Scan(dest ...any) error }) (domain.Occupant, error) {
