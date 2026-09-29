@@ -411,6 +411,11 @@ form.inline { display: inline; }
   }
 }
 
+@media (max-width: 899px) {
+  /* The bottom bar is the menu on a phone. These shortcuts repeat it. */
+  .home-shortcuts { display: none; }
+}
+
 @media (max-width: 640px) {
   main.wrap {
     padding-top: 1.25rem;
