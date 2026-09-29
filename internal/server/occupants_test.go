@@ -132,8 +132,8 @@ func TestOccupantCreateScoped(t *testing.T) {
 		t.Fatalf("expected spaced nickname-taken redirect, got %q", locSpaced)
 	}
 
-	// Accents and Cyrillic look-alikes collide with the base spelling.
-	for _, nick := range []string{"Sp\u00e4rr\u00f6w", "Sp\u0430rrow"} { // U+00E4, U+00F6; Cyrillic a U+0430
+	// Accents, punctuation, and Cyrillic look-alikes collide with the base spelling.
+	for _, nick := range []string{"Sp\u00e4rr\u00f6w", "Sp\u0430rrow", "S-p-a-r-r-o-w", "Sparrow!"} {
 		form := url.Values{
 			"safe_house_id": {strconv.FormatInt(house.ID, 10)},
 			"arrived_at":    {time.Now().UTC().Format("2006-01-02")},

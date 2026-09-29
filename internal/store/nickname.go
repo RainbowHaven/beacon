@@ -32,8 +32,9 @@ var confusableLatin = map[rune]rune{
 }
 
 // NicknameKey is the uniqueness key for a house:
-// whitespace ignored, diacritics stripped, common look-alikes folded to Latin, lowercased.
-// Examples: "T O M", "tom", "tоm" (Cyrillic о), "Alföns" → "tom" / "alfons".
+// letters/digits only after folding — whitespace and punctuation ignored,
+// diacritics stripped, common look-alikes mapped to Latin, lowercased.
+// Examples: "tom!", "T-o-M", "T O M", "tоm" → "tom"; "Alföns" → "alfons".
 func NicknameKey(s string) string {
 	s = NormalizeNickname(s)
 	if s == "" {
@@ -53,7 +54,9 @@ func NicknameKey(s string) string {
 		if m, ok := confusableLatin[r]; ok {
 			r = m
 		}
-		b.WriteRune(r)
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			b.WriteRune(r)
+		}
 	}
 	return b.String()
 }
