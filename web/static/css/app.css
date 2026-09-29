@@ -32,7 +32,25 @@ header.app {
   top: 0;
   z-index: 20;
 }
-header.app strong { color: var(--accent); font-size: 1.2rem; letter-spacing: -0.02em; }
+header.app .brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+header.app .brand strong {
+  color: var(--accent);
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+header.app .app-version {
+  font-size: 0.72rem;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+}
 header.app nav { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
 
 .header-tools {
@@ -158,15 +176,6 @@ main.wrap {
   padding-bottom: 4rem;
   padding-left: max(1.5rem, calc(env(safe-area-inset-left, 0px) + 1.25rem));
   padding-right: max(1.5rem, calc(env(safe-area-inset-right, 0px) + 1.25rem));
-}
-.app-footer {
-  max-width: 52rem;
-  margin: 0 auto;
-  padding: 0.75rem 1.5rem 1.5rem;
-  padding-left: max(1.5rem, calc(env(safe-area-inset-left, 0px) + 1.25rem));
-  padding-right: max(1.5rem, calc(env(safe-area-inset-right, 0px) + 1.25rem));
-  font-size: 0.8rem;
-  font-variant-numeric: tabular-nums;
 }
 h1 { font-size: clamp(1.6rem, 5vw, 2.2rem); letter-spacing: -0.03em; margin: 0 0 0.75rem; color: var(--accent); font-weight: 700; }
 .muted { opacity: 0.8; }

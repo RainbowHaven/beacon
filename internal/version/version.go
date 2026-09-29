@@ -2,6 +2,7 @@ package version
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -16,12 +17,21 @@ var (
 	Date    = "unknown"
 )
 
-// Line returns a footer string like "v1.2.3 (abc1234, 2026-09-29)".
+// Line returns a short build label like "v1.2.3 (abc1234, 2026-09-29)".
 func Line() string {
 	ver := strings.TrimPrefix(Version, "v")
 	commit := Commit
+	if commit == "" || commit == "unknown" {
+		if sha := os.Getenv("RAILWAY_GIT_COMMIT_SHA"); sha != "" {
+			commit = sha
+		}
+	}
 	if len(commit) > 7 {
 		commit = commit[:7]
 	}
-	return fmt.Sprintf("v%s (%s, %s)", ver, commit, Date)
+	date := Date
+	if date == "" {
+		date = "unknown"
+	}
+	return fmt.Sprintf("v%s (%s, %s)", ver, commit, date)
 }

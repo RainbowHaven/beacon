@@ -40,6 +40,7 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Deploy to Railway staging
+        id: deploy
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_STAGING_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
@@ -49,13 +50,22 @@ jobs:
           ENV_NAME="${{ vars.RAILWAY_STAGING_ENVIRONMENT }}"
           PROJECT="${{ vars.RAILWAY_PROJECT_ID }}"
           if [[ -z "$SERVICE" || -z "$ENV_NAME" || -z "$PROJECT" ]]; then
-            echo "Set repository variables RAILWAY_PROJECT_ID, RAILWAY_STAGING_SERVICE, RAILWAY_STAGING_ENVIRONMENT" >&2
+            echo "Missing GitHub Actions repository variables." >&2
+            echo "Set all of: RAILWAY_PROJECT_ID, RAILWAY_STAGING_SERVICE, RAILWAY_STAGING_ENVIRONMENT" >&2
+            echo "(Settings → Secrets and variables → Actions → Variables). See deploy/README.md." >&2
             exit 1
           fi
           if [[ -z "${RAILWAY_TOKEN:-}" ]]; then
             echo "Set repository secret RAILWAY_STAGING_TOKEN" >&2
             exit 1
           fi
+          # railway up does not include .git; stamp commit/date into the build context.
+          {
+            echo "VERSION=0.0.0"
+            echo "COMMIT=$(git rev-parse --short=7 HEAD)"
+            echo "DATE=$(git show -s --format=%cs HEAD)"
+          } > version.stamp
+          echo "version.stamp: $(tr '\n' ' ' < version.stamp)"
           echo "Deploying PR #${{ github.event.pull_request.number }} @ ${{ github.event.pull_request.head.sha }}"
           railway up --ci --detach --service "$SERVICE" --environment "$ENV_NAME"
 
@@ -73,7 +83,9 @@ jobs:
               "**Staging updated** from PR #${PR} @ \`${SHA}\` → ${URL}"
           else
             gh pr comment "$PR" --body \
-              "Staging deploy **failed** for \`${SHA}\`. See the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+              "Staging deploy **failed** for \`${SHA}\`.
+
+          Common cause: missing Actions variables \`RAILWAY_PROJECT_ID\`, \`RAILWAY_STAGING_SERVICE\`, \`RAILWAY_STAGING_ENVIRONMENT\` (secret \`RAILWAY_STAGING_TOKEN\` alone is not enough). See [deploy/README.md](${{ github.server_url }}/${{ github.repository }}/blob/main/deploy/README.md) and the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
           fi
 
   restore-main:
@@ -105,6 +117,12 @@ jobs:
             echo "Set repository secret RAILWAY_STAGING_TOKEN" >&2
             exit 1
           fi
+          {
+            echo "VERSION=0.0.0"
+            echo "COMMIT=$(git rev-parse --short=7 HEAD)"
+            echo "DATE=$(git show -s --format=%cs HEAD)"
+          } > version.stamp
+          echo "version.stamp: $(tr '\n' ' ' < version.stamp)"
           railway up --ci --detach --service "$SERVICE" --environment "$ENV_NAME"
 
       - name: Comment on PR

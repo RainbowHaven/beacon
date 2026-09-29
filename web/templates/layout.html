@@ -8,7 +8,10 @@
 </head>
 <body class="{{if .BodyClass}}{{.BodyClass}}{{end}}">
 <header class="app no-print">
-  <strong><a href="/" style="text-decoration:none;color:inherit">Beacon</a></strong>
+  <div class="brand">
+    <strong><a href="/" style="text-decoration:none;color:inherit">Beacon</a></strong>
+    <span class="app-version">{{appVersion}}</span>
+  </div>
   {{if .User}}{{if .User.Email}}
   <div class="header-tools">
     <details class="nav-drawer">
@@ -48,9 +51,6 @@
 
 {{define "layout_end"}}
 </main>
-<footer class="app-footer no-print">
-  <span class="muted">{{appVersion}}</span>
-</footer>
 </body>
 </html>
 {{end}}

@@ -7,6 +7,7 @@ import (
 )
 
 func TestLineDefaults(t *testing.T) {
+	t.Setenv("RAILWAY_GIT_COMMIT_SHA", "")
 	got := version.Line()
 	if got != "v0.0.0 (unknown, unknown)" {
 		t.Fatalf("got %q", got)
