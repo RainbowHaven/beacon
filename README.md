@@ -1,32 +1,23 @@
 # beacon
 
-Safe house operations for Rainbow Haven — occupancy, expenses, and RHC reporting without letting field managers recover resident legal identities under duress.
+Safe house operations for Rainbow Haven — occupancy, expenses, and RHC reporting. Beacon does **not** collect resident legal names or government IDs.
 
 ## Requirements
 
 - Go 1.27+ (`GOTOOLCHAIN=auto` fetches it if needed)
 - Docker **or** Podman
-- Optional: [Bun](https://bun.sh) for browser sealed-box round-trips in verify scripts
 
 ## Quick start (collaborators)
 
 ```bash
-git clone git@github.com:magiconair/beacon.git
+git clone git@github.com:RainbowHaven/beacon.git
 cd beacon
-make setup         # brew: go, cloudflared, bun (optional)
+make setup         # brew: go, cloudflared
 make help
-make run           # generate local keys → .env → Postgres → app on :8080
+make run           # write .env → Postgres → app on :8080
 ```
 
-`make run` creates **gitignored** files:
-
-| File | Purpose |
-|------|---------|
-| `.local/identity.pub.b64` | Sealed-box **public** key (safe for local `.env`) |
-| `.local/identity.priv.b64` | Sealed-box **private** key for break-glass only |
-| `.env` | Local server config (**public key only**) |
-
-**Never commit** `.env`, `.local/`, or any identity private key. Regenerating keys with `rm -rf .local && make keys` invalidates previously sealed occupant identities in your local DB.
+`make run` creates a gitignored `.env`. Never commit `.env`.
 
 On first boot the server prints an invite URL (`=== Beacon invite ===`). Open it on `http://localhost:8080` and enroll a passkey.
 
@@ -42,11 +33,10 @@ make run
 ## Make targets
 
 ```bash
-make setup           # brew install go, cloudflared, bun
-make keys            # identity keypair → .local/ (no-op if already present)
-make env             # write .env from public key
+make setup           # brew install go, cloudflared
+make env             # write .env
 make db-up           # Postgres on host port 5433
-make run             # keys + env + db + go run ./cmd/beacon
+make run             # env + db + go run ./cmd/beacon
 make tunnel          # Cloudflare quick tunnel (phone); writes .local/tunnel.env
 make run-tunnel      # app with tunnel WebAuthn host (use with make tunnel)
 make test            # go test ./...
@@ -62,7 +52,7 @@ make compose-down    # stop and remove volumes
 Passkeys are bound to the **hostname**. A quick tunnel works, but you must run the app with that host as WebAuthn RP ID:
 
 ```bash
-# Terminal 1 — app on localhost first is fine; you’ll restart with tunnel env:
+# Terminal 1
 make run
 
 # Terminal 2 — prints https://….trycloudflare.com and writes .local/tunnel.env
@@ -76,13 +66,11 @@ Open the printed HTTPS URL on your phone. Enroll a **new** passkey on the tunnel
 
 ## Tests & verification
 
-Prefer Make so everyone runs the same commands:
-
 ```bash
 make test
 make verify-phase5   # org/houses + scope isolation (does not drop DB)
 make verify-phase6   # receipts-in-DB + Docker image + Railway deploy config
-make verify-phase4   # break-glass routes (does not drop DB)
+make verify-phase4   # audit routes (does not drop DB)
 make verify-phase3   # drops schema — use a disposable local DB
 make verify-phase2
 make verify-phase1
@@ -106,26 +94,19 @@ Receipts are stored **in Postgres** (no file volume).
 ## After login
 
 - `/occupants` — headcount, nicknames, depart
-- `/occupants/new` — handoff (legal name / UN ID sealed in-browser)
+- `/occupants/new` — nickname + arrival (no legal identity)
 - `/expenses` — amounts, notes, optional receipts
-- `/reports` — monthly headcount + expense totals (no private key)
-- `/admin/users` — list / lock / re-invite / edit role & scope; `/admin/users/invite` to invite
+- `/reports` — monthly headcount + expense totals
+- `/admin/users` — list / lock / re-invite / edit role & scope
 - `/admin/houses` — create/edit RHLs and safe houses (currency, active)
-- `/admin/break-glass` — RHC browser-only decrypt (paste private key locally)
 - `/admin/audit` — audit trail
 
 Operator procedures: [OPERATOR.md](./OPERATOR.md).
 
-## Keys (do not check in)
-
-- **Public** key: `IDENTITY_PUBLIC_KEY_B64` + `IDENTITY_KEY_ID` in server env / `.env`
-- **Private** key: offline only (password manager / printed). Paste into break-glass in the browser; never set as a server env var, never commit
-- Local helpers: `make keys` writes both under `.local/`; only the public half is copied into `.env`
-
 ## Sharing the repo
 
 1. Invite the person as a GitHub collaborator (or they fork and open PRs).
-2. They clone and run `make run` — each machine gets its **own** local keypair.
+2. They clone and run `make run`.
 3. External contributors must sign the [CLA](./CLA.md) on their first PR — see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License

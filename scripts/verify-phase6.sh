@@ -19,10 +19,6 @@ export BASE_URL="${BASE_URL:-http://localhost:8080}"
 export WEBAUTHN_RP_ID="${WEBAUTHN_RP_ID:-localhost}"
 export WEBAUTHN_RP_ORIGINS="${WEBAUTHN_RP_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}"
 export SECURE_COOKIES=false
-# shellcheck disable=SC1091
-source "$ROOT/scripts/lib/identity-env.sh"
-identity_env_prepare "$ROOT"
-unset IDENTITY_PRIVATE_KEY_B64
 
 test -f railway.toml || fail "railway.toml missing"
 test -f deploy/.env.example || fail "deploy/.env.example missing"
@@ -32,7 +28,7 @@ test -f deploy/docker-compose.yml || fail "deploy/docker-compose.yml missing"
 test -f scripts/backup-prod.sh || fail "scripts/backup-prod.sh missing"
 grep -q 'beacon.magiconair.net' deploy/.env.example || fail "deploy/.env.example missing hostname"
 grep -q 'staging' deploy/README.md || fail "deploy/README.md missing staging"
-grep -q 'IDENTITY_PUBLIC_KEY_B64' deploy/.env.example || fail "deploy/.env.example missing identity key"
+! grep -q 'IDENTITY_PUBLIC_KEY' deploy/.env.example || fail "deploy/.env.example still has IDENTITY_*"
 grep -q 'healthcheckPath' railway.toml || fail "railway.toml missing healthcheck"
 pass "deploy config present"
 
@@ -64,7 +60,6 @@ pass "image builds"
 echo "==> Compose config validate (deploy)"
 POSTGRES_PASSWORD=verify \
 DATABASE_URL=postgres://beacon:verify@db:5432/beacon \
-IDENTITY_PUBLIC_KEY_B64=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= \
 BOOTSTRAP_ADMIN_EMAIL=rhc@example.com \
 ./scripts/compose.sh -f deploy/docker-compose.yml config >/dev/null
 pass "deploy compose validates"

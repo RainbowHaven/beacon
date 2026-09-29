@@ -2,15 +2,14 @@
 
 ## Mission
 
-Beacon helps Rainbow Haven run LGBTQ safe houses: occupancy, expenses, and RHC reporting — without letting field managers recover resident legal identities under duress.
+Beacon helps Rainbow Haven run LGBTQ safe houses: occupancy, expenses, and RHC reporting. Resident legal identity is **not** collected in Beacon.
 
 ## Hard constraints (do not violate)
 
-- **No React. No HTMX.** Server-rendered Go multi-page HTML + minimal vanilla JS only where required (client-side sealed-box encrypt, optional receipt image resize).
+- **No React. No HTMX.** Server-rendered Go multi-page HTML + minimal vanilla JS only where required (optional receipt image resize).
 - **Auth:** passkeys for daily login; RHC invite / lock / recovery. No standing field passwords as the default path.
-- **PII:** seal only identity fields (legal name, refugee/UN ID) client-side with libsodium sealed boxes. Nickname + arrival/departure stay plaintext for headcount.
-- **Private key never on server, DB, or manager devices.** Break-glass decrypt is RHC browser-only.
-- **Monthly reports (headcount, expense totals, receipt counts) must not require the private key.**
+- **PII:** do not collect legal names, UNHCR file numbers, or other government IDs. Nickname + arrival/departure (and later demographics) only.
+- **Monthly reports (headcount, expense totals, receipt counts) must not require any private key.**
 - **RBAC and authz live in Go**, not in Supabase RLS/PostgREST (Postgres is storage).
 - **Local-first:** every phase must run on a laptop via Compose/`go test`/scripts before cloud deploy.
 - **CLA:** external contributors must sign [CLA.md](./CLA.md); do not pre-create `signatures/version1/cla.json`.
@@ -29,7 +28,6 @@ Beacon helps Rainbow Haven run LGBTQ safe houses: occupancy, expenses, and RHC r
 - Verify CLA docs/workflow: `make verify-cla`
 - **Receipts** are stored in Postgres (`BYTEA` on expenses), not on the filesystem.
 - **Production:** Railway (Dockerfile + managed Postgres); staging auto-deploys from `main` — see [deploy/README.md](./deploy/README.md) and [OPERATOR.md](./OPERATOR.md).
-- Identity keys: `make keys` → `.local/` (gitignored). Never commit private keys.
 
 ## Roles
 

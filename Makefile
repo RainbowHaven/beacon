@@ -1,52 +1,40 @@
-.PHONY: help setup keys env db-up db-down test run run-tunnel tunnel compose-up compose-down \
+.PHONY: help setup env db-up db-down test run run-tunnel tunnel compose-up compose-down \
 	verify verify-cla verify-phase1 verify-phase2 verify-phase3 verify-phase4 verify-phase5 verify-phase6
 
 GOTOOLCHAIN ?= auto
 LOCAL_DIR := .local
-PUB_FILE := $(LOCAL_DIR)/identity.pub.b64
-PRIV_FILE := $(LOCAL_DIR)/identity.priv.b64
 ENV_FILE := .env
 TUNNEL_ENV := $(LOCAL_DIR)/tunnel.env
 
 help:
 	@echo "Beacon local development"
 	@echo ""
-	@echo "  make setup         Install brew deps (go, cloudflared, bun)"
-	@echo "  make keys          Generate identity keypair into .local/ (gitignored)"
-	@echo "  make env           Write .env from .local keys (gitignored)"
+	@echo "  make setup         Install brew deps (go, cloudflared)"
+	@echo "  make env           Write .env (gitignored)"
 	@echo "  make db-up         Start Postgres only"
-	@echo "  make run           Run the app with .env (creates keys/env if needed)"
+	@echo "  make run           Run the app with .env"
 	@echo "  make tunnel        Cloudflare quick tunnel to :8080 (phone access)"
 	@echo "  make run-tunnel    Run app using .env + .local/tunnel.env (after make tunnel)"
 	@echo "  make test          go test ./..."
 	@echo "  make verify-phaseN Run phase N verify script (1–6)"
 	@echo "  make verify        Compose bootstrap verify"
 	@echo "  make verify-cla    CLA docs/workflow check"
-	@echo "  make compose-up    Full Compose stack (needs IDENTITY_* in environment/.env)"
+	@echo "  make compose-up    Full Compose stack"
 	@echo "  make compose-down  Stop Compose and remove volumes"
 	@echo ""
-	@echo "Never commit .env, .local/, or any identity private key."
+	@echo "Never commit .env"
 
 setup:
 	@command -v brew >/dev/null 2>&1 || { echo "Homebrew required: https://brew.sh"; exit 1; }
 	brew install go cloudflared
-	@brew install bun 2>/dev/null || brew install oven-sh/bun/bun 2>/dev/null || echo "Optional: install Bun for JS seal verify (https://bun.sh)"
 	@echo ""
 	@echo "Also need a container engine for Postgres:"
 	@echo "  brew install --cask docker    # or OrbStack / Podman Desktop"
 	@echo "Then: make run"
 
-keys:
+env:
 	@mkdir -p $(LOCAL_DIR)
-	@if [ -f $(PUB_FILE) ] && [ -f $(PRIV_FILE) ]; then \
-		echo "Keys already exist in $(LOCAL_DIR)/ (delete both files to regenerate)"; \
-	else \
-		GOTOOLCHAIN=$(GOTOOLCHAIN) go run ./scripts/internal/genkeys -out-dir $(LOCAL_DIR); \
-	fi
-
-env: keys
-	@pub=$$(tr -d '[:space:]' <$(PUB_FILE)); \
-	printf '%s\n' \
+	@printf '%s\n' \
 		'ADDR=:8080' \
 		'DATABASE_URL=postgres://beacon:beacon@127.0.0.1:5433/beacon?sslmode=disable' \
 		'BASE_URL=http://localhost:8080' \
@@ -56,10 +44,8 @@ env: keys
 		'WEBAUTHN_RP_ORIGINS=http://localhost:8080,http://127.0.0.1:8080' \
 		'BOOTSTRAP_ADMIN_EMAIL=rhc@example.com' \
 		'BOOTSTRAP_REISSUE=false' \
-		"IDENTITY_PUBLIC_KEY_B64=$$pub" \
-		'IDENTITY_KEY_ID=local-dev-1' \
 		> $(ENV_FILE)
-	@echo "Wrote $(ENV_FILE) (public key only). Private key remains in $(PRIV_FILE)."
+	@echo "Wrote $(ENV_FILE)"
 
 db-up:
 	./scripts/compose.sh up -d db

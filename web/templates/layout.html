@@ -6,8 +6,7 @@
   <title>{{if .Title}}{{.Title}} · {{end}}Beacon</title>
   <link rel="stylesheet" href="{{static "css/app.css"}}">
 </head>
-<body class="{{if .Handoff}}handoff {{end}}{{if .BodyClass}}{{.BodyClass}}{{end}}">
-{{if not .Handoff}}
+<body class="{{if .BodyClass}}{{.BodyClass}}{{end}}">
 <header class="app no-print">
   <strong><a href="/" style="text-decoration:none;color:inherit">Beacon</a></strong>
   {{if .User}}{{if .User.Email}}
@@ -21,7 +20,6 @@
       {{if eq .User.Role "rhc_admin"}}
       <a href="/admin/users">Users</a>
       <a href="/admin/houses">Houses</a>
-      <a href="/admin/break-glass">Break-glass</a>
       <a href="/admin/audit">Audit</a>
       {{end}}
       <form class="inline" method="post" action="/logout"><button class="secondary" type="submit">Log out</button></form>
@@ -33,8 +31,7 @@
   <nav><a href="/login">Log in</a></nav>
   {{end}}
 </header>
-{{end}}
-<main class="wrap{{if .Handoff}} handoff-main{{end}}">
+<main class="wrap">
 {{end}}
 
 {{define "layout_end"}}

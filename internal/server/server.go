@@ -40,8 +40,6 @@ type Config struct {
 	WebAuthnRPOrigins   []string
 	BootstrapAdminEmail string
 	BootstrapReissue    bool
-	IdentityPublicKey   [32]byte
-	IdentityKeyID       string
 	MaxReceiptBytes     int64
 }
 
@@ -67,12 +65,6 @@ func New(log *slog.Logger, db *sql.DB, cfg Config) (*Server, error) {
 	}
 	if cfg.BaseURL == "" {
 		cfg.BaseURL = cfg.WebAuthnRPOrigins[0]
-	}
-	if strings.TrimSpace(cfg.IdentityKeyID) == "" {
-		return nil, errors.New("IdentityKeyID is required")
-	}
-	if cfg.IdentityPublicKey == ([32]byte{}) {
-		return nil, errors.New("IdentityPublicKey is required")
 	}
 	if cfg.MaxReceiptBytes <= 0 {
 		cfg.MaxReceiptBytes = 5 << 20 // 5 MiB
@@ -174,13 +166,10 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /admin/rhls/{id}", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminUpdateRHL)))
 	mux.Handle("POST /admin/safe-houses", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminCreateSafeHouse)))
 	mux.Handle("POST /admin/safe-houses/{id}", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminUpdateSafeHouse)))
-	mux.Handle("GET /admin/break-glass", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleBreakGlass)))
-	mux.Handle("GET /admin/occupants/{id}/sealed-identity", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleSealedIdentity)))
 	mux.Handle("GET /admin/audit", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAudit)))
 
 	mux.Handle("GET /occupants", s.requireLogin(http.HandlerFunc(s.handleOccupants)))
 	mux.Handle("GET /occupants/new", s.requireLogin(http.HandlerFunc(s.handleOccupantNew)))
-	mux.Handle("POST /occupants/handoff", s.requireLogin(http.HandlerFunc(s.handleOccupantHandoff)))
 	mux.Handle("POST /occupants", s.requireLogin(http.HandlerFunc(s.handleOccupantCreate)))
 	mux.Handle("POST /occupants/{id}/depart", s.requireLogin(http.HandlerFunc(s.handleOccupantDepart)))
 

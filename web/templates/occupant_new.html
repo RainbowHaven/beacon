@@ -1,8 +1,8 @@
 {{template "layout_start" .}}
 <h1>Add occupant</h1>
 {{if .Error}}<p class="flash error">{{.Error}}</p>{{end}}
-<p class="muted">Choose the house and arrival date, then hand the device to the resident for the identity step. Legal name and ID never appear on manager screens.</p>
-<form class="stack" method="post" action="/occupants/handoff" style="max-width:28rem">
+<p class="muted">Record nickname and arrival only. Do not enter legal names or government IDs in Beacon.</p>
+<form class="stack" method="post" action="/occupants" style="max-width:28rem">
   <label>Safe house
     <select name="safe_house_id" required>
       {{range .Houses}}
@@ -10,10 +10,13 @@
       {{end}}
     </select>
   </label>
+  <label>Nickname
+    <input name="nickname" required maxlength="80" autocomplete="off" autocapitalize="words">
+  </label>
   <label>Arrival date
     <input type="date" name="arrived_at" value="{{.Today}}" required>
   </label>
-  <button type="submit">Hand device to resident</button>
+  <button type="submit">Save</button>
 </form>
 <p><a href="/occupants">Back</a></p>
 {{template "layout_end" .}}

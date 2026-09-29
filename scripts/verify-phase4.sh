@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase 4 local verification: break-glass + audit routes, JS openAnonymous roundtrip.
+# Phase 4 local verification: audit route + operator docs (identity vault removed).
 # Does NOT drop the database (unlike phase 1–3 verifies).
 set -euo pipefail
 
@@ -19,10 +19,6 @@ export BASE_URL="${BASE_URL:-http://localhost:8080}"
 export WEBAUTHN_RP_ID="${WEBAUTHN_RP_ID:-localhost}"
 export WEBAUTHN_RP_ORIGINS="${WEBAUTHN_RP_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}"
 export SECURE_COOKIES=false
-# shellcheck disable=SC1091
-source "$ROOT/scripts/lib/identity-env.sh"
-identity_env_prepare "$ROOT"
-CRYPTO_PRIV="${IDENTITY_PRIVATE_KEY_B64}"
 
 chmod +x scripts/compose.sh scripts/verify-phase4.sh
 
@@ -35,35 +31,12 @@ for _ in $(seq 1 40); do
   sleep 1
 done
 
-if command -v bun >/dev/null 2>&1; then
-  export IDENTITY_PRIVATE_KEY_B64="$CRYPTO_PRIV"
-  CT_B64="$(bun -e '
-import { readFileSync } from "fs";
-eval(readFileSync("./web/static/js/vendor/nacl-fast.min.js","utf8"));
-const { sealAnonymous, openAnonymous, bytesToB64 } = await import("./web/static/js/seal.js");
-const pub = process.env.IDENTITY_PUBLIC_KEY_B64;
-const priv = process.env.IDENTITY_PRIVATE_KEY_B64;
-const msg = JSON.stringify({legal_name:"Phase4",refugee_id:"P4"});
-const ct = sealAnonymous(msg, pub);
-const opened = openAnonymous(ct, pub, priv);
-if (new TextDecoder().decode(opened) !== msg) throw new Error("js open mismatch");
-process.stdout.write(bytesToB64(ct));
-')"
-  go run ./scripts/internal/openseal -pub "$IDENTITY_PUBLIC_KEY_B64" -priv "$CRYPTO_PRIV" -ct "$CT_B64" \
-    | grep -q '"legal_name":"Phase4"' || fail "JS seal → Go open"
-  pass "JS seal/open + Go OpenAnonymous"
-else
-  echo "WARN: bun not found; skipping JS openAnonymous check"
-fi
-
-unset IDENTITY_PRIVATE_KEY_B64
-unset CRYPTO_PRIV
-
 go test ./...
 pass "go test ./..."
 
 [[ -f OPERATOR.md ]] || fail "OPERATOR.md missing"
-grep -q 'Break-glass' OPERATOR.md || fail "OPERATOR.md incomplete"
+grep -q 'Invite a manager' OPERATOR.md || fail "OPERATOR.md incomplete"
+! grep -qi 'break-glass' OPERATOR.md || fail "OPERATOR.md still mentions break-glass"
 pass "OPERATOR.md present"
 
 if command -v lsof >/dev/null 2>&1; then
@@ -97,16 +70,14 @@ for _ in $(seq 1 40); do
 done
 [[ "$ready" -eq 1 ]] || { echo "---- app log ----"; cat /tmp/beacon-phase4.log; fail "app not ready"; }
 
-for path in /admin/break-glass /admin/audit; do
-  code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8080$path")"
-  [[ "$code" == "303" || "$code" == "302" ]] || fail "$path should redirect when logged out (got $code)"
-done
-pass "break-glass and audit require auth"
+code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/admin/audit)"
+[[ "$code" == "303" || "$code" == "302" ]] || fail "audit should redirect when logged out (got $code)"
+pass "audit requires auth"
 
-curl -fsS "http://127.0.0.1:8080/static/js/seal.js" | grep -q openAnonymous || fail "seal.js missing openAnonymous"
-pass "openAnonymous served"
+code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/admin/break-glass)"
+[[ "$code" == "404" ]] || fail "break-glass should be gone (got $code)"
+pass "break-glass removed"
 
 echo
 echo "Phase 4 local verification passed."
-echo "Manual: RHC → /admin/break-glass with offline private key; /admin/audit shows identity.break_glass."
 echo "Note: this script does NOT drop the database."

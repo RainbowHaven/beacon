@@ -55,19 +55,16 @@ type Invite struct {
 	UsedAt    *time.Time
 }
 
-// Occupant operational fields are plaintext for headcount.
-// Legal name / refugee ID live only in IdentityCiphertext (sealed box).
+// Occupant operational fields (nickname + stay dates). No legal identity is stored.
 type Occupant struct {
-	ID                 int64
-	SafeHouseID        int64
-	Nickname           string
-	ArrivedAt          time.Time // date
-	DepartedAt         *time.Time
-	IdentityCiphertext []byte
-	KeyID              string
-	CreatedBy          *int64
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
+	ID          int64
+	SafeHouseID int64
+	Nickname    string
+	ArrivedAt   time.Time // date
+	DepartedAt  *time.Time
+	CreatedBy   *int64
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 func (o Occupant) Current(asOf time.Time) bool {

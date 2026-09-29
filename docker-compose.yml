@@ -32,9 +32,6 @@ services:
       WEBAUTHN_RP_DISPLAY_NAME: Beacon
       WEBAUTHN_RP_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
       BOOTSTRAP_ADMIN_EMAIL: rhc@example.com
-      # Public key only — export via `make env` / `.env`. Never put the private key here.
-      IDENTITY_PUBLIC_KEY_B64: ${IDENTITY_PUBLIC_KEY_B64:?Run make env or export IDENTITY_PUBLIC_KEY_B64}
-      IDENTITY_KEY_ID: ${IDENTITY_KEY_ID:-local-dev-1}
     depends_on:
       db:
         condition: service_healthy
