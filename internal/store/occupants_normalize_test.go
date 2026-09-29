@@ -19,9 +19,9 @@ func TestNicknameKey(t *testing.T) {
 		{"Müller", "muller"},
 		{"straße", "strasse"},
 		// Cyrillic look-alike о (U+043E) instead of Latin o
-		{"t\u043em", "tom"},
-		// Cyrillic а
-		{"\u0430lfons", "alfons"},
+		{"tоm", "tom"},
+		// Cyrillic а (U+0430)
+		{"аlfons", "alfons"},
 		{"", ""},
 		{"   ", ""},
 	}
@@ -33,7 +33,8 @@ func TestNicknameKey(t *testing.T) {
 	if NicknameKey("Alfons") != NicknameKey("Alföns") {
 		t.Fatal("Alfons and Alföns must share a key")
 	}
-	if NicknameKey("tom") != NicknameKey("t\u043em") {
+	// Cyrillic о (U+043E)
+	if NicknameKey("tom") != NicknameKey("tоm") {
 		t.Fatal("Latin tom and Cyrillic-о tom must share a key")
 	}
 }

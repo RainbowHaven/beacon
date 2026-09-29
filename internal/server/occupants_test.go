@@ -133,7 +133,8 @@ func TestOccupantCreateScoped(t *testing.T) {
 	}
 
 	// Accents and Cyrillic look-alikes collide with the base spelling.
-	for _, nick := range []string{"Spärröw", "Sp\u0430rrow"} { // U+0430 Cyrillic а
+	// Cyrillic а (U+0430) in the second nickname.
+	for _, nick := range []string{"Spärröw", "Spаrrow"} {
 		form := url.Values{
 			"safe_house_id": {strconv.FormatInt(house.ID, 10)},
 			"arrived_at":    {time.Now().UTC().Format("2006-01-02")},
