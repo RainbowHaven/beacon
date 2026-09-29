@@ -47,7 +47,7 @@ if command -v lsof >/dev/null 2>&1; then
 fi
 pkill -f '/tmp/beacon-phase3' >/dev/null 2>&1 || true
 go build -o /tmp/beacon-phase3 ./cmd/beacon
-/tmp/beacon-phase3 > /tmp/beacon-phase3.log 2>&1 &
+/tmp/beacon-phase3 server > /tmp/beacon-phase3.log 2>&1 &
 APP_PID=$!
 cleanup() {
   kill "$APP_PID" >/dev/null 2>&1 || true

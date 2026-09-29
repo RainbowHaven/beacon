@@ -26,13 +26,25 @@ test -f deploy/.env.staging.example || fail "deploy/.env.staging.example missing
 test -f deploy/README.md || fail "deploy/README.md missing"
 test -f deploy/docker-compose.yml || fail "deploy/docker-compose.yml missing"
 test -f scripts/backup-prod.sh || fail "scripts/backup-prod.sh missing"
+test -f scripts/wipe-postgres-schema.sh || fail "scripts/wipe-postgres-schema.sh missing"
+test -f .github/workflows/staging-deploy.yml || fail "staging-deploy workflow missing"
 grep -q 'beacon.magiconair.net' deploy/.env.example || fail "deploy/.env.example missing hostname"
-grep -q 'staging' deploy/README.md || fail "deploy/README.md missing staging"
+grep -q 'pull_request' .github/workflows/staging-deploy.yml || fail "staging-deploy workflow missing pull_request trigger"
+grep -q 'opened' .github/workflows/staging-deploy.yml || fail "staging-deploy workflow missing opened"
+grep -q 'synchronize' .github/workflows/staging-deploy.yml || fail "staging-deploy workflow missing synchronize"
+! grep -q '/deploy-staging' .github/workflows/staging-deploy.yml || fail "staging-deploy should not use /deploy-staging slash command"
+grep -q 'wipe-schema' cmd/beacon/main.go || fail "beacon missing wipe-schema command"
+grep -q 'case "server"' cmd/beacon/main.go || fail "beacon missing server command"
+grep -q 'BEACON_ALLOW_SCHEMA_WIPE' cmd/beacon/main.go || fail "beacon missing BEACON_ALLOW_SCHEMA_WIPE gate"
+grep -q 'BEACON_ALLOW_SCHEMA_WIPE' deploy/.env.staging.example || fail "staging env example missing BEACON_ALLOW_SCHEMA_WIPE"
+grep -q 'wipe-schema' deploy/README.md || fail "deploy/README.md missing wipe-schema pre-deploy"
+! grep -q 'STAGING_DATABASE_URL' .github/workflows/staging-deploy.yml || fail "staging workflow should not use STAGING_DATABASE_URL"
+! grep -q 'Dockerfile.staging' deploy/README.md || fail "deploy/README.md should not reference Dockerfile.staging"
 ! grep -q 'IDENTITY_PUBLIC_KEY' deploy/.env.example || fail "deploy/.env.example still has IDENTITY_*"
 grep -q 'healthcheckPath' railway.toml || fail "railway.toml missing healthcheck"
 pass "deploy config present"
 
-chmod +x scripts/compose.sh scripts/verify-phase6.sh scripts/backup-prod.sh
+chmod +x scripts/compose.sh scripts/verify-phase6.sh scripts/backup-prod.sh scripts/wipe-postgres-schema.sh
 
 ./scripts/compose.sh up -d db
 echo "Waiting for Postgres..."
