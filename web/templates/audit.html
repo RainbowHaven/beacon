@@ -3,6 +3,7 @@
 <p class="muted">Recent security and operations events.</p>
 
 {{if .Events}}
+<div class="table-scroll">
 <table>
   <thead>
     <tr>
@@ -25,6 +26,7 @@
   {{end}}
   </tbody>
 </table>
+</div>
 {{else}}
 <p class="muted">No audit events yet.</p>
 {{end}}
