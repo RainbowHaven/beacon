@@ -34,7 +34,7 @@ Short procedures for Rainbow Haven Coordinating (RHC). No Go knowledge required.
 ## Residents
 
 - Record **nickname + arrival** only. Do not enter legal names or government IDs in Beacon.
-- Nicknames are unique per safe house (case-insensitive), including departed residents. Use **Rename** to change a nickname in place.
+- Nicknames are unique per safe house (case, spaces, accents, and common look-alike letters ignored), including departed residents. Use **Rename** to change a nickname in place.
 - Mark departure when the resident leaves.
 - Use the **profile** control in the header (email/role) to log out.
 
