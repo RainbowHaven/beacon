@@ -24,8 +24,19 @@ func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (dom
 		return domain.Occupant{}, err
 	}
 	arrived := in.ArrivedAt.UTC().Truncate(24 * time.Hour)
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return domain.Occupant{}, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if err := reserveNicknameKeyTx(ctx, tx, in.SafeHouseID, key); err != nil {
+		return domain.Occupant{}, err
+	}
+
 	var id int64
-	err = s.db.QueryRowContext(ctx, `
+	err = tx.QueryRowContext(ctx, `
 		INSERT INTO occupants (
 			safe_house_id, nickname, nickname_key, arrived_at, created_by
 		) VALUES ($1, $2, $3, $4::date, $5)
@@ -37,6 +48,9 @@ func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (dom
 		}
 		return domain.Occupant{}, err
 	}
+	if err := tx.Commit(); err != nil {
+		return domain.Occupant{}, err
+	}
 	return s.GetOccupant(ctx, id)
 }
 
@@ -45,7 +59,32 @@ func (s *Store) RenameOccupant(ctx context.Context, id int64, nickname string) (
 	if err != nil {
 		return domain.Occupant{}, err
 	}
-	res, err := s.db.ExecContext(ctx, `
+
+	var houseID int64
+	var oldKey string
+	err = s.db.QueryRowContext(ctx, `
+		SELECT safe_house_id, nickname_key FROM occupants WHERE id = $1`, id).
+		Scan(&houseID, &oldKey)
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.Occupant{}, ErrNotFound
+	}
+	if err != nil {
+		return domain.Occupant{}, err
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return domain.Occupant{}, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if key != oldKey {
+		if err := reserveNicknameKeyTx(ctx, tx, houseID, key); err != nil {
+			return domain.Occupant{}, err
+		}
+	}
+
+	res, err := tx.ExecContext(ctx, `
 		UPDATE occupants
 		SET nickname = $2, nickname_key = $3, updated_at = now()
 		WHERE id = $1`, id, nick, key)
@@ -59,15 +98,19 @@ func (s *Store) RenameOccupant(ctx context.Context, id int64, nickname string) (
 	if n == 0 {
 		return domain.Occupant{}, ErrNotFound
 	}
+	if err := tx.Commit(); err != nil {
+		return domain.Occupant{}, err
+	}
 	return s.GetOccupant(ctx, id)
 }
 
-// SuggestNickname returns a free kebab-case alternative (stem, stem-2, stem-3, …).
-func (s *Store) SuggestNickname(ctx context.Context, houseID int64, desired string, excludeID int64) (string, error) {
+// SuggestNickname returns a free kebab-case alternative (stem, stem-2, stem-3, …)
+// that is not permanently reserved for the house.
+func (s *Store) SuggestNickname(ctx context.Context, houseID int64, desired string, _ int64) (string, error) {
 	stem := NicknameSuggestionStem(desired)
 	for n := 1; n < 1002; n++ {
 		candidate := KebabSuggestion(stem, n)
-		taken, err := s.nicknameTaken(ctx, houseID, candidate, excludeID)
+		taken, err := s.nicknameKeyReserved(ctx, houseID, NicknameKey(candidate))
 		if err != nil {
 			return "", err
 		}
@@ -78,21 +121,34 @@ func (s *Store) SuggestNickname(ctx context.Context, houseID int64, desired stri
 	return "", ErrNicknameTaken
 }
 
-func (s *Store) nicknameTaken(ctx context.Context, houseID int64, nickname string, excludeID int64) (bool, error) {
-	key := NicknameKey(nickname)
+func (s *Store) nicknameKeyReserved(ctx context.Context, houseID int64, key string) (bool, error) {
+	if key == "" {
+		return true, nil
+	}
 	var exists bool
 	err := s.db.QueryRowContext(ctx, `
 		SELECT EXISTS(
-			SELECT 1 FROM occupants
-			WHERE safe_house_id = $1
-			  AND nickname_key = $2
-			  AND id <> $3
-		)`, houseID, key, excludeID).Scan(&exists)
+			SELECT 1 FROM safehouse_nickname_keys
+			WHERE safe_house_id = $1 AND nickname_key = $2
+		)`, houseID, key).Scan(&exists)
 	return exists, err
 }
 
-// SyncNicknameKeys recomputes nickname_key for all occupants (idempotent).
-// Colliding keys after fold get a "-<id>" suffix so the unique index stays valid.
+func reserveNicknameKeyTx(ctx context.Context, tx *sql.Tx, houseID int64, key string) error {
+	_, err := tx.ExecContext(ctx, `
+		INSERT INTO safehouse_nickname_keys (safe_house_id, nickname_key)
+		VALUES ($1, $2)`, houseID, key)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return ErrNicknameTaken
+		}
+		return err
+	}
+	return nil
+}
+
+// SyncNicknameKeys recomputes occupant nickname_key values and ensures every
+// current key is permanently reserved for its house (idempotent).
 func (s *Store) SyncNicknameKeys(ctx context.Context) error {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, safe_house_id, nickname, COALESCE(nickname_key, '')
@@ -132,11 +188,16 @@ func (s *Store) SyncNicknameKeys(ctx context.Context) error {
 			want = fmt.Sprintf("%s-%d", want, r.id)
 		}
 		used[r.houseID][want] = r.id
-		if want == r.key {
-			continue
+		if want != r.key {
+			if _, err := s.db.ExecContext(ctx, `
+				UPDATE occupants SET nickname_key = $2, updated_at = now() WHERE id = $1`, r.id, want); err != nil {
+				return err
+			}
 		}
 		if _, err := s.db.ExecContext(ctx, `
-			UPDATE occupants SET nickname_key = $2, updated_at = now() WHERE id = $1`, r.id, want); err != nil {
+			INSERT INTO safehouse_nickname_keys (safe_house_id, nickname_key)
+			VALUES ($1, $2)
+			ON CONFLICT DO NOTHING`, r.houseID, want); err != nil {
 			return err
 		}
 	}

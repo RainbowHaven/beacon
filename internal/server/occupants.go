@@ -287,7 +287,7 @@ func (s *Server) handleOccupantEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.render(w, "occupant_edit.html", occupantFormView{
-		Title:    "Rename occupant",
+		Title:    "Correct nickname",
 		User:     &u,
 		Occupant: o,
 		House:    house,
@@ -297,7 +297,7 @@ func (s *Server) handleOccupantEdit(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) renderOccupantEdit(w http.ResponseWriter, u domain.User, o domain.Occupant, house domain.SafeHouse, nickname, errMsg, suggestion string) {
 	s.render(w, "occupant_edit.html", occupantFormView{
-		Title:      "Rename occupant",
+		Title:      "Correct nickname",
 		User:       &u,
 		Occupant:   o,
 		House:      house,

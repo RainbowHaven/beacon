@@ -93,7 +93,7 @@ Receipts are stored **in Postgres** (no file volume).
 
 ## After login
 
-- `/occupants` — headcount, nicknames (unique per house), rename, depart
+- `/occupants` — headcount, nicknames (unique per house forever), correct nickname, depart
 - `/occupants/new` — nickname + arrival (no legal identity)
 - `/expenses` — amounts, notes, optional receipts
 - `/reports` — monthly headcount + expense totals

@@ -34,7 +34,7 @@ Short procedures for Rainbow Haven Coordinating (RHC). No Go knowledge required.
 ## Residents
 
 - Record **nickname + arrival** only. Do not enter legal names or government IDs in Beacon.
-- Nicknames must **start with a letter**. They are unique per safe house (case, spaces, punctuation, accents, and common look-alike letters ignored), including departed residents. Use **Rename** to change a nickname in place.
+- Nicknames must **start with a letter**. Folded nickname keys are **permanently reserved** per safe house (never reused after correction or departure). Use **Correct** to fix a nickname in place (same resident; former spelling is not kept on the record).
 - Arrival date may be at most `ARRIVAL_FUTURE_DAYS` ahead of today (default **1**; set `0` to disallow any future date).
 - Mark departure when the resident leaves.
 - Use the **profile** control in the header (email/role) to log out.

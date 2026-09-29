@@ -1,5 +1,5 @@
 {{template "layout_start" .}}
-<h1>Rename occupant</h1>
+<h1>Correct nickname</h1>
 {{if .Error}}
 <p class="flash error" role="alert">
   {{.Error}}
@@ -9,7 +9,7 @@
   {{end}}
 </p>
 {{end}}
-<p class="muted">{{.House.Name}} · nicknames must start with a letter and be unique in this house (case, spaces, punctuation, accents, and look-alike letters ignored).</p>
+<p class="muted">{{.House.Name}} · corrects the displayed nickname without creating a new resident. Previous spellings are not kept on the record; folded keys stay reserved so they cannot be reused.</p>
 <form class="stack" method="post" action="/occupants/{{.Occupant.ID}}/rename" style="max-width:28rem">
   <label>Nickname
     <input name="nickname" required maxlength="80" autocomplete="off" autocapitalize="words" value="{{.Nickname}}">
