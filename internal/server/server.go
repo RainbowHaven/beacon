@@ -171,6 +171,8 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /occupants", s.requireLogin(http.HandlerFunc(s.handleOccupants)))
 	mux.Handle("GET /occupants/new", s.requireLogin(http.HandlerFunc(s.handleOccupantNew)))
 	mux.Handle("POST /occupants", s.requireLogin(http.HandlerFunc(s.handleOccupantCreate)))
+	mux.Handle("GET /occupants/{id}/edit", s.requireLogin(http.HandlerFunc(s.handleOccupantEdit)))
+	mux.Handle("POST /occupants/{id}/rename", s.requireLogin(http.HandlerFunc(s.handleOccupantRename)))
 	mux.Handle("POST /occupants/{id}/depart", s.requireLogin(http.HandlerFunc(s.handleOccupantDepart)))
 
 	mux.Handle("GET /expenses", s.requireLogin(http.HandlerFunc(s.handleExpenses)))

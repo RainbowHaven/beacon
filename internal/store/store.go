@@ -19,6 +19,7 @@ var (
 	ErrEmailTaken    = errors.New("email already registered")
 	ErrInviteInvalid = errors.New("invite invalid or expired")
 	ErrUserLocked    = errors.New("user locked")
+	ErrNicknameTaken = errors.New("nickname taken")
 )
 
 type Store struct {

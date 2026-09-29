@@ -1,7 +1,7 @@
 {{template "layout_start" .}}
 <h1>Add occupant</h1>
 {{if .Error}}<p class="flash error">{{.Error}}</p>{{end}}
-<p class="muted">Record nickname and arrival only. Do not enter legal names or government IDs in Beacon.</p>
+<p class="muted">Record nickname and arrival only. Nicknames must be unique per house (including departed). Do not enter legal names or government IDs.</p>
 <form class="stack" method="post" action="/occupants" style="max-width:28rem">
   <label>Safe house
     <select name="safe_house_id" required>

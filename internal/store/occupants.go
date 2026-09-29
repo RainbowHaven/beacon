@@ -5,11 +5,24 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/magiconair/beacon/internal/domain"
 )
+
+var multiSpace = regexp.MustCompile(`\s+`)
+
+// NormalizeNickname trims ends and collapses internal whitespace.
+func NormalizeNickname(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return ""
+	}
+	return multiSpace.ReplaceAllString(s, " ")
+}
 
 type CreateOccupantInput struct {
 	SafeHouseID int64
@@ -19,7 +32,7 @@ type CreateOccupantInput struct {
 }
 
 func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (domain.Occupant, error) {
-	nick := strings.TrimSpace(in.Nickname)
+	nick := NormalizeNickname(in.Nickname)
 	if nick == "" {
 		return domain.Occupant{}, errors.New("nickname required")
 	}
@@ -32,9 +45,77 @@ func (s *Store) CreateOccupant(ctx context.Context, in CreateOccupantInput) (dom
 		RETURNING id`,
 		in.SafeHouseID, nick, arrived, in.CreatedBy).Scan(&id)
 	if err != nil {
+		if isUniqueViolation(err) {
+			return domain.Occupant{}, ErrNicknameTaken
+		}
 		return domain.Occupant{}, err
 	}
 	return s.GetOccupant(ctx, id)
+}
+
+func (s *Store) RenameOccupant(ctx context.Context, id int64, nickname string) (domain.Occupant, error) {
+	nick := NormalizeNickname(nickname)
+	if nick == "" {
+		return domain.Occupant{}, errors.New("nickname required")
+	}
+	res, err := s.db.ExecContext(ctx, `
+		UPDATE occupants
+		SET nickname = $2, updated_at = now()
+		WHERE id = $1`, id, nick)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return domain.Occupant{}, ErrNicknameTaken
+		}
+		return domain.Occupant{}, err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return domain.Occupant{}, ErrNotFound
+	}
+	return s.GetOccupant(ctx, id)
+}
+
+// SuggestNickname returns nick if free in the house, otherwise stem2, stem3, …
+func (s *Store) SuggestNickname(ctx context.Context, houseID int64, desired string, excludeID int64) (string, error) {
+	base := NormalizeNickname(desired)
+	if base == "" {
+		base = "Resident"
+	}
+	taken, err := s.nicknameTaken(ctx, houseID, base, excludeID)
+	if err != nil {
+		return "", err
+	}
+	if !taken {
+		return base, nil
+	}
+	stem := strings.TrimRightFunc(base, unicode.IsDigit)
+	if stem == "" {
+		stem = base
+	}
+	for n := 2; n < 1002; n++ {
+		candidate := fmt.Sprintf("%s%d", stem, n)
+		taken, err := s.nicknameTaken(ctx, houseID, candidate, excludeID)
+		if err != nil {
+			return "", err
+		}
+		if !taken {
+			return candidate, nil
+		}
+	}
+	return "", ErrNicknameTaken
+}
+
+func (s *Store) nicknameTaken(ctx context.Context, houseID int64, nickname string, excludeID int64) (bool, error) {
+	nick := NormalizeNickname(nickname)
+	var exists bool
+	err := s.db.QueryRowContext(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM occupants
+			WHERE safe_house_id = $1
+			  AND lower(nickname) = lower($2)
+			  AND id <> $3
+		)`, houseID, nick, excludeID).Scan(&exists)
+	return exists, err
 }
 
 func scanOccupant(row interface{ Scan(dest ...any) error }) (domain.Occupant, error) {
