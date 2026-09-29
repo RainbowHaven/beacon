@@ -100,6 +100,7 @@ func (s *Server) arrivalTooFarAhead(arrived time.Time) bool {
 type occupantFormView struct {
 	Title           string
 	BodyClass       string
+	Path            string
 	User            *domain.User
 	Houses          []domain.SafeHouse
 	House           domain.SafeHouse
@@ -159,7 +160,7 @@ func (s *Server) handleOccupants(w http.ResponseWriter, r *http.Request) {
 			GenderName:  demographics.GenderName(o.Gender),
 		})
 	}
-	s.render(w, "occupants.html", map[string]any{
+	s.render(w, r, "occupants.html", map[string]any{
 		"Title":       "Occupants",
 		"User":        &u,
 		"Rows":        rows,
@@ -178,7 +179,7 @@ func (s *Server) handleOccupantNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	today := time.Now().UTC().Format("2006-01-02")
-	s.render(w, "occupant_new.html", occupantFormView{
+	s.render(w, r, "occupant_new.html", occupantFormView{
 		Title:           "Add occupant",
 		User:            &u,
 		Houses:          houses,
@@ -193,7 +194,7 @@ func (s *Server) handleOccupantNew(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Server) renderOccupantNew(w http.ResponseWriter, u domain.User, houses []domain.SafeHouse, houseID int64, nickname, arrivedAt, country, gender, birthYear, errMsg, suggestion string) {
+func (s *Server) renderOccupantNew(w http.ResponseWriter, r *http.Request, u domain.User, houses []domain.SafeHouse, houseID int64, nickname, arrivedAt, country, gender, birthYear, errMsg, suggestion string) {
 	if arrivedAt == "" {
 		arrivedAt = time.Now().UTC().Format("2006-01-02")
 	}
@@ -206,7 +207,7 @@ func (s *Server) renderOccupantNew(w http.ResponseWriter, u domain.User, houses 
 	if gender == "" {
 		gender = demographics.GenderNotReported
 	}
-	s.render(w, "occupant_new.html", occupantFormView{
+	s.render(w, r, "occupant_new.html", occupantFormView{
 		Title:           "Add occupant",
 		User:            &u,
 		Houses:          houses,
@@ -242,7 +243,7 @@ func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 	birthRaw := r.FormValue("birth_year")
 	houseID, err := parseID(r.FormValue("safe_house_id"))
 	if err != nil {
-		s.renderOccupantNew(w, u, houses, 0, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "Invalid safe house.", "")
+		s.renderOccupantNew(w, r, u, houses, 0, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "Invalid safe house.", "")
 		return
 	}
 	house, err := s.store.GetSafeHouse(r.Context(), houseID)
@@ -252,7 +253,7 @@ func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	arrived, err := time.Parse("2006-01-02", arrivedRaw)
 	if err != nil {
-		s.renderOccupantNew(w, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "Invalid arrival date.", "")
+		s.renderOccupantNew(w, r, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "Invalid arrival date.", "")
 		return
 	}
 	if s.arrivalTooFarAhead(arrived) {
@@ -260,26 +261,26 @@ func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 		if s.cfg.ArrivalFutureDays > 0 {
 			msg = "Arrival date cannot be more than " + strconv.Itoa(s.cfg.ArrivalFutureDays) + " day(s) in the future."
 		}
-		s.renderOccupantNew(w, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, msg, "")
+		s.renderOccupantNew(w, r, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, msg, "")
 		return
 	}
 	if nick == "" {
-		s.renderOccupantNew(w, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "Nickname is required.", "")
+		s.renderOccupantNew(w, r, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "Nickname is required.", "")
 		return
 	}
 	country, err := demographics.NormalizeCountry(countryRaw)
 	if err != nil {
-		s.renderOccupantNew(w, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "Invalid country of origin.", "")
+		s.renderOccupantNew(w, r, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "Invalid country of origin.", "")
 		return
 	}
 	gender, err := demographics.NormalizeGender(genderRaw)
 	if err != nil {
-		s.renderOccupantNew(w, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "Invalid gender.", "")
+		s.renderOccupantNew(w, r, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "Invalid gender.", "")
 		return
 	}
 	birthYear, err := demographics.ParseBirthYear(birthRaw)
 	if err != nil {
-		s.renderOccupantNew(w, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, err.Error()+".", "")
+		s.renderOccupantNew(w, r, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, err.Error()+".", "")
 		return
 	}
 
@@ -295,7 +296,7 @@ func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNicknameInvalid) {
-			s.renderOccupantNew(w, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "Nickname must start with a letter.", "")
+			s.renderOccupantNew(w, r, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "Nickname must start with a letter.", "")
 			return
 		}
 		if errors.Is(err, store.ErrNicknameTaken) {
@@ -303,11 +304,11 @@ func (s *Server) handleOccupantCreate(w http.ResponseWriter, r *http.Request) {
 			if sug, sugErr := s.store.SuggestNickname(r.Context(), houseID, nick, 0); sugErr == nil {
 				suggestion = sug
 			}
-			s.renderOccupantNew(w, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "already taken.", suggestion)
+			s.renderOccupantNew(w, r, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "already taken.", suggestion)
 			return
 		}
 		s.log.Error("create occupant", "err", err)
-		s.renderOccupantNew(w, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "Could not save occupant.", "")
+		s.renderOccupantNew(w, r, u, houses, houseID, nick, arrivedRaw, countryRaw, genderRaw, birthRaw, "Could not save occupant.", "")
 		return
 	}
 	_ = s.store.Audit(r.Context(), &uid, "occupant.create", "occupant", idString(o.ID), map[string]any{
@@ -333,15 +334,15 @@ func (s *Server) handleOccupantEdit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	s.renderOccupantEdit(w, u, o, house, o.Nickname, "", "", "")
+	s.renderOccupantEdit(w, r, u, o, house, o.Nickname, "", "", "")
 }
 
-func (s *Server) renderOccupantEdit(w http.ResponseWriter, u domain.User, o domain.Occupant, house domain.SafeHouse, nickname, errMsg, suggestion, demoError string) {
+func (s *Server) renderOccupantEdit(w http.ResponseWriter, r *http.Request, u domain.User, o domain.Occupant, house domain.SafeHouse, nickname, errMsg, suggestion, demoError string) {
 	birth := ""
 	if o.BirthYear != nil {
 		birth = strconv.Itoa(*o.BirthYear)
 	}
-	s.render(w, "occupant_edit.html", occupantFormView{
+	s.render(w, r, "occupant_edit.html", occupantFormView{
 		Title:      "Edit occupant",
 		User:       &u,
 		Occupant:   o,
@@ -381,13 +382,13 @@ func (s *Server) handleOccupantRename(w http.ResponseWriter, r *http.Request) {
 	}
 	nick := strings.TrimSpace(r.FormValue("nickname"))
 	if nick == "" {
-		s.renderOccupantEdit(w, u, o, house, nick, "Nickname is required.", "", "")
+		s.renderOccupantEdit(w, r, u, o, house, nick, "Nickname is required.", "", "")
 		return
 	}
 	updated, err := s.store.RenameOccupant(r.Context(), id, nick)
 	if err != nil {
 		if errors.Is(err, store.ErrNicknameInvalid) {
-			s.renderOccupantEdit(w, u, o, house, nick, "Nickname must start with a letter.", "", "")
+			s.renderOccupantEdit(w, r, u, o, house, nick, "Nickname must start with a letter.", "", "")
 			return
 		}
 		if errors.Is(err, store.ErrNicknameTaken) {
@@ -395,10 +396,10 @@ func (s *Server) handleOccupantRename(w http.ResponseWriter, r *http.Request) {
 			if sug, sugErr := s.store.SuggestNickname(r.Context(), o.SafeHouseID, nick, id); sugErr == nil {
 				suggestion = sug
 			}
-			s.renderOccupantEdit(w, u, o, house, nick, "already taken.", suggestion, "")
+			s.renderOccupantEdit(w, r, u, o, house, nick, "already taken.", suggestion, "")
 			return
 		}
-		s.renderOccupantEdit(w, u, o, house, nick, "Could not rename.", "", "")
+		s.renderOccupantEdit(w, r, u, o, house, nick, "Could not rename.", "", "")
 		return
 	}
 	uid := u.ID
@@ -431,17 +432,17 @@ func (s *Server) handleOccupantDemographics(w http.ResponseWriter, r *http.Reque
 	}
 	country, err := demographics.NormalizeCountry(r.FormValue("country_of_origin"))
 	if err != nil {
-		s.renderOccupantEdit(w, u, o, house, o.Nickname, "", "", "Invalid country of origin.")
+		s.renderOccupantEdit(w, r, u, o, house, o.Nickname, "", "", "Invalid country of origin.")
 		return
 	}
 	gender, err := demographics.NormalizeGender(r.FormValue("gender"))
 	if err != nil {
-		s.renderOccupantEdit(w, u, o, house, o.Nickname, "", "", "Invalid gender.")
+		s.renderOccupantEdit(w, r, u, o, house, o.Nickname, "", "", "Invalid gender.")
 		return
 	}
 	birthYear, err := demographics.ParseBirthYear(r.FormValue("birth_year"))
 	if err != nil {
-		s.renderOccupantEdit(w, u, o, house, o.Nickname, "", "", err.Error()+".")
+		s.renderOccupantEdit(w, r, u, o, house, o.Nickname, "", "", err.Error()+".")
 		return
 	}
 	updated, err := s.store.UpdateOccupantDemographics(r.Context(), id, store.UpdateOccupantDemographicsInput{
@@ -450,7 +451,7 @@ func (s *Server) handleOccupantDemographics(w http.ResponseWriter, r *http.Reque
 		BirthYear:       birthYear,
 	})
 	if err != nil {
-		s.renderOccupantEdit(w, u, o, house, o.Nickname, "", "", "Could not save demographics.")
+		s.renderOccupantEdit(w, r, u, o, house, o.Nickname, "", "", "Could not save demographics.")
 		return
 	}
 	uid := u.ID

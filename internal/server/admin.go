@@ -25,7 +25,7 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 		invitePath = "/invite/" + token
 		inviteURL = strings.TrimRight(s.cfg.BaseURL, "/") + invitePath
 	}
-	s.render(w, "admin_users.html", map[string]any{
+	s.render(w, r, "admin_users.html", map[string]any{
 		"Title":      "Users",
 		"User":       &actor,
 		"Users":      users,
@@ -40,7 +40,7 @@ func (s *Server) handleAdminInvitePage(w http.ResponseWriter, r *http.Request) {
 	rhls, _ := s.store.ListRHLs(r.Context())
 	houses, _ := s.store.ListSafeHouses(r.Context())
 	actor, _ := s.currentUser(r)
-	s.render(w, "admin_invite.html", map[string]any{
+	s.render(w, r, "admin_invite.html", map[string]any{
 		"Title":      "Invite user",
 		"User":       &actor,
 		"RHLs":       rhls,
@@ -173,7 +173,7 @@ func (s *Server) handleAdminEditUser(w http.ResponseWriter, r *http.Request) {
 	if target.SafeHouseID != nil {
 		selectedHouse = *target.SafeHouseID
 	}
-	s.render(w, "admin_user_edit.html", map[string]any{
+	s.render(w, r, "admin_user_edit.html", map[string]any{
 		"Title":         "Edit user",
 		"User":          &actor,
 		"Target":        target,

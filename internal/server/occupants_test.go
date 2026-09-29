@@ -214,7 +214,12 @@ func TestOccupantCreateScoped(t *testing.T) {
 	defer res4.Body.Close()
 	body, _ := io.ReadAll(res4.Body)
 	html := string(body)
-	if !strings.Contains(html, `class="profile-menu"`) || !strings.Contains(html, `action="/logout"`) {
+	if !strings.Contains(html, `class="app-nav"`) ||
+		!strings.Contains(html, `href="/occupants"`) ||
+		!strings.Contains(html, `href="/expenses"`) ||
+		!strings.Contains(html, `href="/reports"`) ||
+		!strings.Contains(html, `class="profile-menu"`) ||
+		!strings.Contains(html, `action="/logout"`) {
 		t.Fatalf("home missing profile logout: %s", html[:min(500, len(html))])
 	}
 
@@ -227,5 +232,8 @@ func TestOccupantCreateScoped(t *testing.T) {
 	newBody, _ := io.ReadAll(resNew.Body)
 	if resNew.StatusCode != http.StatusOK || !strings.Contains(string(newBody), "Add occupant") {
 		t.Fatalf("GET /occupants/new status=%d body=%s", resNew.StatusCode, newBody[:min(400, len(newBody))])
+	}
+	if !strings.Contains(string(newBody), `href="/occupants" aria-current="page"`) {
+		t.Fatalf("occupant form missing current nav: %s", newBody[:min(500, len(newBody))])
 	}
 }

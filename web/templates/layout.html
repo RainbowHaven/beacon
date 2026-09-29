@@ -6,46 +6,53 @@
   <title>{{if .Title}}{{.Title}} · {{end}}Beacon</title>
   <link rel="stylesheet" href="{{static "css/app.css"}}">
 </head>
-<body class="{{if .BodyClass}}{{.BodyClass}}{{end}}">
-<header class="app no-print">
+<body class="{{if and .User .User.Email}}app-shell{{end}}{{if .BodyClass}} {{.BodyClass}}{{end}}">
+{{if and .User .User.Email}}
+<div class="app-chrome no-print">
   <div class="brand">
-    <strong><a href="/" style="text-decoration:none;color:inherit">Beacon</a></strong>
+    <strong><a href="/">Beacon</a></strong>
     <span class="app-version">{{appVersion}}</span>
   </div>
-  {{if .User}}{{if .User.Email}}
-  <div class="header-tools">
-    <details class="nav-drawer">
-      <summary class="nav-toggle" aria-label="Menu">Menu</summary>
-      <nav class="nav-panel">
-        <a href="/occupants">Occupants</a>
-        <a href="/expenses">Expenses</a>
-        <a href="/reports">Reports</a>
-        {{if eq .User.Role "rhc_admin"}}
-        <a href="/admin/users">Users</a>
-        <a href="/admin/houses">Houses</a>
-        <a href="/admin/audit">Audit</a>
-        {{end}}
-      </nav>
-    </details>
-    <details class="profile-menu">
-      <summary class="profile-toggle" aria-label="Account">
-        <span class="profile-email">{{.User.Email}}</span>
-        <span class="profile-role">{{.User.Role}}</span>
-      </summary>
-      <div class="profile-panel">
-        <span class="muted profile-detail">{{.User.Email}} ({{.User.Role}})</span>
-        <form class="inline" method="post" action="/logout">
-          <button class="secondary" type="submit">Log out</button>
-        </form>
+  <nav class="app-nav" aria-label="Primary">
+    <a href="/occupants"{{if navCurrent .Path "/occupants"}} aria-current="page"{{end}}>Occupants</a>
+    <a href="/expenses"{{if navCurrent .Path "/expenses"}} aria-current="page"{{end}}>Expenses</a>
+    <a href="/reports"{{if navCurrent .Path "/reports"}} aria-current="page"{{end}}>Reports</a>
+    {{if eq .User.Role "rhc_admin"}}
+    <a class="nav-desktop-only" href="/admin/users"{{if navCurrent .Path "/admin/users"}} aria-current="page"{{end}}>Users</a>
+    <a class="nav-desktop-only" href="/admin/houses"{{if navCurrent .Path "/admin/houses"}} aria-current="page"{{end}}>Houses</a>
+    <a class="nav-desktop-only" href="/admin/audit"{{if navCurrent .Path "/admin/audit"}} aria-current="page"{{end}}>Audit</a>
+    <details class="nav-more">
+      <summary{{if or (navCurrent .Path "/admin/users") (or (navCurrent .Path "/admin/houses") (navCurrent .Path "/admin/audit"))}} aria-current="page"{{end}}>More</summary>
+      <div class="nav-more-panel">
+        <a href="/admin/users"{{if navCurrent .Path "/admin/users"}} aria-current="page"{{end}}>Users</a>
+        <a href="/admin/houses"{{if navCurrent .Path "/admin/houses"}} aria-current="page"{{end}}>Houses</a>
+        <a href="/admin/audit"{{if navCurrent .Path "/admin/audit"}} aria-current="page"{{end}}>Audit</a>
       </div>
     </details>
+    {{end}}
+  </nav>
+  <details class="profile-menu">
+    <summary class="profile-toggle" aria-label="Account">
+      <span class="profile-email">{{.User.Email}}</span>
+      <span class="profile-role">{{.User.Role}}</span>
+    </summary>
+    <div class="profile-panel">
+      <span class="muted profile-detail">{{.User.Email}} ({{.User.Role}})</span>
+      <form class="inline" method="post" action="/logout">
+        <button class="secondary" type="submit">Log out</button>
+      </form>
+    </div>
+  </details>
+</div>
+{{else}}
+<header class="app no-print">
+  <div class="brand">
+    <strong><a href="/">Beacon</a></strong>
+    <span class="app-version">{{appVersion}}</span>
   </div>
-  {{else}}
   <nav><a href="/login">Log in</a></nav>
-  {{end}}{{else}}
-  <nav><a href="/login">Log in</a></nav>
-  {{end}}
 </header>
+{{end}}
 <main class="wrap">
 {{end}}
 

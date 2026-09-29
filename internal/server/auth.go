@@ -22,7 +22,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 			counts, _ = s.store.HeadcountByHouses(r.Context(), houseIDs(houses))
 		}
 	}
-	s.render(w, "home.html", map[string]any{
+	s.render(w, r, "home.html", map[string]any{
 		"Title":     "Home",
 		"User":      userPtr,
 		"LoggedIn":  ok,
@@ -35,7 +35,7 @@ func (s *Server) handleLoginPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
-	s.render(w, "login.html", map[string]any{
+	s.render(w, r, "login.html", map[string]any{
 		"Title": "Log in",
 		"Error": r.URL.Query().Get("error"),
 	})
@@ -63,14 +63,14 @@ func (s *Server) handleInvitePage(w http.ResponseWriter, r *http.Request) {
 		case token == "":
 			reason = "the link has no token"
 		}
-		s.render(w, "invite_invalid.html", map[string]any{
+		s.render(w, r, "invite_invalid.html", map[string]any{
 			"Title":  "Invite",
 			"Reason": reason,
 		})
 		return
 	}
 	s.setInviteCookie(w, token)
-	s.render(w, "invite.html", map[string]any{
+	s.render(w, r, "invite.html", map[string]any{
 		"Title": "Invite",
 		"Email": u.Email,
 		"Token": token,

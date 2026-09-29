@@ -63,7 +63,7 @@ func (s *Server) handleExpenses(w http.ResponseWriter, r *http.Request) {
 			SpentOnUS: formatUSDate(e.SpentOn),
 		})
 	}
-	s.render(w, "expenses.html", map[string]any{
+	s.render(w, r, "expenses.html", map[string]any{
 		"Title": "Expenses",
 		"User":  &u,
 		"Rows":  rows,
@@ -79,7 +79,7 @@ func (s *Server) handleExpenseNew(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no safe house in scope", http.StatusForbidden)
 		return
 	}
-	s.render(w, "expense_new.html", map[string]any{
+	s.render(w, r, "expense_new.html", map[string]any{
 		"Title":      "Log expense",
 		"User":       &u,
 		"Houses":     houses,
@@ -332,7 +332,7 @@ func (s *Server) handleReports(w http.ResponseWriter, r *http.Request) {
 			ReceiptCount: curReceipts[c],
 		})
 	}
-	s.render(w, "reports.html", map[string]any{
+	s.render(w, r, "reports.html", map[string]any{
 		"Title":          "Monthly report",
 		"User":           &u,
 		"BodyClass":      "report-page",
