@@ -47,7 +47,7 @@ func testDB(t *testing.T) *sql.DB {
 func resetSchema(t *testing.T, db *sql.DB) {
 	t.Helper()
 	_, err := db.Exec(`
-		DROP TABLE IF EXISTS operational_issues, expenses, occupants, audit_events, sessions, webauthn_challenges, webauthn_credentials, invites, users, safe_houses, rhls, schema_migrations CASCADE;
+		DROP TABLE IF EXISTS safeguarding_concerns, operational_issues, expenses, occupants, audit_events, sessions, webauthn_challenges, webauthn_credentials, invites, users, safe_houses, rhls, schema_migrations CASCADE;
 		DROP TYPE IF EXISTS user_status, user_role CASCADE;
 	`)
 	if err != nil {

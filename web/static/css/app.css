@@ -147,6 +147,14 @@ body.app-shell main.wrap {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+@media (max-width: 479px) {
+  .app-nav > a,
+  .nav-more > summary {
+    font-size: 0.78rem;
+    padding-left: 0.15rem;
+    padding-right: 0.15rem;
+  }
+}
 .nav-more { position: relative; }
 .nav-more > summary {
   list-style: none;
@@ -339,6 +347,20 @@ h1 { font-size: clamp(1.6rem, 5vw, 2.2rem); letter-spacing: -0.03em; margin: 0 0
   vertical-align: baseline;
   cursor: text;
 }
+.notice {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.25rem;
+  gap: 0.6rem;
+}
+.notice h2 { margin: 0; font-size: 1.1rem; }
+.notice p { margin: 0; }
+.field-hint { font-size: 0.85rem; }
+fieldset { border: 1px solid var(--line); margin: 0; padding: 0.75rem 1rem 1rem; }
+legend { padding: 0 0.35rem; font-size: 0.95rem; }
+.btn.secondary[aria-current="page"] { background: var(--accent); color: #fff; }
 .stack { display: grid; gap: 1rem; }
 form.stack { width: 100%; max-width: 28rem; }
 label { display: grid; gap: 0.35rem; font-size: 0.95rem; }

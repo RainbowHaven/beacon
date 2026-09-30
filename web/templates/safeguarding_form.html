@@ -1,0 +1,55 @@
+{{template "layout_start" .}}
+<h1>{{.Title}}</h1>
+{{if .Error}}<p class="flash error" role="alert">{{.Error}}</p>{{end}}
+<p class="muted">Record only the incident identifier and basic tracking information. Do not enter details about the incident, and do not upload the completed Document 37.</p>
+<form class="stack" method="post" action="{{.Action}}">
+  {{if .New}}
+  <label>Safe house
+    <select name="safe_house_id" required>
+      {{range .Houses}}
+      <option value="{{.ID}}"{{if eq .ID $.Form.HouseID}} selected{{end}}>{{.Name}}</option>
+      {{end}}
+    </select>
+  </label>
+  {{else}}
+  <p><strong>Safe house:</strong> {{.House.Name}}</p>
+  {{end}}
+  <label>Date reported
+    <input type="date" name="reported_on" value="{{.Form.ReportedOn}}" max="{{.MaxDate}}" required>
+  </label>
+  <label>Incident identifier
+    <input name="incident_id" required maxlength="{{.MaxIDLen}}" autocomplete="off" spellcheck="false" placeholder="Incident-[RHL code]-[year]-[number]" value="{{.Form.IncidentID}}">
+    <span class="muted field-hint">As on Document 37: Incident-[RHL code]-[year]-[sequential number].{{if .New}}{{if .Suggestion}} Next free for this house and year: <span class="mono">{{.Suggestion}}</span>. If you change the house or the date reported, use Suggest identifier below.{{else}} This safe house's RHL has no code yet, so no identifier is suggested.{{end}}{{end}}</span>
+  </label>
+  <fieldset class="stack">
+    <legend>When the concern occurred or started</legend>
+    <label>Date
+      <input type="date" name="occurred_on" value="{{.Form.OccurredOn}}" max="{{.MaxDate}}">
+    </label>
+    <label>Date is
+      <select name="occurred_precision">
+        {{range .Precisions}}
+        <option value="{{.Value}}"{{if eq (print .Value) $.Form.OccurredPrecision}} selected{{end}}>{{.Label}}</option>
+        {{end}}
+      </select>
+    </label>
+  </fieldset>
+  <label>Status
+    <select name="status">
+      {{range .Statuses}}
+      <option value="{{.}}"{{if eq (print .) $.Form.Status}} selected{{end}}>{{.Label}}</option>
+      {{end}}
+    </select>
+    <span class="muted field-hint">Closed means closed for another reason documented in Document 37.</span>
+  </label>
+  <label>Resolved or closed date
+    <input type="date" name="closed_on" value="{{.Form.ClosedOn}}" max="{{.MaxDate}}">
+    <span class="muted field-hint">Required when the status is Resolved or Closed.</span>
+  </label>
+  <p class="actions">
+    <button type="submit">Save</button>
+    {{if .New}}<button class="secondary" type="submit" formaction="/safeguarding/new" formmethod="get" formnovalidate name="suggest" value="1">Suggest identifier</button>{{end}}
+  </p>
+</form>
+<p><a href="/safeguarding">Back</a></p>
+{{template "layout_end" .}}

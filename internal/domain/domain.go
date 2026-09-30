@@ -1,8 +1,10 @@
 package domain
 
 import (
+	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 type UserStatus string
@@ -221,6 +223,90 @@ func OperationalIssueStatusLabel(s string) string {
 	default:
 		return s
 	}
+}
+
+type SafeguardingStatus string
+
+const (
+	SafeguardingOpen     SafeguardingStatus = "open"
+	SafeguardingResolved SafeguardingStatus = "resolved"
+	SafeguardingClosed   SafeguardingStatus = "closed"
+)
+
+// SafeguardingStatuses lists the statuses in display order.
+var SafeguardingStatuses = []SafeguardingStatus{SafeguardingOpen, SafeguardingResolved, SafeguardingClosed}
+
+func (s SafeguardingStatus) Valid() bool {
+	switch s {
+	case SafeguardingOpen, SafeguardingResolved, SafeguardingClosed:
+		return true
+	}
+	return false
+}
+
+// Label is the plain-English status shown in the UI.
+func (s SafeguardingStatus) Label() string {
+	switch s {
+	case SafeguardingOpen:
+		return "Open"
+	case SafeguardingResolved:
+		return "Resolved"
+	case SafeguardingClosed:
+		return "Closed"
+	}
+	return string(s)
+}
+
+// DatePrecision mirrors the Document 37 date options.
+type DatePrecision string
+
+const (
+	DateExact       DatePrecision = "exact"
+	DateApproximate DatePrecision = "approximate"
+	DateUnknown     DatePrecision = "unknown"
+)
+
+func (p DatePrecision) Valid() bool {
+	switch p {
+	case DateExact, DateApproximate, DateUnknown:
+		return true
+	}
+	return false
+}
+
+// SafeguardingConcern is tracking data for a Document 37 report. The incident
+// narrative and the completed form are never stored in Beacon.
+type SafeguardingConcern struct {
+	ID                int64
+	SafeHouseID       int64
+	IncidentID        string
+	OccurredOn        *time.Time // nil when OccurredPrecision is unknown
+	OccurredPrecision DatePrecision
+	ReportedOn        time.Time
+	Status            SafeguardingStatus
+	ClosedOn          *time.Time // set when Status is not open
+	CreatedBy         *int64
+	UpdatedBy         *int64
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+// MaxIncidentIDLen is the longest incident identifier Beacon accepts.
+const MaxIncidentIDLen = 40
+
+// NormalizeIncidentID trims s and reports whether it is a usable identifier:
+// non-empty, at most MaxIncidentIDLen characters and on a single line.
+func NormalizeIncidentID(s string) (string, bool) {
+	id := strings.TrimSpace(s)
+	if id == "" || utf8.RuneCountInString(id) > MaxIncidentIDLen || strings.ContainsAny(id, "\r\n") {
+		return "", false
+	}
+	return id, true
+}
+
+// IncidentID formats a Document 37 incident identifier.
+func IncidentID(rhlCode string, year, seq int) string {
+	return fmt.Sprintf("Incident-%s-%d-%d", rhlCode, year, seq)
 }
 
 type AuditEvent struct {
