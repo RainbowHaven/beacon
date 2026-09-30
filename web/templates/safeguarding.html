@@ -1,0 +1,70 @@
+{{template "layout_start" .}}
+<h1>Safeguarding</h1>
+{{if .Flash}}<p class="flash">{{.Flash}}</p>{{end}}
+
+<section class="notice stack">
+  <h2>Reporting a Safeguarding Concern</h2>
+  <p>Complete Document 37 when a safeguarding concern or incident occurs or is reported. Download the blank form using the button below.</p>
+  <p>Submit the completed form to your RHL Safeguarding Contact within 24 hours, or as soon as safely and reasonably possible. Use WhatsApp or the safest locally available method.</p>
+  <p>Record only the incident identifier and basic tracking information in Beacon. Do not enter detailed information about the incident in Beacon, and do not upload the completed Document 37 to Beacon.</p>
+  <p class="actions"><a class="btn" href="/safeguarding/document-37" download>Download Document 37</a></p>
+  <p class="muted">Document 37 version: {{.DocVersion}}</p>
+</section>
+
+<p class="muted">Safeguarding is for concerns about the safety or wellbeing of people. Building, utilities, supplies, staffing and similar operational problems belong in Operations, not here.</p>
+
+<p class="actions">
+  {{if .Houses}}<a class="btn" href="/safeguarding/new">Record concern</a>{{end}}
+  {{range .Filters}}
+  <a class="btn secondary"{{if .Current}} aria-current="page"{{end}} href="{{.URL}}">{{.Label}}</a>
+  {{end}}
+</p>
+
+{{if .ShowHouseFilter}}
+<form class="actions" method="get" action="/safeguarding">
+  <input type="hidden" name="status" value="{{.StatusFilter}}">
+  <label>Safe house
+    <select name="house">
+      <option value="">All houses</option>
+      {{range .Houses}}
+      <option value="{{.ID}}"{{if eq .ID $.HouseFilter}} selected{{end}}>{{.Name}}</option>
+      {{end}}
+    </select>
+  </label>
+  <button class="secondary" type="submit">Show</button>
+</form>
+{{end}}
+
+{{if .Rows}}
+<div class="table-scroll">
+<table>
+  <thead>
+    <tr>
+      <th>Incident identifier</th>
+      <th>House</th>
+      <th>Occurred</th>
+      <th>Reported</th>
+      <th>Status</th>
+      <th>Resolved or closed</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {{range .Rows}}
+    <tr>
+      <td class="mono">{{.IncidentID}}</td>
+      <td>{{.HouseName}}</td>
+      <td>{{.Occurred}}</td>
+      <td>{{.Reported}}</td>
+      <td>{{.StatusLabel}}</td>
+      <td>{{if .Closed}}{{.Closed}}{{else}}—{{end}}</td>
+      <td class="actions"><a class="btn secondary" href="/safeguarding/{{.ID}}/edit">Edit</a></td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
+{{else}}
+<p class="muted">{{if eq .StatusFilter "open"}}No open safeguarding concerns.{{else}}No safeguarding concerns to show.{{end}}</p>
+{{end}}
+{{template "layout_end" .}}

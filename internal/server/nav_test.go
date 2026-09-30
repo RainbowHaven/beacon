@@ -70,6 +70,7 @@ func TestLayoutNavRenders(t *testing.T) {
 		`href="/occupants"`,
 		`href="/expenses"`,
 		`href="/operations"`,
+		`href="/safeguarding"`,
 		`href="/reports"`,
 		`href="/admin/users" aria-current="page"`,
 		`class="app-footer`,
