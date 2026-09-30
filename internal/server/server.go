@@ -233,6 +233,9 @@ func (s *Server) Handler() http.Handler {
 
 	mux.Handle("GET /reports", s.requireLogin(http.HandlerFunc(s.handleReports)))
 	mux.Handle("GET /reports/{houseID}/{file}", s.requireLogin(http.HandlerFunc(s.handleReportCSV)))
+	mux.Handle("GET /reports/{houseID}/history", s.requireLogin(http.HandlerFunc(s.handleReportHistory)))
+	mux.Handle("POST /reports/{houseID}/{month}/confirm", s.requireLogin(http.HandlerFunc(s.handleMonthConfirm)))
+	mux.Handle("GET /dashboard", s.requireLogin(http.HandlerFunc(s.handleDashboard)))
 
 	mux.Handle("GET /safeguarding", s.requireLogin(http.HandlerFunc(s.handleSafeguarding)))
 	mux.Handle("GET /safeguarding/new", s.requireLogin(http.HandlerFunc(s.handleSafeguardingNew)))

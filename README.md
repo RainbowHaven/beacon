@@ -96,7 +96,9 @@ Receipts are stored **in Postgres** (no file volume).
 - `/occupants` — headcount, nicknames (unique per house forever), correct nickname, depart
 - `/occupants/new` — nickname + arrival (no legal identity)
 - `/expenses` — amounts, notes, optional receipts
-- `/reports` — monthly report per house (replaces Document 50): occupancy, demographics, residents by nickname, expense totals, safeguarding concerns by incident identifier, operational problems; CSV at `/reports/{houseID}/{YYYY-MM}.csv`
+- `/reports` — monthly report per house (replaces Document 50): occupancy, demographics, residents by nickname, expense totals, safeguarding concerns by incident identifier, operational problems; CSV at `/reports/{houseID}/{YYYY-MM}.csv`; confirm an ended month with `POST /reports/{houseID}/{YYYY-MM}/confirm`
+- `/reports/{houseID}/history` — confirmation status of the last 12 ended months
+- `/dashboard` — RHC/RHL reporting status per active safe house (confirmed, changed after confirmation, due, overdue)
 - `/admin/users` — list / lock / re-invite / edit role & scope
 - `/admin/houses` — create/edit RHLs and safe houses (currency, active)
 - `/admin/audit` — audit trail
