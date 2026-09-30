@@ -11,12 +11,47 @@
 [hidden] { display: none !important; }
 body {
   margin: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   font-family: system-ui, -apple-system, "Segoe UI", "Helvetica Neue", sans-serif;
   background: radial-gradient(circle at top left, #fff8e8, var(--bg));
   color: var(--ink);
   line-height: 1.45;
 }
 a { color: var(--accent); }
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.brand a { text-decoration: none; color: inherit; }
+.brand strong {
+  color: var(--accent);
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.app-footer {
+  margin-top: auto;
+  padding-top: 2.5rem;
+}
+.app-footer hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 0 0 0.75rem;
+}
+.app-version {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
 header.app {
   display: flex;
   justify-content: space-between;
@@ -32,65 +67,117 @@ header.app {
   top: 0;
   z-index: 20;
 }
-header.app .brand {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
-header.app .brand strong {
-  color: var(--accent);
-  font-size: 1.2rem;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-}
-header.app .app-version {
-  font-size: 0.72rem;
-  line-height: 1.2;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
-  color: color-mix(in srgb, var(--ink) 55%, transparent);
-}
 header.app nav { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
 
-.header-tools {
+/* Signed-in chrome: one tree. Mobile uses a top bar plus a fixed bottom bar.
+   From 900px the same nodes become a sticky sidebar. */
+body.app-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "brand account"
+    "main main";
+  min-height: 100dvh;
+}
+body.app-shell .app-chrome { display: contents; }
+body.app-shell .brand {
+  grid-area: brand;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding-top: max(0.85rem, env(safe-area-inset-top, 0px));
+  padding-bottom: 0.85rem;
+  padding-left: max(1.25rem, calc(env(safe-area-inset-left, 0px) + 1rem));
+  padding-right: 0.75rem;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+body.app-shell .profile-menu {
+  grid-area: account;
+  position: sticky;
+  top: 0;
+  z-index: 31;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  padding-top: max(0.85rem, env(safe-area-inset-top, 0px));
+  padding-bottom: 0.85rem;
+  padding-right: max(1rem, calc(env(safe-area-inset-right, 0px) + 0.75rem));
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+body.app-shell main.wrap {
+  grid-area: main;
+  min-width: 0;
+  overflow-x: clip;
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
 }
 
-.nav-drawer { position: relative; }
-.nav-toggle {
+.app-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 100%;
+  z-index: 25;
+  display: flex;
+  align-items: stretch;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.app-nav > a,
+.nav-more {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.app-nav > a.nav-desktop-only { display: none; }
+.app-nav > a,
+.nav-more > summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.45rem 0.35rem;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-more { position: relative; }
+.nav-more > summary {
   list-style: none;
   cursor: pointer;
-  font: inherit;
-  padding: 0.45rem 0.75rem;
-  border: 1px solid var(--line);
-  background: var(--card);
-  color: var(--accent);
-  border-radius: 0.35rem;
 }
-.nav-toggle::-webkit-details-marker { display: none; }
-.nav-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+.nav-more > summary::-webkit-details-marker { display: none; }
+.nav-more-panel {
   position: absolute;
   right: 0;
-  top: calc(100% + 0.4rem);
-  min-width: 14rem;
-  padding: 0.75rem;
+  bottom: 100%;
+  min-width: 12rem;
+  display: flex;
+  flex-direction: column;
+  padding: 0.35rem;
   background: var(--card);
   border: 1px solid var(--line);
   box-shadow: 0 8px 24px color-mix(in srgb, var(--ink) 12%, transparent);
-  z-index: 30;
 }
-.nav-panel a {
-  display: block;
-  padding: 0.45rem 0.35rem;
+.nav-more-panel a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.45rem 0.65rem;
+  color: var(--ink);
   text-decoration: none;
+}
+.app-nav a[aria-current="page"],
+.nav-more > summary[aria-current="page"] {
+  color: var(--accent);
+  font-weight: 700;
+  box-shadow: inset 0 -3px 0 var(--accent);
 }
 
 .profile-menu { position: relative; }
@@ -118,10 +205,6 @@ header.app nav { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
   white-space: nowrap;
   max-width: 100%;
 }
-.profile-role {
-  font-size: 0.75rem;
-  opacity: 0.75;
-}
 .profile-panel {
   display: flex;
   flex-direction: column;
@@ -148,28 +231,89 @@ header.app nav { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
 }
 
 @media (min-width: 900px) {
-  .nav-drawer { position: static; }
-  .nav-toggle { display: none; }
-  .nav-drawer[open] .nav-panel,
-  .nav-drawer .nav-panel {
+  body.app-shell {
+    grid-template-columns: 14rem minmax(0, 1fr);
+    grid-template-rows: minmax(100dvh, auto);
+    grid-template-areas: "side main";
+  }
+  body.app-shell .app-chrome {
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 1rem;
-    position: static;
-    min-width: 0;
-    padding: 0;
-    border: 0;
-    box-shadow: none;
+    flex-direction: column;
+    grid-area: side;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100dvh;
+    background: var(--card);
+    border-right: 1px solid var(--line);
+    z-index: 20;
+  }
+  body.app-shell .brand,
+  body.app-shell .profile-menu {
+    grid-area: auto;
+    border-bottom: 0;
     background: transparent;
   }
-  .nav-drawer { display: block; }
-  /* Keep panel visible on desktop even when details is closed */
-  .nav-drawer:not([open]) .nav-panel { display: flex; }
+  body.app-shell .brand { position: static; }
+  body.app-shell .profile-menu { position: relative; }
+  body.app-shell .brand {
+    padding: 1.1rem 1rem 0.75rem;
+  }
+  body.app-shell .profile-menu {
+    margin-top: auto;
+    padding: 0.75rem;
+    display: block;
+  }
+  body.app-shell main.wrap {
+    padding-bottom: 1.25rem;
+  }
+  .app-nav {
+    position: static;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: stretch;
+    border-top: 0;
+    padding: 0.35rem 0.5rem 0.5rem;
+    background: transparent;
+    overflow: auto;
+  }
+  .app-nav > a,
+  .nav-more {
+    flex: 0 0 auto;
+  }
+  .app-nav > a.nav-desktop-only { display: flex; }
+  /* Closed details content does not paint, so admin links are real sidebar items here. */
+  .nav-more { display: none; }
+  .app-nav > a,
+  .nav-more-panel a {
+    justify-content: flex-start;
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.35rem;
+  }
+  .app-nav a[aria-current="page"] {
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  .profile-toggle {
+    align-items: flex-start;
+    max-width: none;
+    width: 100%;
+  }
+  .profile-panel {
+    top: auto;
+    bottom: calc(100% + 0.4rem);
+    left: 0.75rem;
+    right: 0.75rem;
+    min-width: 0;
+    width: auto;
+  }
 }
 
 main.wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  width: 100%;
   max-width: 52rem;
   margin: 0 auto;
   padding-top: 1.5rem;
@@ -218,9 +362,31 @@ button, .btn {
 }
 button.secondary, .btn.secondary { background: transparent; color: var(--accent); }
 button.danger { background: var(--danger); border-color: var(--danger); }
+.table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.table-scroll > table {
+  width: max-content;
+  min-width: 100%;
+}
 table { width: 100%; border-collapse: collapse; background: var(--card); }
-th, td { text-align: left; padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 0.95rem; }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; word-break: break-all; }
+th, td { text-align: left; padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: middle; font-size: 0.95rem; }
+.table-scroll th,
+.table-scroll td { white-space: nowrap; }
+.table-scroll td[colspan] { white-space: normal; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; overflow-wrap: anywhere; }
+td.actions { flex-wrap: nowrap; }
+.table-scroll .btn,
+.table-scroll button,
+.actions > .btn,
+.actions > button {
+  padding: 0.28rem 0.55rem;
+  font-size: 0.875rem;
+  line-height: 1.25;
+}
+form.actions { align-items: flex-end; }
 .invite-row { display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.5rem; }
 .invite-row .invite-url {
   flex: 1;
@@ -339,9 +505,13 @@ body.handoff {
     background: #fff !important;
     color: #000 !important;
   }
-  .no-print { display: none !important; }
-  .print-only { display: block !important; }
+  .no-print,
+  .app-chrome,
+  .brand,
+  .app-nav,
+  .profile-menu,
   header.app { display: none !important; }
+  .print-only { display: block !important; }
   main.wrap {
     max-width: none;
     margin: 0;

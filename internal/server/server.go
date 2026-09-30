@@ -101,6 +101,7 @@ func New(log *slog.Logger, db *sql.DB, cfg Config) (*Server, error) {
 			return "/static/" + path + "?" + assetQuery
 		},
 		"appVersion": version.Line,
+		"navCurrent": navCurrent,
 	})
 	if _, err := tmpl.ParseFS(web.Templates, "templates/*.html"); err != nil {
 		return nil, fmt.Errorf("templates: %w", err)
@@ -142,11 +143,47 @@ func hashFS(fsys fs.FS) (string, error) {
 	return hex.EncodeToString(h.Sum(nil))[:12], nil
 }
 
+func navCurrent(path, prefix string) bool {
+	if path == prefix {
+		return true
+	}
+	return strings.HasPrefix(path, prefix+"/")
+}
+
+func withNavPath(r *http.Request, data any) any {
+	if r == nil || r.URL == nil {
+		return data
+	}
+	path := r.URL.Path
+	switch d := data.(type) {
+	case map[string]any:
+		if d == nil {
+			d = map[string]any{}
+		}
+		d["Path"] = path
+		return d
+	case occupantFormView:
+		d.Path = path
+		return d
+	default:
+		return data
+	}
+}
+
+func cacheFingerprinted(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("v") != "" {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (s *Server) Store() *store.Store { return s.store }
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.Handle("GET /static/", http.StripPrefix("/static/", s.static))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", cacheFingerprinted(s.static)))
 	mux.HandleFunc("GET /healthz", s.handleHealthz)
 	mux.HandleFunc("GET /readyz", s.handleReadyz)
 
@@ -407,8 +444,10 @@ func (s *Server) loadWAUser(ctx context.Context, u domain.User) (wauser.User, er
 	return wauser.FromDomain(u, creds), nil
 }
 
-func (s *Server) render(w http.ResponseWriter, name string, data any) {
+func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, data any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	data = withNavPath(r, data)
 	if err := s.templates.ExecuteTemplate(w, name, data); err != nil {
 		s.log.Error("template", "name", name, "err", err)
 		http.Error(w, "template error", http.StatusInternalServerError)

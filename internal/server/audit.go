@@ -34,7 +34,7 @@ func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {
 			Meta:       meta,
 		})
 	}
-	s.render(w, "audit.html", map[string]any{
+	s.render(w, r, "audit.html", map[string]any{
 		"Title":  "Audit log",
 		"User":   &u,
 		"Events": rows,

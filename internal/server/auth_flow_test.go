@@ -129,6 +129,12 @@ func TestInviteRegisterLoginLock(t *testing.T) {
 	if !strings.Contains(string(usersBody), "Signed in") {
 		t.Fatal("expected own row to show Signed in instead of Lock/New invite")
 	}
+	if !strings.Contains(string(usersBody), `class="nav-more"`) ||
+		!strings.Contains(string(usersBody), `href="/admin/users" aria-current="page"`) ||
+		!strings.Contains(string(usersBody), `href="/admin/houses"`) ||
+		!strings.Contains(string(usersBody), `href="/admin/audit"`) {
+		t.Fatalf("admin nav missing more links: %s", usersBody[:min(600, len(usersBody))])
+	}
 	invitePage, err := client.Get(ts.URL + "/admin/users/invite")
 	if err != nil {
 		t.Fatal(err)

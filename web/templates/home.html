@@ -12,16 +12,6 @@
   </ul>
 </section>
 {{end}}
-<p class="actions">
-  <a class="btn" href="/occupants">Occupants</a>
-  <a class="btn" href="/expenses">Expenses</a>
-  <a class="btn secondary" href="/reports">Reports</a>
-  {{if eq .User.Role "rhc_admin"}}
-  <a class="btn secondary" href="/admin/users">Users</a>
-  <a class="btn secondary" href="/admin/houses">Houses</a>
-  <a class="btn secondary" href="/admin/audit">Audit</a>
-  {{end}}
-</p>
 {{else}}
 <p>Safe house operations for Rainbow Haven.</p>
 <p><a class="btn" href="/login">Log in with passkey</a></p>

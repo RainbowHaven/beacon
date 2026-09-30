@@ -33,6 +33,7 @@
   <section class="stack report-section">
     <h2 style="margin:0;font-size:1.1rem">Expenses · {{.MonthLabel}}</h2>
     {{if .Totals}}
+    <div class="table-scroll">
     <table>
       <thead>
         <tr>
@@ -55,8 +56,10 @@
       {{end}}
       </tbody>
     </table>
+    </div>
     {{if .CurrencyTotals}}
     <h3 style="margin:1rem 0 0.5rem;font-size:1rem">Totals by currency</h3>
+    <div class="table-scroll">
     <table>
       <thead>
         <tr>
@@ -80,6 +83,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
     {{end}}
     {{else}}
     <p class="muted">No expense data for this month.</p>

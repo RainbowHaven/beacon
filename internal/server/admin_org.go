@@ -31,7 +31,7 @@ func (s *Server) handleAdminHouses(w http.ResponseWriter, r *http.Request) {
 	for _, h := range houses {
 		rows = append(rows, houseRow{SafeHouse: h, RHLName: rhlName[h.RHLID]})
 	}
-	s.render(w, "admin_houses.html", map[string]any{
+	s.render(w, r, "admin_houses.html", map[string]any{
 		"Title":      "Houses",
 		"User":       &actor,
 		"RHLs":       rhls,
