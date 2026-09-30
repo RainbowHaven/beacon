@@ -1,6 +1,9 @@
 package domain
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestNormalizeRHLCode(t *testing.T) {
 	cases := []struct {
@@ -28,6 +31,54 @@ func TestNormalizeRHLCode(t *testing.T) {
 				t.Fatalf("NormalizeRHLCode(%q) = %q, %v; want %q, %v", c.in, got, ok, c.want, c.ok)
 			}
 		})
+	}
+}
+
+func TestNormalizeIncidentID(t *testing.T) {
+	cases := []struct {
+		name, in, want string
+		ok             bool
+	}{
+		{"document 37 format", "Incident-TOR-2026-1", "Incident-TOR-2026-1", true},
+		{"trim", "  Incident-TOR-2026-2 ", "Incident-TOR-2026-2", true},
+		{"free form", "TOR 2026 #3", "TOR 2026 #3", true},
+		{"max length", strings.Repeat("x", 40), strings.Repeat("x", 40), true},
+		{"multibyte counts runes", strings.Repeat("é", 40), strings.Repeat("é", 40), true},
+		{"empty", "", "", false},
+		{"whitespace only", "  \t ", "", false},
+		{"too long", strings.Repeat("x", 41), "", false},
+		{"newline", "Incident-TOR\n2026-1", "", false},
+		{"carriage return", "Incident-TOR\r2026-1", "", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, ok := NormalizeIncidentID(c.in)
+			if got != c.want || ok != c.ok {
+				t.Fatalf("NormalizeIncidentID(%q) = %q, %v; want %q, %v", c.in, got, ok, c.want, c.ok)
+			}
+		})
+	}
+	if got := IncidentID("TOR", 2026, 7); got != "Incident-TOR-2026-7" {
+		t.Fatalf("IncidentID = %q", got)
+	}
+}
+
+func TestSafeguardingStatusAndPrecision(t *testing.T) {
+	for _, s := range SafeguardingStatuses {
+		if !s.Valid() || s.Label() == "" {
+			t.Fatalf("status %q", s)
+		}
+	}
+	if SafeguardingStatus("deleted").Valid() || SafeguardingStatus("").Valid() {
+		t.Fatal("unexpected valid status")
+	}
+	for _, p := range []DatePrecision{DateExact, DateApproximate, DateUnknown} {
+		if !p.Valid() {
+			t.Fatalf("precision %q", p)
+		}
+	}
+	if DatePrecision("roughly").Valid() {
+		t.Fatal("unexpected valid precision")
 	}
 }
 
