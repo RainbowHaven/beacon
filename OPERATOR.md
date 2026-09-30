@@ -41,7 +41,11 @@ Short procedures for Rainbow Haven Coordinating (RHC). No Go knowledge required.
 
 ## Monthly reporting
 
-- **Reports** shows headcount and expense totals from live data.
+- **Reports** builds the monthly report (formerly Document 50) for one safe house from resident records and expenses as they are when you open it. There is no draft or submit step.
+- Bed-nights count each night a resident slept in the house; the departure night is not counted. For the current month only nights before today are counted and the report says "Month in progress".
+- Average occupancy needs the house's approved sleeping places (set on **Houses**).
+- RHL and RHC admins with several houses see an overview first; open a house for its full report.
+- **Download CSV** exports one house and month.
 - Print from the browser if RHC needs a paper copy.
 
 ## Local DB tip
