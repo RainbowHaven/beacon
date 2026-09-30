@@ -418,9 +418,20 @@ form.actions > label { width: auto; }
 }
 .record-title { font-weight: 600; word-break: break-word; }
 .record-meta { font-size: 0.9rem; margin-top: 0.2rem; }
+.record-text {
+  margin: 0.5rem 0 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
 .record-actions {
   width: 100%;
 }
+.flash.notice { border-left: 4px solid var(--accent); }
+.filter-bar { margin: 0 0 1rem; }
+.inline-label { display: flex; gap: 0.5rem; align-items: center; }
+.inline-label select { width: auto; }
+fieldset { border: 1px solid var(--line); padding: 0.75rem 1rem 1rem; margin: 0; }
+legend { padding: 0 0.35rem; font-size: 0.95rem; }
 .record-actions .btn,
 .record-actions button {
   flex: 1 1 calc(50% - 0.5rem);
