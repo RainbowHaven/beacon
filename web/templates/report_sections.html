@@ -134,10 +134,85 @@
 </section>
 {{end}}
 
+{{define "report_safeguarding"}}
+<section class="report-section">
+  <h2>Safeguarding concerns</h2>
+  <dl class="report-facts">
+    <dt>Concerns reported this month</dt><dd>{{.Safeguarding.Reported}}</dd>
+  </dl>
+  {{if .Safeguarding.Concerns}}
+  <p class="muted">Every concern open at some point this month, including open concerns reported in earlier months.</p>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>Incident identifier</th>
+        <th>Date reported</th>
+        <th>Status</th>
+        <th>Resolved or closed</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .Safeguarding.Concerns}}
+      <tr>
+        <td class="mono">{{.IncidentID}}</td>
+        <td>{{.ReportedOn.Format "2006-01-02"}}</td>
+        <td>{{.Status.Label}}</td>
+        <td>{{with .ClosedOn}}{{.Format "2006-01-02"}}{{else}}—{{end}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{else}}
+  <p class="muted">No safeguarding concerns were open this month.</p>
+  {{end}}
+  <p class="muted">Details are held in Document 37 by the RHL Safeguarding Contact.</p>
+</section>
+{{end}}
+
+{{define "report_operations"}}
+<section class="report-section report-long">
+  <h2>Operational problems or changes</h2>
+  {{if .Operations}}
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>Date identified</th>
+        <th>Category</th>
+        <th>Brief description</th>
+        <th>Effect on the safe house</th>
+        <th>Current status</th>
+        <th>Action taken or required</th>
+        <th>Action requested from the RHL</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .Operations}}
+      <tr>
+        <td>{{.IdentifiedOn.Format "2006-01-02"}}</td>
+        <td>{{.CategoryLabel}}</td>
+        <td class="report-text">{{.Description}}</td>
+        <td class="report-text">{{with .Effect}}{{.}}{{else}}—{{end}}</td>
+        <td>{{if .ClosedOn}}<span class="report-status">{{.StatusLabel}} {{.ClosedOn.Format "2006-01-02"}}</span>{{else}}{{.StatusLabel}}{{end}}</td>
+        <td class="report-text">{{with .ActionTaken}}{{.}}{{else}}—{{end}}</td>
+        <td class="report-text">{{with .RHLRequest}}{{.}}{{else}}—{{end}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{else}}
+  <p class="muted">No operational problems or changes were active this month.</p>
+  {{end}}
+</section>
+{{end}}
+
 {{define "report_overview"}}
 <section class="report-section">
   <h2>All houses · {{.OverviewMonth.MonthLabel}} {{template "report_status" .OverviewMonth}}</h2>
-  <p class="muted">Generated {{.GeneratedAt.Format "2006-01-02 15:04"}} UTC. Open a house for residents, demographics and expenses.</p>
+  <p class="muted">Generated {{.GeneratedAt.Format "2006-01-02 15:04"}} UTC. Open a house for residents, demographics, expenses, safeguarding concerns and operational problems. Open problems are those not resolved or closed by the end of the month.</p>
   <div class="table-scroll">
   <table>
     <thead>
@@ -149,6 +224,8 @@
         <th>Admissions</th>
         <th>Departures</th>
         <th>Average occupancy</th>
+        <th>Safeguarding reported</th>
+        <th>Open problems</th>
       </tr>
     </thead>
     <tbody>
@@ -161,6 +238,8 @@
         <td>{{.Monthly.Admissions}}</td>
         <td>{{.Monthly.Departures}}</td>
         <td>{{with .Monthly.OccupancyText}}{{.}}{{else}}<span class="muted">not available</span>{{end}}</td>
+        <td>{{.SafeguardingReported}}</td>
+        <td>{{.OpenProblems}}</td>
       </tr>
     {{end}}
       <tr>
@@ -170,6 +249,8 @@
         <td><strong>{{.OverviewTotals.Admissions}}</strong></td>
         <td><strong>{{.OverviewTotals.Departures}}</strong></td>
         <td></td>
+        <td><strong>{{.OverviewTotals.SafeguardingReported}}</strong></td>
+        <td><strong>{{.OverviewTotals.OpenProblems}}</strong></td>
       </tr>
     </tbody>
   </table>

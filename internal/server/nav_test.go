@@ -84,6 +84,52 @@ func TestLayoutNavRenders(t *testing.T) {
 		}
 	}
 
+	// The phone bar keeps Occupants, Expenses, Reports and More; the rest is
+	// sidebar-only and repeated in the More panel.
+	for _, path := range []string{"/operations", "/safeguarding", "/admin/users", "/admin/houses", "/admin/audit"} {
+		if !strings.Contains(html, `<a class="nav-desktop-only" href="`+path+`"`) {
+			t.Fatalf("%s should be sidebar-only in the bar", path)
+		}
+	}
+	for _, path := range []string{"/occupants", "/expenses", "/reports"} {
+		if !strings.Contains(html, `<a href="`+path+`"`) || strings.Contains(html, `<a class="nav-desktop-only" href="`+path+`"`) {
+			t.Fatalf("%s should stay in the phone bar", path)
+		}
+	}
+
+	panel := func(html string) string {
+		_, after, ok := strings.Cut(html, `class="nav-more-panel"`)
+		if !ok {
+			t.Fatal("missing More panel")
+		}
+		before, _, _ := strings.Cut(after, "</details>")
+		return before
+	}
+	if p := panel(html); !strings.Contains(p, `href="/operations"`) || !strings.Contains(p, `href="/safeguarding"`) || !strings.Contains(p, `href="/admin/users" aria-current="page"`) {
+		t.Fatalf("admin More panel %s", p)
+	}
+
+	buf.Reset()
+	data = map[string]any{
+		"Title": "Safeguarding",
+		"Path":  "/safeguarding",
+		"User":  map[string]any{"Email": "mgr@example.com", "Role": "safe_house_manager"},
+	}
+	if err := tmpl.ExecuteTemplate(&buf, "admin_users.html", data); err != nil {
+		t.Fatal(err)
+	}
+	mgr := buf.String()
+	if !strings.Contains(mgr, `<summary aria-current="page">More</summary>`) {
+		t.Fatal("More should be current on a page listed in it")
+	}
+	p := panel(mgr)
+	if !strings.Contains(p, `href="/operations"`) || !strings.Contains(p, `href="/safeguarding" aria-current="page"`) {
+		t.Fatalf("manager More panel %s", p)
+	}
+	if nav, _, _ := strings.Cut(mgr, "</nav>"); strings.Contains(nav, "/admin/") {
+		t.Fatal("manager nav should not link to admin pages")
+	}
+
 	buf.Reset()
 	if err := tmpl.ExecuteTemplate(&buf, "login.html", map[string]any{"Title": "Log in"}); err != nil {
 		t.Fatal(err)

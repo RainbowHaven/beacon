@@ -15,13 +15,22 @@ import (
 
 // houseReport is the monthly report for one safe house. Each report section
 // has its own field, template block in report_sections.html and entry in
-// reportCSVSections.
+// reportCSVSections (or reportCSVTables for row-per-record sections).
 type houseReport struct {
-	RHL         domain.RHL
-	House       domain.SafeHouse
-	Monthly     report.Monthly
-	Expenses    reportExpenses
-	GeneratedAt time.Time
+	RHL          domain.RHL
+	House        domain.SafeHouse
+	Monthly      report.Monthly
+	Expenses     reportExpenses
+	Safeguarding reportSafeguarding
+	Operations   []domain.OperationalIssue
+	GeneratedAt  time.Time
+}
+
+// reportSafeguarding lists every concern open at some point in the month;
+// Reported counts only those reported in the month.
+type reportSafeguarding struct {
+	Reported int
+	Concerns []domain.SafeguardingConcern
 }
 
 type currencyTotal struct {
@@ -38,16 +47,20 @@ type reportExpenses struct {
 }
 
 type overviewRow struct {
-	RHL     domain.RHL
-	House   domain.SafeHouse
-	Monthly report.Monthly
+	RHL                  domain.RHL
+	House                domain.SafeHouse
+	Monthly              report.Monthly
+	SafeguardingReported int
+	OpenProblems         int
 }
 
 type overviewTotals struct {
-	ResidentsServed int
-	BedNights       int
-	Admissions      int
-	Departures      int
+	ResidentsServed      int
+	BedNights            int
+	Admissions           int
+	Departures           int
+	SafeguardingReported int
+	OpenProblems         int
 }
 
 var errFutureMonth = errors.New("future month")
@@ -193,13 +206,33 @@ func (s *Server) buildHouseReport(ctx context.Context, house domain.SafeHouse, m
 	if err != nil {
 		return houseReport{}, err
 	}
+	concerns, err := s.store.SafeguardingConcernsForMonth(ctx, []int64{house.ID}, month, monthEnd(month))
+	if err != nil {
+		return houseReport{}, err
+	}
+	reported, err := s.store.CountSafeguardingConcernsReported(ctx, []int64{house.ID}, month, monthEnd(month))
+	if err != nil {
+		return houseReport{}, err
+	}
+	issues, err := s.store.OperationalIssuesActiveInRange(ctx, []int64{house.ID}, month, monthEnd(month))
+	if err != nil {
+		return houseReport{}, err
+	}
 	return houseReport{
-		RHL:         rhl,
-		House:       house,
-		Monthly:     report.Build(month, now, house.ApprovedSleepingPlaces, occupants),
-		Expenses:    summarizeExpenses(totals),
-		GeneratedAt: now,
+		RHL:          rhl,
+		House:        house,
+		Monthly:      report.Build(month, now, house.ApprovedSleepingPlaces, occupants),
+		Expenses:     summarizeExpenses(totals),
+		Safeguarding: reportSafeguarding{Reported: reported, Concerns: concerns},
+		Operations:   issues,
+		GeneratedAt:  now,
 	}, nil
+}
+
+// openAtMonthEnd reports whether an issue active in the month was still open
+// on its last day. For the current month that is the same as open now.
+func openAtMonthEnd(o domain.OperationalIssue, month time.Time) bool {
+	return o.ClosedOn == nil || o.ClosedOn.After(monthEnd(month))
 }
 
 func (s *Server) buildOverview(ctx context.Context, houses []domain.SafeHouse, month, now time.Time) ([]overviewRow, overviewTotals, error) {
@@ -219,15 +252,41 @@ func (s *Server) buildOverview(ctx context.Context, houses []domain.SafeHouse, m
 	for _, o := range occupants {
 		byHouse[o.SafeHouseID] = append(byHouse[o.SafeHouseID], o)
 	}
+	concerns, err := s.store.SafeguardingConcernsForMonth(ctx, houseIDs(houses), month, monthEnd(month))
+	if err != nil {
+		return nil, overviewTotals{}, err
+	}
+	reported := map[int64]int{}
+	for _, c := range concerns {
+		if !c.ReportedOn.Before(month) {
+			reported[c.SafeHouseID]++
+		}
+	}
+	issues, err := s.store.OperationalIssuesActiveInRange(ctx, houseIDs(houses), month, monthEnd(month))
+	if err != nil {
+		return nil, overviewTotals{}, err
+	}
+	openProblems := map[int64]int{}
+	for _, o := range issues {
+		if openAtMonthEnd(o, month) {
+			openProblems[o.SafeHouseID]++
+		}
+	}
 	rows := make([]overviewRow, 0, len(houses))
 	var totals overviewTotals
 	for _, h := range houses {
 		m := report.Build(month, now, h.ApprovedSleepingPlaces, byHouse[h.ID])
-		rows = append(rows, overviewRow{RHL: rhlByID[h.RHLID], House: h, Monthly: m})
+		rows = append(rows, overviewRow{
+			RHL: rhlByID[h.RHLID], House: h, Monthly: m,
+			SafeguardingReported: reported[h.ID],
+			OpenProblems:         openProblems[h.ID],
+		})
 		totals.ResidentsServed += m.ResidentsServed
 		totals.BedNights += m.BedNights
 		totals.Admissions += m.Admissions
 		totals.Departures += m.Departures
+		totals.SafeguardingReported += reported[h.ID]
+		totals.OpenProblems += openProblems[h.ID]
 	}
 	return rows, totals, nil
 }
@@ -264,6 +323,15 @@ var reportCSVSections = []func(houseReport) [][]string{
 	csvSummaryRows,
 	csvDemographicsRows,
 	csvExpenseRows,
+	csvSafeguardingSummaryRows,
+}
+
+// reportCSVTables lists the tables that follow the summary, each a header row
+// and one row per record, separated by an empty line.
+var reportCSVTables = []func(houseReport) [][]string{
+	csvResidentRows,
+	csvSafeguardingRows,
+	csvOperationalRows,
 }
 
 func writeReportCSV(w http.ResponseWriter, rep houseReport) error {
@@ -271,32 +339,83 @@ func writeReportCSV(w http.ResponseWriter, rep houseReport) error {
 	_ = cw.Write([]string{"Field", "Value"})
 	for _, section := range reportCSVSections {
 		for _, row := range section(rep) {
-			_ = cw.Write(row)
+			_ = cw.Write(csvSafeRow(row))
 		}
 	}
-	_ = cw.Write(nil)
-	_ = cw.Write([]string{"Nickname", "Arrival", "Departure", "Bed-nights in month", "Country of origin", "Gender", "Birth year"})
-	for _, res := range rep.Monthly.Residents {
-		departed := ""
-		if res.DepartedAt != nil {
-			departed = res.DepartedAt.Format("2006-01-02")
+	for _, table := range reportCSVTables {
+		_ = cw.Write(nil)
+		for _, row := range table(rep) {
+			_ = cw.Write(csvSafeRow(row))
 		}
+	}
+	cw.Flush()
+	return cw.Error()
+}
+
+// csvSafeRow keeps spreadsheets from running user text as a formula.
+// Numbers such as "-3" are left alone so they still sort and sum.
+func csvSafeRow(row []string) []string {
+	out := make([]string, len(row))
+	for i, cell := range row {
+		out[i] = cell
+		if cell == "" || !strings.ContainsRune("=+-@\t\r", rune(cell[0])) {
+			continue
+		}
+		if _, err := strconv.ParseFloat(cell, 64); err == nil {
+			continue
+		}
+		out[i] = "'" + cell
+	}
+	return out
+}
+
+func csvResidentRows(rep houseReport) [][]string {
+	rows := [][]string{{"Nickname", "Arrival", "Departure", "Bed-nights in month", "Country of origin", "Gender", "Birth year"}}
+	for _, res := range rep.Monthly.Residents {
 		birth := ""
 		if res.BirthYear != nil {
 			birth = strconv.Itoa(*res.BirthYear)
 		}
-		_ = cw.Write([]string{
+		rows = append(rows, []string{
 			res.Nickname,
 			res.ArrivedAt.Format("2006-01-02"),
-			departed,
+			formatDay(res.DepartedAt),
 			strconv.Itoa(res.BedNights),
 			res.Country,
 			res.Gender,
 			birth,
 		})
 	}
-	cw.Flush()
-	return cw.Error()
+	return rows
+}
+
+func csvSafeguardingSummaryRows(rep houseReport) [][]string {
+	return [][]string{{"Safeguarding concerns reported", strconv.Itoa(rep.Safeguarding.Reported)}}
+}
+
+func csvSafeguardingRows(rep houseReport) [][]string {
+	rows := [][]string{{"Incident identifier", "Date reported", "Status", "Resolved or closed"}}
+	for _, c := range rep.Safeguarding.Concerns {
+		rows = append(rows, []string{c.IncidentID, c.ReportedOn.Format("2006-01-02"), c.Status.Label(), formatDay(c.ClosedOn)})
+	}
+	return rows
+}
+
+func csvOperationalRows(rep houseReport) [][]string {
+	rows := [][]string{{"Date identified", "Category", "Brief description", "Effect on the safe house", "Status", "Resolved or closed", "Action taken or required", "Action requested from the RHL"}}
+	for _, o := range rep.Operations {
+		rows = append(rows, []string{
+			o.IdentifiedOn.Format("2006-01-02"),
+			o.CategoryLabel(),
+			o.Description,
+			o.Effect,
+			o.StatusLabel(),
+			formatDay(o.ClosedOn),
+			o.ActionTaken,
+			o.RHLRequest,
+		})
+	}
+	return rows
 }
 
 func csvHeaderRows(rep houseReport) [][]string {
