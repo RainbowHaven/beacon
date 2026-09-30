@@ -50,6 +50,7 @@
     </summary>
     <div class="profile-panel">
       <span class="muted profile-detail">{{.User.Email}} ({{.User.Role}})</span>
+      <a href="/account"{{if navCurrent .Path "/account"}} aria-current="page"{{end}}>Account &amp; passkeys</a>
       <form class="inline" method="post" action="/logout">
         <button class="secondary" type="submit">Log out</button>
       </form>

@@ -73,6 +73,8 @@ func TestExpenseCreateAndMonthlyTotals(t *testing.T) {
 	_ = w.WriteField("amount", "12.50")
 	_ = w.WriteField("spent_on", time.Now().UTC().Format("01/02/2006"))
 	_ = w.WriteField("note", "groceries")
+	_ = w.WriteField("category", "food")
+	_ = w.WriteField("merchant", "Corner market")
 	part, err := w.CreateFormFile("receipt", "receipt.png")
 	if err != nil {
 		t.Fatal(err)
@@ -114,7 +116,8 @@ func TestExpenseCreateAndMonthlyTotals(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(list) != 1 || list[0].AmountCents != 1250 || list[0].Currency != "USD" || !list[0].HasReceipt() {
+	if len(list) != 1 || list[0].AmountCents != 1250 || list[0].Currency != "USD" || !list[0].HasReceipt() ||
+		list[0].Category != domain.CategoryFood || list[0].Merchant != "Corner market" || list[0].ReviewStatus != domain.ExpenseSubmitted {
 		t.Fatalf("list=%+v", list)
 	}
 

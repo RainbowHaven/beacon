@@ -36,7 +36,7 @@ func TestMonthFingerprint(t *testing.T) {
 	}
 	expense := func(houseID int64, spent string, cents int64) domain.Expense {
 		t.Helper()
-		e, err := st.CreateExpense(ctx, store.CreateExpenseInput{SafeHouseID: houseID, AmountCents: cents, Currency: "CAD", SpentOn: day(spent)})
+		e, err := st.CreateExpense(ctx, store.CreateExpenseInput{SafeHouseID: houseID, AmountCents: cents, Currency: "CAD", SpentOn: day(spent), NoReceiptReason: "market stall"})
 		if err != nil {
 			t.Fatal(err)
 		}

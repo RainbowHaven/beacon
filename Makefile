@@ -26,7 +26,7 @@ help:
 	@echo "  make run           Run the app with .env"
 	@echo "  make tunnel        Cloudflare quick tunnel to :8080 (phone access)"
 	@echo "  make run-tunnel    Run app using .env + .local/tunnel.env (after make tunnel)"
-	@echo "  make test          go test ./..."
+	@echo "  make test          go test -p 1 ./... (packages share one database)"
 	@echo "  make verify-phaseN Run phase N verify script (1–6)"
 	@echo "  make verify        Compose bootstrap verify"
 	@echo "  make verify-cla    CLA docs/workflow check"
@@ -71,7 +71,7 @@ db-down:
 	./scripts/compose.sh stop db
 
 test:
-	GOTOOLCHAIN=$(GOTOOLCHAIN) go test ./...
+	GOTOOLCHAIN=$(GOTOOLCHAIN) go test -p 1 ./...
 
 run: env db-up
 	@echo "Waiting for Postgres..."

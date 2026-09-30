@@ -16,8 +16,8 @@ GOTOOLCHAIN="${GOTOOLCHAIN:-auto}"
 export GOTOOLCHAIN
 
 
-go test ./...
-pass "go test ./..."
+go test -p 1 ./...
+pass "go test -p 1 ./..."
 
 chmod +x scripts/compose.sh scripts/verify-bootstrap.sh
 

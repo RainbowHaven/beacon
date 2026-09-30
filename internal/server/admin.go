@@ -14,6 +14,11 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
+	passkeyCounts, err := s.store.CountPasskeysByUser(r.Context())
+	if err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
 	actor, _ := s.currentUser(r)
 	token := s.takeInviteFlashCookie(w, r)
 	if token == "" {
@@ -26,13 +31,14 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 		inviteURL = strings.TrimRight(s.cfg.BaseURL, "/") + invitePath
 	}
 	s.render(w, r, "admin_users.html", map[string]any{
-		"Title":      "Users",
-		"User":       &actor,
-		"Users":      users,
-		"Flash":      r.URL.Query().Get("flash"),
-		"InviteURL":  inviteURL,
-		"InvitePath": invitePath,
-		"Error":      r.URL.Query().Get("error"),
+		"Title":         "Users",
+		"User":          &actor,
+		"Users":         users,
+		"PasskeyCounts": passkeyCounts,
+		"Flash":         r.URL.Query().Get("flash"),
+		"InviteURL":     inviteURL,
+		"InvitePath":    invitePath,
+		"Error":         r.URL.Query().Get("error"),
 	})
 }
 
@@ -164,6 +170,11 @@ func (s *Server) handleAdminEditUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
+	passkeys, err := s.store.ListPasskeys(r.Context(), id)
+	if err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
 	rhls, _ := s.store.ListRHLs(r.Context())
 	houses, _ := s.store.ListSafeHouses(r.Context())
 	var selectedRHL, selectedHouse int64
@@ -181,6 +192,8 @@ func (s *Server) handleAdminEditUser(w http.ResponseWriter, r *http.Request) {
 		"SelectedHouse": selectedHouse,
 		"RHLs":          rhls,
 		"SafeHouses":    houses,
+		"Passkeys":      passkeys,
+		"Flash":         r.URL.Query().Get("flash"),
 		"Error":         r.URL.Query().Get("error"),
 	})
 }

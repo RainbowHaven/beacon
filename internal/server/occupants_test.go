@@ -95,7 +95,7 @@ func TestOccupantCreateScoped(t *testing.T) {
 	form = url.Values{
 		"safe_house_id":     {strconv.FormatInt(house.ID, 10)},
 		"arrived_at":        {today},
-		"nickname":          {"Robin"},
+		"nickname":          {"Wren"},
 		"country_of_origin": {"DE"},
 		"gender":            {"X"},
 		"birth_year":        {"1995"},
@@ -112,22 +112,22 @@ func TestOccupantCreateScoped(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var robin *domain.Occupant
+	var wren *domain.Occupant
 	for i := range list {
-		if list[i].Nickname == "Robin" {
-			robin = &list[i]
+		if list[i].Nickname == "Wren" {
+			wren = &list[i]
 			break
 		}
 	}
-	if robin == nil || robin.CountryOfOrigin != "DE" || robin.Gender != "X" || robin.BirthYear == nil || *robin.BirthYear != 1995 {
-		t.Fatalf("robin=%+v", robin)
+	if wren == nil || wren.CountryOfOrigin != "DE" || wren.Gender != "X" || wren.BirthYear == nil || *wren.BirthYear != 1995 {
+		t.Fatalf("wren=%+v", wren)
 	}
 
 	counts, err := st.HeadcountByHouses(context.Background(), []int64{house.ID})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(counts) != 1 || counts[0].Current != 1 {
+	if len(counts) != 1 || counts[0].Current != 2 {
 		t.Fatalf("headcount=%+v", counts)
 	}
 
@@ -157,7 +157,7 @@ func TestOccupantCreateScoped(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(list) != 1 {
+		if len(list) != 2 {
 			t.Fatalf("nick %q should not insert, list=%+v", nick, list)
 		}
 	}

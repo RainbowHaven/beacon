@@ -270,6 +270,10 @@ func (s *Server) handleLoginFinish(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
+	if err := s.store.MarkCredentialUsed(r.Context(), u.ID, cred.ID); err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
 	raw, err := s.store.CreateSession(r.Context(), u.ID, sessionTTL)
 	if err != nil {
 		http.Error(w, "server error", http.StatusInternalServerError)

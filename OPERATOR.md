@@ -19,17 +19,82 @@ Short procedures for Rainbow Haven Coordinating (RHC). No Go knowledge required.
 1. **Houses** → add an RHL if needed → **Add safe house** (currency + active).
 2. Invite or **Edit** a manager to assign them to that house.
 
-## Lost phone / new device
+## Passkeys: what people need to know
 
-1. **Users** → **Re-invite** (revokes sessions and credentials).
-2. Send the new invite URL.
-3. Old passkeys stop working after re-invite.
+- Beacon has no passwords. Each person signs in with a **passkey** on their own phone or computer.
+- Point anyone unsure about passkeys to `/help/passkeys` (linked from the sign-in and invite pages).
+- Everyone can see and manage their own passkeys under **Account & passkeys** (profile menu → `/account`): name them, see when each was added and last used, add another one, and remove old ones. The last passkey cannot be removed by its owner.
+- **Never share accounts or devices.** Every person gets their own invite.
 
-## Lock a compromised account
+## Backup passkey (do this for every user)
+
+1. The user signs in on a second device (laptop or spare phone). If that device has no passkey yet, the browser can use the phone by scanning a QR code.
+2. **Account & passkeys** → type a name (e.g. “Work laptop”) → **Add passkey** → confirm with fingerprint, face, or screen lock.
+3. Both passkeys now work. Losing one device no longer locks them out.
+
+RHC admins should always have a backup passkey, and there should be at least **two** RHC admins.
+
+## Lost, stolen, or replaced device
+
+**The user still has another working passkey:** they sign in with it, open **Account & passkeys**, and **Remove** the lost device’s passkey. All their other sessions are signed out.
+
+**The user has no other passkey, or you want to act for them:**
+
+1. **Users** → **Edit** on that account → **Passkeys**.
+2. **Remove** the passkey of the lost device (the name and “last used” date help identify it). All of that user’s sessions end immediately.
+3. If that was their only passkey: back on **Users**, click **New invite** and send them the link. They open it on the new device and create a passkey.
+
+**Replacing a phone (old one still works):** the user adds a passkey on the new phone first, then removes the old one.
+
+**Stolen device or possible misuse:** **Lock** the account first (see below), then clean up passkeys and send a **New invite** when it is safe.
+
+**New invite** always removes *all* existing passkeys of that user and ends their sessions.
+
+## Revoke access / lock a compromised account
 
 1. **Users** → **Lock**.
-2. Sessions are revoked immediately.
-3. Re-invite later when safe.
+2. All sessions end immediately and the user cannot sign in, even with a valid passkey.
+3. To restore access later, click **New invite** (this unlocks the account, removes the old passkeys, and issues a fresh invite link).
+
+Passkey removals, renames, additions, locks, and invites all appear in **Audit** (`auth.passkey.*`, `admin.passkey.remove`, `admin.lock`, `admin.reinvite`).
+
+## Change a user’s email
+
+1. **Users** → **Edit** on that account → **Email** → enter the new address → **Change email**.
+2. The address is stored in lower case and must not belong to another user.
+3. Their passkeys keep working; they now type the new email to sign in. Their phone may still show the old email next to the passkey — that is harmless.
+4. The change is recorded in **Audit** as `admin.user.email` with the old and new email.
+
+You cannot change your own email; ask another RHC admin.
+
+## Recover the only RHC admin
+
+Prevention: keep at least two RHC admins, each with a backup passkey. Then any admin can fix another with **Remove passkey** or **New invite** as above.
+
+If the only RHC admin can no longer sign in:
+
+1. **They still have another passkey:** sign in with it and remove the lost one under **Account & passkeys**.
+2. **The admin account is locked, or never finished enrolling (pending):** use the bootstrap invite.
+   1. Set `BOOTSTRAP_ADMIN_EMAIL` to that admin’s email and `BOOTSTRAP_REISSUE=true`, then redeploy / restart.
+   2. On start, Beacon removes that account’s passkeys, sets it to pending, ends its sessions, and logs a new invite URL (`bootstrap refreshed invite for pending admin`). Audit: `bootstrap.reinvite`.
+   3. Open the URL on the real host and create a passkey.
+   4. Set `BOOTSTRAP_REISSUE=false` and redeploy. While it stays `true`, every restart mints another invite until the passkey is enrolled.
+3. **The admin account is active but every passkey is lost:** the bootstrap does **not** help here (it skips an active admin who has a passkey). Run the one-off recovery command where the app’s `DATABASE_URL` and `BASE_URL` are set:
+   - Railway: `railway ssh` into the app service, then `/app/beacon recover-admin rhc@example.org`.
+   - Laptop: `DATABASE_URL='postgres://…' BASE_URL='https://beacon.magiconair.net' go run ./cmd/beacon recover-admin rhc@example.org`.
+
+   It only works for `rhc_admin` accounts. It removes that admin’s passkeys, sets the account to pending, ends its sessions, and prints a new invite URL (`=== Beacon invite ===`). Audit: `recovery.admin.reinvite`. Open the URL on the real host and create a passkey.
+
+How the bootstrap behaves on every server start when `BOOTSTRAP_ADMIN_EMAIL` is set:
+
+| Situation | `BOOTSTRAP_REISSUE=false` | `BOOTSTRAP_REISSUE=true` |
+|--|--|--|
+| Database has no users | creates the RHC admin + logs invite | same |
+| Email not found (other users exist) | nothing | nothing |
+| Account active with at least one passkey | nothing | nothing |
+| Account pending, locked, or without passkeys | nothing | removes passkeys, new invite in logs |
+
+The bootstrap does not check the role of an existing account with that email, so only ever set it to an RHC admin’s address.
 
 ## Residents
 
@@ -37,7 +102,7 @@ Short procedures for Rainbow Haven Coordinating (RHC). No Go knowledge required.
 - Nicknames must **start with a letter**. Folded nickname keys are **permanently reserved** per safe house (never reused after correction or departure). Use **Correct** to fix a nickname in place (same resident; former spelling is not kept on the record).
 - Arrival date may be at most `ARRIVAL_FUTURE_DAYS` ahead of today (default **1**; set `0` to disallow any future date).
 - Mark departure when the resident leaves.
-- Use the **profile** control in the header (email/role) to log out.
+- Use the **profile** control in the header (email/role) to log out or open **Account & passkeys**.
 
 ## Monthly reporting
 
