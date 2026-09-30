@@ -2,6 +2,7 @@
 <h1>Edit user</h1>
 <p class="muted"><a href="/admin/users">← Users</a></p>
 {{if .Error}}<div class="flash error">{{.Error}}</div>{{end}}
+{{if .Flash}}<div class="flash">{{.Flash}}</div>{{end}}
 <p class="flash">Changing role or house scope does <strong>not</strong> require a new invite. Existing passkeys keep working. Sessions are revoked so the change applies on next login.</p>
 
 <form method="post" action="/admin/users/{{.Target.ID}}" class="stack" style="max-width:28rem">
@@ -18,7 +19,7 @@
     <select name="rhl_id">
       <option value="">—</option>
       {{range .RHLs}}
-      <option value="{{.ID}}" {{if eq .ID $.SelectedRHL}}selected{{end}}>{{.Name}}</option>
+      <option value="{{.ID}}" {{if eq .ID $.SelectedRHL}}selected{{end}}>{{.Label}}</option>
       {{end}}
     </select>
   </label>
@@ -35,4 +36,33 @@
     <a class="btn secondary" href="/admin/users">Cancel</a>
   </p>
 </form>
+
+<h2>Email</h2>
+<p class="muted">The email is what they type to sign in. Their passkeys keep working after the change; tell them the new address.</p>
+<form method="post" action="/admin/users/{{.Target.ID}}/email" class="invite-row" style="max-width:28rem" onsubmit="return confirm('Change the sign-in email for {{.Target.Email}}?')">
+  <input type="email" name="email" value="{{.Target.Email}}" required aria-label="New email">
+  <button class="secondary" type="submit">Change email</button>
+</form>
+
+<h2>Passkeys</h2>
+<p class="muted">Remove a passkey when a device is lost, stolen, or no longer used. Removing a passkey signs the user out everywhere. If you remove their only passkey, send them a <strong>New invite</strong> from the Users page so they can set up a new one.</p>
+{{if .Passkeys}}
+<ul class="record-list">
+{{range .Passkeys}}
+  <li class="record-card">
+    <div class="record-main">
+      <div class="record-title">{{if .Label}}{{.Label}}{{else}}Unnamed passkey{{end}}</div>
+      <div class="record-meta muted">Added {{.CreatedAt.UTC.Format "Jan 2, 2006"}} · Last used {{with .LastUsedAt}}{{.UTC.Format "Jan 2, 2006"}}{{else}}never{{end}}</div>
+    </div>
+    <div class="actions record-actions">
+      <form class="inline" method="post" action="/admin/users/{{$.Target.ID}}/passkeys/{{.Key}}/delete" onsubmit="return confirm('Remove this passkey for {{$.Target.Email}}? They will be signed out on every device.')">
+        <button class="danger" type="submit">Remove</button>
+      </form>
+    </div>
+  </li>
+{{end}}
+</ul>
+{{else}}
+<p class="muted">No passkeys. They need a new invite to sign in.</p>
+{{end}}
 {{template "layout_end" .}}

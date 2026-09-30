@@ -397,6 +397,10 @@ form.actions { align-items: flex-end; }
 .invite-row button { flex-shrink: 0; width: auto; }
 .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
 form.inline { display: inline; }
+form.actions > label { width: auto; }
+.review-status { font-size: 0.875rem; font-weight: 600; }
+.review-reviewed { color: var(--accent); }
+.review-needs_correction { color: var(--danger); }
 
 .record-list {
   list-style: none;

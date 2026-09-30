@@ -8,6 +8,18 @@
   <a class="btn secondary" href="/reports">Monthly report</a>
 </p>
 
+<form class="actions" method="get" action="/expenses" style="margin-bottom:1rem">
+  <label>Review status
+    <select name="status">
+      <option value=""{{if not .Status}} selected{{end}}>All</option>
+      {{range .Statuses}}
+      <option value="{{.}}"{{if eq (print .) $.Status}} selected{{end}}>{{.Label}}</option>
+      {{end}}
+    </select>
+  </label>
+  <button class="secondary" type="submit">Filter</button>
+</form>
+
 {{if .Rows}}
 <div class="table-scroll">
 <table>
@@ -16,8 +28,11 @@
       <th>Date</th>
       <th>House</th>
       <th>Amount</th>
-      <th>Note</th>
+      <th>Category</th>
+      <th>Merchant</th>
+      <th>Description</th>
       <th>Receipt</th>
+      <th>Status</th>
       <th></th>
     </tr>
   </thead>
@@ -27,22 +42,30 @@
       <td>{{.SpentOnUS}}</td>
       <td>{{.HouseName}}</td>
       <td>{{.Amount}} {{.Currency}}</td>
+      <td>{{.Category.Label}}</td>
+      <td>{{if .Merchant}}{{.Merchant}}{{else}}—{{end}}</td>
       <td>{{.Note}}</td>
       <td>
         {{if .HasReceipt}}
         <a href="/expenses/{{.ID}}/receipt">View</a>
-        {{else}}—{{end}}
+        {{else}}<span class="muted" title="{{.NoReceiptReason}}">None</span>{{end}}
       </td>
-      <td>
+      <td><span class="review-status review-{{.ReviewStatus}}">{{.ReviewStatus.Label}}</span></td>
+      <td class="actions">
+        <a class="btn secondary" href="/expenses/{{.ID}}/edit">{{if $.CanReview}}Review{{else}}Edit{{end}}</a>
+        {{if .Deletable}}
         <form class="inline" method="post" action="/expenses/{{.ID}}/delete" onsubmit="return confirm('Delete this expense?')">
           <button class="secondary" type="submit">Delete</button>
         </form>
+        {{end}}
       </td>
     </tr>
   {{end}}
   </tbody>
 </table>
 </div>
+{{else if .Status}}
+<p class="muted">No expenses with this review status.</p>
 {{else}}
 <p class="muted">No expenses logged yet.</p>
 {{end}}

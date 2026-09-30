@@ -7,15 +7,16 @@
 <section class="stack" style="margin-bottom:2rem">
   <h2>RHLs</h2>
   <table>
-    <thead><tr><th>Name</th><th>Status</th><th></th></tr></thead>
+    <thead><tr><th>Name</th><th>Code</th><th>Status</th><th></th></tr></thead>
     <tbody>
     {{range .RHLs}}
       {{$rhl := .}}
       <tr>
-        <td colspan="3">
+        <td colspan="4">
           <form method="post" action="/admin/rhls/{{$rhl.ID}}" class="stack" style="gap:0.5rem">
             <div class="actions" style="align-items:flex-end;flex-wrap:wrap">
               <label>Name <input type="text" name="name" value="{{$rhl.Name}}" required></label>
+              <label>Code <input type="text" name="code" value="{{$rhl.Code}}" maxlength="12" autocapitalize="characters" placeholder="e.g. TOR" style="width:8rem"></label>
               <label>Status
                 <select name="active">
                   <option value="true" {{if $rhl.Active}}selected{{end}}>Active</option>
@@ -28,12 +29,14 @@
         </td>
       </tr>
     {{else}}
-      <tr><td colspan="3" class="muted">No RHLs yet.</td></tr>
+      <tr><td colspan="4" class="muted">No RHLs yet.</td></tr>
     {{end}}
     </tbody>
   </table>
+  <p class="muted">The RHL code is 2–12 letters, digits or hyphens. It appears in the monthly report and in incident IDs.</p>
   <form method="post" action="/admin/rhls" class="actions" style="align-items:flex-end;margin-top:1rem">
     <label>New RHL <input type="text" name="name" required placeholder="Region name"></label>
+    <label>Code <input type="text" name="code" maxlength="12" autocapitalize="characters" placeholder="e.g. TOR" style="width:8rem"></label>
     <input type="hidden" name="active" value="true">
     <button type="submit">Add RHL</button>
   </form>
@@ -54,7 +57,7 @@
               <label>RHL
                 <select name="rhl_id" required>
                   {{range $.RHLs}}
-                  <option value="{{.ID}}" {{if eq .ID $house.RHLID}}selected{{end}}>{{.Name}}</option>
+                  <option value="{{.ID}}" {{if eq .ID $house.RHLID}}selected{{end}}>{{.Label}}</option>
                   {{end}}
                 </select>
               </label>
@@ -65,6 +68,7 @@
                   {{end}}
                 </select>
               </label>
+              <label>Sleeping places <input type="number" name="approved_sleeping_places" value="{{with $house.ApprovedSleepingPlaces}}{{.}}{{end}}" min="1" max="10000" step="1" placeholder="Not set" style="width:7rem"></label>
               <label>Status
                 <select name="active">
                   <option value="true" {{if $house.Active}}selected{{end}}>Active</option>
@@ -88,7 +92,7 @@
     <label>RHL
       <select name="rhl_id" required>
         <option value="">—</option>
-        {{range .RHLs}}{{if .Active}}<option value="{{.ID}}">{{.Name}}</option>{{end}}{{end}}
+        {{range .RHLs}}{{if .Active}}<option value="{{.ID}}">{{.Label}}</option>{{end}}{{end}}
       </select>
     </label>
     <label>Default currency
@@ -96,6 +100,7 @@
         {{range .Currencies}}<option value="{{.}}" {{if eq . "CAD"}}selected{{end}}>{{.}}</option>{{end}}
       </select>
     </label>
+    <label>Approved sleeping places <input type="number" name="approved_sleeping_places" min="1" max="10000" step="1" placeholder="Optional"></label>
     <input type="hidden" name="active" value="true">
     <button type="submit">Add safe house</button>
   </form>

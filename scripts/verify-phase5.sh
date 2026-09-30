@@ -34,8 +34,8 @@ done
 go test ./internal/server/ -run 'TestOrgHousesAndUserScope|TestInviteRegisterLoginLock|TestOccupant' -count=1
 pass "org + scoping tests"
 
-go test ./...
-pass "go test ./..."
+go test -p 1 ./...
+pass "go test -p 1 ./..."
 
 [[ -f web/templates/admin_houses.html ]] || fail "admin_houses.html missing"
 [[ -f web/templates/admin_user_edit.html ]] || fail "admin_user_edit.html missing"
