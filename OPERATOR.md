@@ -44,7 +44,9 @@ Short procedures for Rainbow Haven Coordinating (RHC). No Go knowledge required.
 - **Reports** builds the monthly report (formerly Document 50) for one safe house from resident records and expenses as they are when you open it. There is no draft or submit step.
 - Bed-nights count each night a resident slept in the house; the departure night is not counted. For the current month only nights before today are counted and the report says "Month in progress".
 - Average occupancy needs the house's approved sleeping places (set on **Houses**).
-- RHL and RHC admins with several houses see an overview first; open a house for its full report.
+- **Safeguarding concerns** shows how many concerns were reported in the month and lists every concern open at some point in the month, including open ones from earlier months, by incident identifier only. Details stay in Document 37 with the RHL Safeguarding Contact.
+- **Operational problems or changes** lists every Operations record active during the month; resolved or closed records show their status and date.
+- RHL and RHC admins with several houses see an overview first, including concerns reported and problems still open at month end; open a house for its full report.
 - **Download CSV** exports one house and month.
 - Print from the browser if RHC needs a paper copy.
 
