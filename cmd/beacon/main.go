@@ -29,16 +29,40 @@ func main() {
 
 func run(logger *slog.Logger, args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: beacon <server|wipe-schema>")
+		return errors.New("usage: beacon <server|wipe-schema|recover-admin EMAIL>")
 	}
 	switch args[0] {
 	case "server":
 		return runServer(logger)
 	case "wipe-schema":
 		return runWipeSchema(logger)
+	case "recover-admin":
+		if len(args) != 2 || strings.TrimSpace(args[1]) == "" {
+			return errors.New("usage: beacon recover-admin EMAIL")
+		}
+		return runRecoverAdmin(logger, args[1])
 	default:
-		return fmt.Errorf("unknown command %q (want server or wipe-schema)", args[0])
+		return fmt.Errorf("unknown command %q (want server, wipe-schema, or recover-admin)", args[0])
 	}
+}
+
+func runRecoverAdmin(logger *slog.Logger, email string) error {
+	db, err := openDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := db.PingContext(ctx); err != nil {
+		return fmt.Errorf("ping database: %w", err)
+	}
+	srvApp, err := server.New(logger, db, serverConfig())
+	if err != nil {
+		return err
+	}
+	return srvApp.RecoverAdmin(ctx, email)
 }
 
 func runWipeSchema(logger *slog.Logger) error {
@@ -85,18 +109,7 @@ func runServer(logger *slog.Logger) error {
 		return fmt.Errorf("migrate: %w", err)
 	}
 
-	cfg := server.Config{
-		BaseURL:             envOr("BASE_URL", "http://localhost:8080"),
-		SecureCookies:       envOr("SECURE_COOKIES", "false") == "true",
-		WebAuthnRPID:        envOr("WEBAUTHN_RP_ID", "localhost"),
-		WebAuthnRPName:      envOr("WEBAUTHN_RP_DISPLAY_NAME", "Beacon"),
-		WebAuthnRPOrigins:   server.SplitCSV(envOr("WEBAUTHN_RP_ORIGINS", "http://localhost:8080,http://127.0.0.1:8080")),
-		BootstrapAdminEmail: os.Getenv("BOOTSTRAP_ADMIN_EMAIL"),
-		BootstrapReissue:    os.Getenv("BOOTSTRAP_REISSUE") == "true",
-		MaxReceiptBytes:     5 << 20,
-		ArrivalFutureDays:   envInt("ARRIVAL_FUTURE_DAYS", 1),
-	}
-	srvApp, err := server.New(logger, db, cfg)
+	srvApp, err := server.New(logger, db, serverConfig())
 	if err != nil {
 		return err
 	}
@@ -129,6 +142,20 @@ func runServer(logger *slog.Logger) error {
 			return nil
 		}
 		return err
+	}
+}
+
+func serverConfig() server.Config {
+	return server.Config{
+		BaseURL:             envOr("BASE_URL", "http://localhost:8080"),
+		SecureCookies:       envOr("SECURE_COOKIES", "false") == "true",
+		WebAuthnRPID:        envOr("WEBAUTHN_RP_ID", "localhost"),
+		WebAuthnRPName:      envOr("WEBAUTHN_RP_DISPLAY_NAME", "Beacon"),
+		WebAuthnRPOrigins:   server.SplitCSV(envOr("WEBAUTHN_RP_ORIGINS", "http://localhost:8080,http://127.0.0.1:8080")),
+		BootstrapAdminEmail: os.Getenv("BOOTSTRAP_ADMIN_EMAIL"),
+		BootstrapReissue:    os.Getenv("BOOTSTRAP_REISSUE") == "true",
+		MaxReceiptBytes:     5 << 20,
+		ArrivalFutureDays:   envInt("ARRIVAL_FUTURE_DAYS", 1),
 	}
 }
 

@@ -70,7 +70,7 @@
     <div class="record-main">
       <div class="record-title">{{.Email}}</div>
       {{if .DisplayName}}<div class="muted">{{.DisplayName}}</div>{{end}}
-      <div class="record-meta muted">{{.Role}} · {{.Status}}</div>
+      <div class="record-meta muted">{{.Role}} · {{.Status}} · {{with index $.PasskeyCounts .ID}}{{.}} passkey{{if ne . 1}}s{{end}}{{else}}no passkey{{end}}</div>
     </div>
     <div class="actions record-actions">
       {{if eq .ID $.User.ID}}
