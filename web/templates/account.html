@@ -1,0 +1,63 @@
+{{template "layout_start" .}}
+<h1>Account</h1>
+{{if .Error}}<div class="flash error">{{.Error}}</div>{{end}}
+{{if .Flash}}<div class="flash">{{.Flash}}</div>{{end}}
+<p><strong>{{.User.Email}}</strong> · {{.User.Role}}</p>
+<p class="muted">Only an RHC admin can change your email address.</p>
+
+<h2>Passkeys</h2>
+<p class="muted">A passkey is how you sign in to Beacon — there is no password. Add a second passkey on another device (for example your laptop or a spare phone) so you can still sign in if you lose one. <a href="/help/passkeys">How passkeys work</a></p>
+
+<ul class="record-list">
+{{range .Passkeys}}
+  <li class="record-card">
+    <div class="record-main">
+      <div class="record-title">{{if .Label}}{{.Label}}{{else}}Unnamed passkey{{end}}</div>
+      <div class="record-meta muted">Added {{.CreatedAt.UTC.Format "Jan 2, 2006"}} · Last used {{with .LastUsedAt}}{{.UTC.Format "Jan 2, 2006"}}{{else}}never{{end}}</div>
+      <form class="invite-row" method="post" action="/account/passkeys/{{.Key}}/rename">
+        <input type="text" name="label" value="{{.Label}}" maxlength="60" placeholder="Name, e.g. Work laptop" aria-label="Passkey name">
+        <button class="secondary" type="submit">Rename</button>
+      </form>
+    </div>
+    <div class="actions record-actions">
+      {{if gt (len $.Passkeys) 1}}
+      <form class="inline" method="post" action="/account/passkeys/{{.Key}}/delete" onsubmit="return confirm('Remove this passkey? You will no longer be able to sign in with it. Your other devices will be signed out.')">
+        <button class="danger" type="submit">Remove</button>
+      </form>
+      {{else}}
+      <span class="muted">Only passkey</span>
+      {{end}}
+    </div>
+  </li>
+{{end}}
+</ul>
+
+<h3>Add another passkey</h3>
+<p class="muted">Do this on the device you want to add. Your browser or phone will ask you to confirm with your fingerprint, face, or screen lock.</p>
+<form id="add-passkey" class="invite-row" style="max-width:28rem">
+  <input type="text" id="passkey-label" maxlength="60" placeholder="Name, e.g. Work laptop" aria-label="Name for the new passkey">
+  <button type="submit">Add passkey</button>
+</form>
+<p id="add-passkey-error" class="flash error" hidden></p>
+<script type="module">
+  import { addPasskey } from '{{static "js/webauthn.js"}}';
+  const form = document.getElementById('add-passkey');
+  const err = document.getElementById('add-passkey-error');
+  const btn = form.querySelector('button');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    err.hidden = true;
+    btn.disabled = true;
+    try {
+      const result = await addPasskey(document.getElementById('passkey-label').value.trim());
+      window.location.href = result.redirect || '/account';
+    } catch (ex) {
+      err.textContent = ex.name === 'InvalidStateError'
+        ? 'This device already has a passkey for your account.'
+        : (ex.message || String(ex));
+      err.hidden = false;
+      btn.disabled = false;
+    }
+  });
+</script>
+{{template "layout_end" .}}
