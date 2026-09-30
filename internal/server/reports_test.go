@@ -83,6 +83,7 @@ func TestMonthlyReport(t *testing.T) {
 	addOccupant(other.ID, "Heron", "2024-02-05", "", "RW", "X", nil)
 	if _, err := st.CreateExpense(ctx, store.CreateExpenseInput{
 		SafeHouseID: house.ID, AmountCents: 1250, Currency: "USD", SpentOn: day("2024-02-14"),
+		NoReceiptReason: "market stall",
 	}); err != nil {
 		t.Fatal(err)
 	}
