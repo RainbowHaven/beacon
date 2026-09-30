@@ -1,0 +1,61 @@
+{{template "layout_start" .}}
+<h1>{{.Title}}</h1>
+{{if .Error}}<p class="flash error" role="alert">{{.Error}}</p>{{end}}
+{{template "operational_issue_note" .}}
+
+<form class="stack" method="post" action="{{if .Issue.ID}}/operations/{{.Issue.ID}}{{else}}/operations{{end}}">
+  {{if .Issue.ID}}
+  <p class="muted">{{.Issue.SafeHouseName}} · recorded {{.Issue.CreatedAt.UTC.Format "2006-01-02"}}</p>
+  {{else}}
+  <label>Safe house
+    <select name="safe_house_id" required>
+      {{range .Houses}}
+      <option value="{{.ID}}"{{if eq .ID $.Form.SafeHouseID}} selected{{end}}>{{.Name}}</option>
+      {{end}}
+    </select>
+  </label>
+  {{end}}
+  <label>Date identified
+    <input type="date" name="identified_on" value="{{.Form.IdentifiedOn}}" max="{{.MaxDate}}" required>
+  </label>
+  <label>Category
+    <select name="category" required>
+      <option value="">Choose a category</option>
+      {{range .Categories}}
+      <option value="{{.Key}}"{{if eq .Key $.Form.Category}} selected{{end}}>{{.Label}}</option>
+      {{end}}
+    </select>
+  </label>
+  <label>Brief description
+    <textarea name="description" rows="3" maxlength="2000" required>{{.Form.Description}}</textarea>
+  </label>
+  <label>Effect on the safe house
+    <textarea name="effect" rows="3" maxlength="4000">{{.Form.Effect}}</textarea>
+  </label>
+  <label>Action taken or required
+    <textarea name="action_taken" rows="3" maxlength="4000">{{.Form.ActionTaken}}</textarea>
+  </label>
+  <label>Action requested from the RHL
+    <textarea name="rhl_request" rows="3" maxlength="4000">{{.Form.RHLRequest}}</textarea>
+  </label>
+  <label>Status
+    <select name="status" required>
+      {{range .Statuses}}
+      <option value="{{.Key}}"{{if eq .Key $.Form.Status}} selected{{end}}>{{.Label}}</option>
+      {{end}}
+    </select>
+  </label>
+  <fieldset class="stack">
+    <legend>Resolution or closure</legend>
+    <p class="muted">Required when the status is resolved or closed. Setting the status back to open clears these fields; the audit log keeps the status change.</p>
+    <label>Resolution or closure date
+      <input type="date" name="closed_on" value="{{.Form.ClosedOn}}" max="{{.MaxDate}}">
+    </label>
+    <label>Resolution or closure notes
+      <textarea name="closure_notes" rows="3" maxlength="4000">{{.Form.ClosureNotes}}</textarea>
+    </label>
+  </fieldset>
+  <button type="submit">Save</button>
+</form>
+<p><a href="/operations">Back</a></p>
+{{template "layout_end" .}}

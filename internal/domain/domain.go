@@ -140,6 +140,89 @@ type ExpenseTotals struct {
 	Currency      string
 }
 
+const (
+	OperationalIssueOpen     = "open"
+	OperationalIssueResolved = "resolved"
+	OperationalIssueClosed   = "closed"
+)
+
+type OperationalIssueCategory struct {
+	Key   string
+	Label string
+}
+
+// OperationalIssueCategories keys are stored in the database; labels are display only.
+var OperationalIssueCategories = []OperationalIssueCategory{
+	{"building_maintenance", "Building or maintenance problem"},
+	{"utilities", "Utilities"},
+	{"safety_security", "Safety or security issue that is not a safeguarding concern"},
+	{"food_supplies", "Food or supplies"},
+	{"staffing_agent", "Staffing or Agent change"},
+	{"capacity_occupancy", "Capacity or occupancy change"},
+	{"service_availability", "Service availability"},
+	{"other_change", "Other significant operational change"},
+}
+
+func OperationalIssueCategoryLabel(key string) string {
+	for _, c := range OperationalIssueCategories {
+		if c.Key == key {
+			return c.Label
+		}
+	}
+	return key
+}
+
+func ValidOperationalIssueCategory(key string) bool {
+	for _, c := range OperationalIssueCategories {
+		if c.Key == key {
+			return true
+		}
+	}
+	return false
+}
+
+func ValidOperationalIssueStatus(s string) bool {
+	return s == OperationalIssueOpen || s == OperationalIssueResolved || s == OperationalIssueClosed
+}
+
+// OperationalIssue is a problem or significant change at a safe house.
+// It must not contain residents' names or safeguarding details.
+type OperationalIssue struct {
+	ID            int64
+	SafeHouseID   int64
+	SafeHouseName string
+	IdentifiedOn  time.Time // date
+	Category      string
+	Description   string
+	Effect        string
+	ActionTaken   string
+	RHLRequest    string
+	Status        string
+	ClosedOn      *time.Time // resolution or closure date
+	ClosureNotes  string
+	CreatedBy     *int64
+	UpdatedBy     *int64
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+func (o OperationalIssue) CategoryLabel() string { return OperationalIssueCategoryLabel(o.Category) }
+
+func (o OperationalIssue) StatusLabel() string { return OperationalIssueStatusLabel(o.Status) }
+
+func OperationalIssueStatusLabel(s string) string {
+	switch s {
+	case OperationalIssueOpen:
+		return "Open"
+	case OperationalIssueResolved:
+		return "Resolved"
+	case OperationalIssueClosed:
+		return "Closed"
+	default:
+		return s
+	}
+}
+
 type AuditEvent struct {
 	ID          int64
 	ActorUserID *int64
