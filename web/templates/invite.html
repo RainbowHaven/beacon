@@ -1,7 +1,7 @@
 {{template "layout_start" .}}
 <h1>Enroll passkey</h1>
 <p>Welcome, <strong>{{.Email}}</strong> ({{.Role}}).</p>
-<p class="muted">Create a passkey on this device. You will use it to sign in — there is no password.</p>
+<p class="muted">Create a passkey on this device. You will use it to sign in — there is no password. <a href="/help/passkeys">What is a passkey?</a></p>
 <button type="button" id="enroll">Create passkey</button>
 <p id="enroll-error" class="flash error" hidden></p>
 <script type="module">

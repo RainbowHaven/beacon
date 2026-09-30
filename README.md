@@ -39,7 +39,7 @@ make db-up           # Postgres on host port 5433
 make run             # env + db + go run ./cmd/beacon server
 make tunnel          # Cloudflare quick tunnel (phone); writes .local/tunnel.env
 make run-tunnel      # app with tunnel WebAuthn host (use with make tunnel)
-make test            # go test ./...
+make test            # go test -p 1 ./... (DB tests share one database)
 make verify-phase1   # … through verify-phase6
 make verify          # Compose full-stack smoke
 make verify-cla      # CLA docs/workflow check

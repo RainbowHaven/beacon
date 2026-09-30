@@ -1,0 +1,84 @@
+{{template "layout_start" .}}
+<h1>Expense</h1>
+{{if .Flash}}<p class="flash">{{.Flash}}</p>{{end}}
+<p class="muted">{{.House.Name}} · {{.Amount}} {{.Expense.Currency}} · {{.Expense.Category.Label}}</p>
+
+<section class="stack" style="max-width:28rem;margin-bottom:2rem">
+  <h2 style="margin:0;font-size:1.1rem">Review</h2>
+  <p>
+    Status: <span class="review-status review-{{.Expense.ReviewStatus}}">{{.Expense.ReviewStatus.Label}}</span>
+    {{if .ReviewedAt}}<span class="muted">on {{.ReviewedAt}}</span>{{end}}
+  </p>
+  {{if and .Expense.ReviewNote (not .CanReview)}}<p class="flash{{if eq (print .Expense.ReviewStatus) "needs_correction"}} error{{end}}">Bookkeeper note: {{.Expense.ReviewNote}}</p>{{end}}
+  {{if .CanReview}}
+  {{if .ReviewErr}}<p class="flash error" role="alert">{{.ReviewErr}}</p>{{end}}
+  <form class="stack" method="post" action="/expenses/{{.Expense.ID}}/review">
+    <label>Review status
+      <select name="review_status" required>
+        {{range .Statuses}}
+        <option value="{{.}}"{{if eq . $.Expense.ReviewStatus}} selected{{end}}>{{.Label}}</option>
+        {{end}}
+      </select>
+    </label>
+    <label>Note for the safe house (required for “Needs correction”)
+      <textarea name="review_note" rows="2" maxlength="500">{{.ReviewNote}}</textarea>
+    </label>
+    <button type="submit">Save review</button>
+  </form>
+  {{end}}
+</section>
+
+<section class="stack" style="max-width:28rem;margin-bottom:2rem">
+  <h2 style="margin:0;font-size:1.1rem">Details</h2>
+  {{if .Error}}<p class="flash error" role="alert">{{.Error}}</p>{{end}}
+  {{if ne (print .Expense.ReviewStatus) "submitted"}}<p class="muted">Saving changes sends this expense back for review.</p>{{end}}
+  <form id="expense-form" class="stack" method="post" action="/expenses/{{.Expense.ID}}" enctype="multipart/form-data">
+    {{template "expense_fields" .}}
+    <label>{{if .Expense.HasReceipt}}Replace receipt{{else}}Receipt{{end}}
+      <input id="receipt" name="receipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
+    </label>
+    {{if .Expense.HasReceipt}}
+    <p><a href="/expenses/{{.Expense.ID}}/receipt">View current receipt</a></p>
+    {{else}}
+    <label>No receipt? Explain why
+      <textarea name="no_receipt_reason" rows="2" maxlength="500">{{.Form.NoReceiptReason}}</textarea>
+    </label>
+    {{end}}
+    <p id="expense-error" class="flash error" hidden></p>
+    <button type="submit">Save changes</button>
+  </form>
+</section>
+
+<section class="stack" style="margin-bottom:2rem">
+  <h2 style="margin:0;font-size:1.1rem">History</h2>
+  {{if .History}}
+  <ul class="record-list">
+    {{range .History}}
+    <li class="record-card">
+      <div>
+        <div class="record-title">{{.Summary}}</div>
+        <div class="record-meta muted">{{.When}} · {{.Actor}}</div>
+      </div>
+      {{if .Lines}}
+      <ul>
+        {{range .Lines}}<li>{{.}}</li>{{end}}
+      </ul>
+      {{end}}
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="muted">No history recorded.</p>
+  {{end}}
+</section>
+
+<p class="actions">
+  <a href="/expenses">Back</a>
+  {{if .Expense.Deletable}}
+  <form class="inline" method="post" action="/expenses/{{.Expense.ID}}/delete" onsubmit="return confirm('Delete this expense?')">
+    <button class="secondary" type="submit">Delete</button>
+  </form>
+  {{end}}
+</p>
+<script type="module" src="{{static "js/receipt-resize.js"}}"></script>
+{{template "layout_end" .}}
