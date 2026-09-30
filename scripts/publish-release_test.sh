@@ -10,6 +10,7 @@ fail() { echo "FAIL: $*" >&2; exit 1; }
 
 [[ "$(semver_base "v1.2.3")" == "v1.2.3" ]] || fail "semver_base exact"
 [[ "$(semver_base "v1.2.3-menu.1")" == "v1.2.3" ]] || fail "semver_base strips suffix"
+[[ "$(semver_base "v1.2.3-staging-menu.1")" == "v1.2.3" ]] || fail "semver_base strips staging suffix"
 [[ "$(bump_semver "v1.2.3" patch)" == "v1.2.4" ]] || fail "patch bump"
 [[ "$(bump_semver "v1.2.3" minor)" == "v1.3.0" ]] || fail "minor bump"
 [[ "$(bump_semver "v1.2.3" major)" == "v2.0.0" ]] || fail "major bump"
@@ -30,15 +31,16 @@ git -C "$tmp" -c user.email=test@example.com -c user.name=test -c commit.gpgsign
 (
   cd "$tmp"
   [[ "$(latest_described_tag)" == "v0.0.0" ]] || fail "missing tag should fall back to v0.0.0"
-  [[ "$(staging_tag "menu.1")" == "v0.0.0-menu.1" ]] || fail "first staging tag"
+  [[ "$(staging_tag "menu.1")" == "v0.0.0-staging-menu.1" ]] || fail "first staging tag"
   [[ "$(highest_release_tag)" == "v0.0.0" ]] || fail "no release tag yet"
   git -c tag.gpgsign=false tag v1.2.3
-  git -c tag.gpgsign=false tag v1.2.3-menu.1
+  git -c tag.gpgsign=false tag v1.2.3-staging-menu.1
+  [[ "$(staging_tag "menu.2")" == "v1.2.3-staging-menu.2" ]] || fail "staging tag on top of a staging tag"
   echo b >>f
   git -c user.email=test@example.com -c user.name=test -c commit.gpgsign=false commit -q -am 'next'
   git -c tag.gpgsign=false tag v1.10.0
   [[ "$(semver_base "$(latest_described_tag)")" == "v1.10.0" ]] || fail "describe should see v1.10.0"
-  [[ "$(staging_tag "menu.2")" == "v1.10.0-menu.2" ]] || fail "staging suffix on latest version"
+  [[ "$(staging_tag "menu.2")" == "v1.10.0-staging-menu.2" ]] || fail "staging suffix on latest version"
   [[ "$(highest_release_tag)" == "v1.10.0" ]] || fail "highest release should ignore the staging suffix and pick v1.10.0"
   [[ "$(bump_semver "$(highest_release_tag)" patch)" == "v1.10.1" ]] || fail "patch after v1.10.0"
 )
