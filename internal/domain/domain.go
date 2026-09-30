@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/base64"
 	"time"
 )
 
@@ -110,6 +111,17 @@ type ExpenseTotals struct {
 	AmountCents   int64
 	Currency      string
 }
+
+// Passkey is a WebAuthn credential as shown to people (no key material).
+type Passkey struct {
+	ID         []byte
+	Label      string
+	CreatedAt  time.Time
+	LastUsedAt *time.Time
+}
+
+// Key is the URL-safe form of the credential ID used in routes.
+func (p Passkey) Key() string { return base64.RawURLEncoding.EncodeToString(p.ID) }
 
 type AuditEvent struct {
 	ID          int64

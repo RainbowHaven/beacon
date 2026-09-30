@@ -196,6 +196,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /webauthn/register/finish", s.handleRegisterFinish)
 	mux.HandleFunc("POST /webauthn/login/begin", s.handleLoginBegin)
 	mux.HandleFunc("POST /webauthn/login/finish", s.handleLoginFinish)
+	mux.HandleFunc("GET /help/passkeys", s.handleHelpPasskeys)
+
+	mux.Handle("GET /account", s.requireLogin(http.HandlerFunc(s.handleAccount)))
+	mux.Handle("POST /account/passkeys/begin", s.requireLogin(http.HandlerFunc(s.handleAddPasskeyBegin)))
+	mux.Handle("POST /account/passkeys/finish", s.requireLogin(http.HandlerFunc(s.handleAddPasskeyFinish)))
+	mux.Handle("POST /account/passkeys/{cred}/rename", s.requireLogin(http.HandlerFunc(s.handleRenamePasskey)))
+	mux.Handle("POST /account/passkeys/{cred}/delete", s.requireLogin(http.HandlerFunc(s.handleDeletePasskey)))
 
 	mux.Handle("GET /admin/users", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminUsers)))
 	mux.Handle("GET /admin/users/invite", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminInvitePage)))
@@ -204,6 +211,8 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /admin/users/{id}", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminUpdateUser)))
 	mux.Handle("POST /admin/users/{id}/lock", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminLockUser)))
 	mux.Handle("POST /admin/users/{id}/reinvite", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminReinvite)))
+	mux.Handle("POST /admin/users/{id}/email", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminUpdateEmail)))
+	mux.Handle("POST /admin/users/{id}/passkeys/{cred}/delete", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminDeletePasskey)))
 	mux.Handle("GET /admin/houses", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminHouses)))
 	mux.Handle("POST /admin/rhls", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminCreateRHL)))
 	mux.Handle("POST /admin/rhls/{id}", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminUpdateRHL)))
