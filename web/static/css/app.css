@@ -558,6 +558,14 @@ body.handoff {
   gap: 1rem;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
 }
+.table-scroll td.report-text {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  min-width: 12rem;
+  max-width: 22rem;
+  vertical-align: top;
+}
+td > .report-status { margin-left: 0; }
 
 @media print {
   :root { color-scheme: light; }

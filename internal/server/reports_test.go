@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -86,6 +87,47 @@ func TestMonthlyReport(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	dayPtr := func(s string) *time.Time {
+		d := day(s)
+		return &d
+	}
+	addConcern := func(houseID int64, id, reported, status, closed string) {
+		t.Helper()
+		in := store.SafeguardingInput{
+			IncidentID: id, OccurredPrecision: domain.DateUnknown,
+			ReportedOn: day(reported), Status: domain.SafeguardingStatus(status),
+		}
+		if closed != "" {
+			in.ClosedOn = dayPtr(closed)
+		}
+		if _, err := st.CreateSafeguardingConcern(ctx, houseID, in, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	addConcern(house.ID, "Incident-TOR-2024-1", "2024-01-15", "open", "")
+	addConcern(house.ID, "Incident-TOR-2024-2", "2024-02-10", "closed", "2024-02-20")
+	addConcern(house.ID, "Incident-TOR-2024-3", "2024-01-05", "resolved", "2024-01-25")
+	addConcern(other.ID, "Incident-OTH-2024-1", "2024-02-03", "open", "")
+	addIssue := func(houseID int64, identified, category, desc, status, closed string) {
+		t.Helper()
+		f := store.OperationalIssueFields{
+			IdentifiedOn: day(identified), Category: category, Description: desc,
+			Effect: "Effect of " + desc, ActionTaken: "Fixing " + desc, RHLRequest: "Help with " + desc,
+			Status: status,
+		}
+		if closed != "" {
+			f.ClosedOn = dayPtr(closed)
+			f.ClosureNotes = "Done."
+		}
+		if _, err := st.CreateOperationalIssue(ctx, houseID, f, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	addIssue(house.ID, "2024-01-03", "building_maintenance", "Leaking roof", "resolved", "2024-01-20")
+	addIssue(house.ID, "2024-01-28", "utilities", "Boiler failure", "resolved", "2024-02-12")
+	addIssue(house.ID, "2024-02-15", "utilities", "Water outage", "closed", "2024-03-04")
+	addIssue(house.ID, "2024-02-20", "staffing_agent", "New agent", "open", "")
+	addIssue(house.ID, "2024-03-10", "food_supplies", "Food shortage", "open", "")
 
 	newUser := func(email string, role domain.Role, rhlID, houseID *int64) domain.User {
 		t.Helper()
@@ -144,12 +186,19 @@ func TestMonthlyReport(t *testing.T) {
 			"Kestrel", "Plover", "Uganda", "Kenya", "1999",
 			"12.50 USD",
 			"/reports/" + houseID + "/2024-02.csv",
+			"<dt>Concerns reported this month</dt><dd>1</dd>",
+			"Incident-TOR-2024-1", "Incident-TOR-2024-2",
+			"Details are held in Document 37 by the RHL Safeguarding Contact.",
+			"Boiler failure", "Effect of Boiler failure", "Fixing Boiler failure", "Help with Boiler failure",
+			`<span class="report-status">Resolved 2024-02-12</span>`,
+			"Water outage", `<span class="report-status">Closed 2024-03-04</span>`,
+			"New agent", "Staffing or Agent change",
 		} {
 			if !strings.Contains(body, want) {
 				t.Fatalf("missing %q in %s", want, body)
 			}
 		}
-		for _, notWant := range []string{"Osprey", "Heron", "Month in progress"} {
+		for _, notWant := range []string{"Osprey", "Heron", "Month in progress", "Incident-TOR-2024-3", "Incident-OTH-2024-1", "Leaking roof", "Food shortage"} {
 			if strings.Contains(body, notWant) {
 				t.Fatalf("unexpected %q", notWant)
 			}
@@ -173,6 +222,9 @@ func TestMonthlyReport(t *testing.T) {
 		if code != http.StatusOK || !strings.Contains(body, "Other House") || strings.Contains(body, "Kestrel") {
 			t.Fatalf("status %d body %s", code, body)
 		}
+		if !strings.Contains(body, "Incident-OTH-2024-1") || strings.Contains(body, "Incident-TOR") || strings.Contains(body, "Boiler failure") {
+			t.Fatalf("safeguarding or operations of another RHL in %s", body)
+		}
 	})
 
 	t.Run("RHC admin sees overview", func(t *testing.T) {
@@ -191,6 +243,17 @@ func TestMonthlyReport(t *testing.T) {
 		if strings.Contains(body, "Kestrel") {
 			t.Fatal("overview should not list residents")
 		}
+		cells := regexp.MustCompile(`>\s+<`).ReplaceAllString(body, "><")
+		for _, want := range []string{
+			"<th>Safeguarding reported</th><th>Open problems</th>",
+			"53.4%</td><td>1</td><td>2</td>",
+			`not available</span></td><td>1</td><td>0</td>`,
+			"<td></td><td><strong>2</strong></td><td><strong>2</strong></td>",
+		} {
+			if !strings.Contains(cells, want) {
+				t.Fatalf("missing %q in %s", want, cells)
+			}
+		}
 	})
 
 	t.Run("CSV export", func(t *testing.T) {
@@ -208,18 +271,19 @@ func TestMonthlyReport(t *testing.T) {
 			t.Fatal(err)
 		}
 		fields := map[string]string{}
-		var residents [][]string
-		inResidents := false
+		tables := map[string][][]string{}
+		table := ""
 		for _, rec := range records {
 			switch {
-			case rec[0] == "Nickname":
-				inResidents = true
-			case inResidents:
-				residents = append(residents, rec)
+			case rec[0] == "Nickname" || rec[0] == "Incident identifier" || rec[0] == "Date identified":
+				table = rec[0]
+			case table != "":
+				tables[table] = append(tables[table], rec)
 			case len(rec) == 2:
 				fields[rec[0]] = rec[1]
 			}
 		}
+		residents := tables["Nickname"]
 		for k, v := range map[string]string{
 			"RHL code":                 "TOR",
 			"Safe house":               "Pilot Safe House",
@@ -234,6 +298,8 @@ func TestMonthlyReport(t *testing.T) {
 			"Gender: M":                "1",
 			"Country of origin: Kenya": "1",
 			"Expense total USD":        "12.50",
+
+			"Safeguarding concerns reported": "1",
 		} {
 			if fields[k] != v {
 				t.Fatalf("%s = %q, want %q (all: %v)", k, fields[k], v, fields)
@@ -252,6 +318,27 @@ func TestMonthlyReport(t *testing.T) {
 		for i := range want {
 			if strings.Join(residents[i], ",") != strings.Join(want[i], ",") {
 				t.Fatalf("resident %d = %v, want %v", i, residents[i], want[i])
+			}
+		}
+		for name, want := range map[string][][]string{
+			"Incident identifier": {
+				{"Incident-TOR-2024-1", "2024-01-15", "Open", ""},
+				{"Incident-TOR-2024-2", "2024-02-10", "Closed", "2024-02-20"},
+			},
+			"Date identified": {
+				{"2024-01-28", "Utilities", "Boiler failure", "Effect of Boiler failure", "Resolved", "2024-02-12", "Fixing Boiler failure", "Help with Boiler failure"},
+				{"2024-02-15", "Utilities", "Water outage", "Effect of Water outage", "Closed", "2024-03-04", "Fixing Water outage", "Help with Water outage"},
+				{"2024-02-20", "Staffing or Agent change", "New agent", "Effect of New agent", "Open", "", "Fixing New agent", "Help with New agent"},
+			},
+		} {
+			got := tables[name]
+			if len(got) != len(want) {
+				t.Fatalf("%s table %v, want %v", name, got, want)
+			}
+			for i := range want {
+				if strings.Join(got[i], "|") != strings.Join(want[i], "|") {
+					t.Fatalf("%s row %d = %v, want %v", name, i, got[i], want[i])
+				}
 			}
 		}
 	})

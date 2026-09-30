@@ -8,7 +8,7 @@
   </div>
   <h1 class="print-only">Monthly report</h1>
   {{if .Error}}<p class="flash error no-print">{{.Error}}</p>{{end}}
-  <p class="muted no-print">Built from resident records and expenses as they are right now. No private key required. Residents are listed by nickname only.</p>
+  <p class="muted no-print">Built from resident records, expenses, safeguarding tracking records and operational problems as they are right now. No private key required. Residents are listed by nickname only.</p>
 
   <form method="get" action="/reports" class="actions no-print report-picker">
     <label>Month
@@ -33,6 +33,8 @@
     {{template "report_demographics" .Report}}
     {{template "report_residents" .Report}}
     {{template "report_expenses" .Report}}
+    {{template "report_safeguarding" .Report}}
+    {{template "report_operations" .Report}}
   {{else if .Overview}}
     {{template "report_overview" .}}
   {{else}}
