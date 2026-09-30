@@ -1,0 +1,44 @@
+{{template "layout_start" .}}
+<h1>Passkey help</h1>
+
+<h2>What is a passkey?</h2>
+<p>A passkey replaces a password. It is stored safely on your phone or computer and is unlocked with your fingerprint, your face, or your screen lock PIN. There is nothing to remember or type, and nobody can guess it or trick you into giving it away.</p>
+<p>Beacon never sees your fingerprint or face — those stay on your device.</p>
+
+<h2>Signing in</h2>
+<ol>
+  <li>Open the <a href="/login">sign-in page</a> and enter your email address.</li>
+  <li>Choose <strong>Sign in with passkey</strong>.</li>
+  <li>Your device asks you to confirm with your fingerprint, face, or screen lock. That is all.</li>
+</ol>
+<p>The very first time, you create your passkey from the invite link an RHC admin sent you.</p>
+
+<h2>Add a backup passkey on a second device</h2>
+<p>If you only have one passkey and lose that device, you cannot sign in until an admin helps you. A second passkey avoids that.</p>
+<ol>
+  <li>On the second device (for example a laptop or a spare phone), sign in to Beacon. If it cannot sign in yet, your browser may offer to use your phone by scanning a QR code.</li>
+  <li>Open <strong>Account &amp; passkeys</strong> from the menu with your email address.</li>
+  <li>Give the new passkey a name you will recognize, such as “Work laptop”, and choose <strong>Add passkey</strong>.</li>
+</ol>
+<p>Some phones and computers copy passkeys to your other devices automatically (for example through iCloud Keychain or Google Password Manager). That is fine.</p>
+
+<h2>If your phone is lost, stolen, or replaced</h2>
+<ul>
+  <li><strong>You still have another passkey:</strong> sign in on that device, open <strong>Account &amp; passkeys</strong>, and remove the passkey of the lost phone. This also signs out every other device.</li>
+  <li><strong>You have no other passkey:</strong> contact your RHC admin. They can remove the lost passkey and sign out the lost device right away, or send you a new invite link so you can set up a passkey on your new phone.</li>
+  <li><strong>Stolen or someone else might have access:</strong> tell your RHC admin immediately, even if you already removed the passkey.</li>
+</ul>
+<p>Changing to a new phone? Add a passkey on the new phone first (see above), then remove the old one.</p>
+
+<h2>Keep your account to yourself</h2>
+<ul>
+  <li>Never share your account, and never let someone else sign in to Beacon on your device.</li>
+  <li>Do not add passkeys on shared or public computers.</li>
+  <li>Every person who needs Beacon gets their own invite from an RHC admin.</li>
+</ul>
+
+<h2>Changing your email address</h2>
+<p>Ask an RHC admin. Your passkeys keep working after the change; your device may still show the old email next to the passkey.</p>
+
+<p class="actions"><a class="btn secondary" href="{{if .User}}/account{{else}}/login{{end}}">{{if .User}}Back to account{{else}}Back to sign in{{end}}</a></p>
+{{template "layout_end" .}}

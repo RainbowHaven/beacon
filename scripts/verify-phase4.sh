@@ -31,8 +31,8 @@ for _ in $(seq 1 40); do
   sleep 1
 done
 
-go test ./...
-pass "go test ./..."
+go test -p 1 ./...
+pass "go test -p 1 ./..."
 
 [[ -f OPERATOR.md ]] || fail "OPERATOR.md missing"
 grep -q 'Invite a manager' OPERATOR.md || fail "OPERATOR.md incomplete"

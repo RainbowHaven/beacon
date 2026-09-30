@@ -15,6 +15,7 @@
   <nav class="app-nav" aria-label="Primary">
     <a href="/occupants"{{if navCurrent .Path "/occupants"}} aria-current="page"{{end}}>Occupants</a>
     <a href="/expenses"{{if navCurrent .Path "/expenses"}} aria-current="page"{{end}}>Expenses</a>
+    <a href="/operations"{{if navCurrent .Path "/operations"}} aria-current="page"{{end}}>Operations</a>
     <a href="/safeguarding"{{if navCurrent .Path "/safeguarding"}} aria-current="page"{{end}}>Safeguarding</a>
     <a href="/reports"{{if navCurrent .Path "/reports"}} aria-current="page"{{end}}>Reports</a>
     {{if eq .User.Role "rhc_admin"}}
@@ -37,6 +38,7 @@
     </summary>
     <div class="profile-panel">
       <span class="muted profile-detail">{{.User.Email}} ({{.User.Role}})</span>
+      <a href="/account"{{if navCurrent .Path "/account"}} aria-current="page"{{end}}>Account &amp; passkeys</a>
       <form class="inline" method="post" action="/logout">
         <button class="secondary" type="submit">Log out</button>
       </form>

@@ -4,24 +4,10 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/magiconair/beacon/internal/domain"
 	"github.com/magiconair/beacon/internal/store"
 )
-
-func day(s string) time.Time {
-	t, err := time.Parse("2006-01-02", s)
-	if err != nil {
-		panic(err)
-	}
-	return t
-}
-
-func dayPtr(s string) *time.Time {
-	t := day(s)
-	return &t
-}
 
 func openConcern(id, reported string) store.SafeguardingInput {
 	return store.SafeguardingInput{

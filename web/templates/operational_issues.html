@@ -1,0 +1,56 @@
+{{define "operational_issue_note"}}
+<p class="flash notice" role="note">Record building, utility, supply, staffing, capacity, and service problems or significant changes here. Safety concerns about a person (violence, abuse, exploitation, harassment, medical, privacy of a resident) are safeguarding concerns: follow Document 37, do not record them here. Do not enter residents' names or personal details.</p>
+{{end}}
+
+{{template "layout_start" .}}
+<h1>Operations</h1>
+{{if .Flash}}<p class="flash">{{.Flash}}</p>{{end}}
+{{if .Error}}<p class="flash error">{{.Error}}</p>{{end}}
+{{template "operational_issue_note" .}}
+
+<p class="actions">
+  <a class="btn" href="/operations/new{{if .HouseID}}?house={{.HouseID}}{{end}}">Record issue</a>
+</p>
+
+<nav class="actions filter-bar" aria-label="Status filter">
+  {{range .Filters}}
+  <a class="btn{{if not .Current}} secondary{{end}}" href="{{.Href}}"{{if .Current}} aria-current="true"{{end}}>{{.Label}}</a>
+  {{end}}
+</nav>
+
+{{if gt (len .Houses) 1}}
+<form class="actions filter-bar" method="get" action="/operations">
+  {{if ne .Status "open"}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
+  <label class="inline-label">Safe house
+    <select name="house">
+      <option value="">All houses</option>
+      {{range .Houses}}
+      <option value="{{.ID}}"{{if eq .ID $.HouseID}} selected{{end}}>{{.Name}}</option>
+      {{end}}
+    </select>
+  </label>
+  <button class="secondary" type="submit">Filter</button>
+</form>
+{{end}}
+
+{{if .Issues}}
+<ul class="record-list">
+  {{range .Issues}}
+  <li class="record-card">
+    <div>
+      <div class="record-title">{{.CategoryLabel}}</div>
+      <div class="record-meta muted">
+        {{.SafeHouseName}} · identified {{.IdentifiedOn.Format "2006-01-02"}} · {{.StatusLabel}}{{if .ClosedOn}} {{.ClosedOn.Format "2006-01-02"}}{{end}}
+      </div>
+      <p class="record-text">{{.Description}}</p>
+    </div>
+    <div class="actions record-actions">
+      <a class="btn secondary" href="/operations/{{.ID}}/edit">Edit</a>
+    </div>
+  </li>
+  {{end}}
+</ul>
+{{else}}
+<p class="muted">{{if eq .Status "all"}}No operational issues in scope.{{else}}No {{.StatusLabel}} operational issues in scope.{{end}}</p>
+{{end}}
+{{template "layout_end" .}}
