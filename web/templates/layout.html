@@ -15,22 +15,27 @@
   <nav class="app-nav" aria-label="Primary">
     <a href="/occupants"{{if navCurrent .Path "/occupants"}} aria-current="page"{{end}}>Occupants</a>
     <a href="/expenses"{{if navCurrent .Path "/expenses"}} aria-current="page"{{end}}>Expenses</a>
-    <a href="/operations"{{if navCurrent .Path "/operations"}} aria-current="page"{{end}}>Operations</a>
-    <a href="/safeguarding"{{if navCurrent .Path "/safeguarding"}} aria-current="page"{{end}}>Safeguarding</a>
+    <a class="nav-desktop-only" href="/operations"{{if navCurrent .Path "/operations"}} aria-current="page"{{end}}>Operations</a>
+    <a class="nav-desktop-only" href="/safeguarding"{{if navCurrent .Path "/safeguarding"}} aria-current="page"{{end}}>Safeguarding</a>
     <a href="/reports"{{if navCurrent .Path "/reports"}} aria-current="page"{{end}}>Reports</a>
-    {{if eq .User.Role "rhc_admin"}}
+    {{$admin := eq .User.Role "rhc_admin"}}
+    {{if $admin}}
     <a class="nav-desktop-only" href="/admin/users"{{if navCurrent .Path "/admin/users"}} aria-current="page"{{end}}>Users</a>
     <a class="nav-desktop-only" href="/admin/houses"{{if navCurrent .Path "/admin/houses"}} aria-current="page"{{end}}>Houses</a>
     <a class="nav-desktop-only" href="/admin/audit"{{if navCurrent .Path "/admin/audit"}} aria-current="page"{{end}}>Audit</a>
+    {{end}}
     <details class="nav-more">
-      <summary{{if or (navCurrent .Path "/admin/users") (or (navCurrent .Path "/admin/houses") (navCurrent .Path "/admin/audit"))}} aria-current="page"{{end}}>More</summary>
+      <summary{{if or (navCurrent .Path "/operations") (navCurrent .Path "/safeguarding") (and $admin (or (navCurrent .Path "/admin/users") (navCurrent .Path "/admin/houses") (navCurrent .Path "/admin/audit")))}} aria-current="page"{{end}}>More</summary>
       <div class="nav-more-panel">
+        <a href="/operations"{{if navCurrent .Path "/operations"}} aria-current="page"{{end}}>Operations</a>
+        <a href="/safeguarding"{{if navCurrent .Path "/safeguarding"}} aria-current="page"{{end}}>Safeguarding</a>
+        {{if $admin}}
         <a href="/admin/users"{{if navCurrent .Path "/admin/users"}} aria-current="page"{{end}}>Users</a>
         <a href="/admin/houses"{{if navCurrent .Path "/admin/houses"}} aria-current="page"{{end}}>Houses</a>
         <a href="/admin/audit"{{if navCurrent .Path "/admin/audit"}} aria-current="page"{{end}}>Audit</a>
+        {{end}}
       </div>
     </details>
-    {{end}}
   </nav>
   <details class="profile-menu">
     <summary class="profile-toggle" aria-label="Account">
