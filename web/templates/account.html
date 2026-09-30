@@ -12,12 +12,8 @@
 {{range .Passkeys}}
   <li class="record-card">
     <div class="record-main">
-      <div class="record-title">{{if .Label}}{{.Label}}{{else}}Unnamed passkey{{end}}</div>
+      <div class="record-title">{{.Label}}</div>
       <div class="record-meta muted">Added {{.CreatedAt.UTC.Format "Jan 2, 2006"}} · Last used {{with .LastUsedAt}}{{.UTC.Format "Jan 2, 2006"}}{{else}}never{{end}}</div>
-      <form class="invite-row" method="post" action="/account/passkeys/{{.Key}}/rename">
-        <input type="text" name="label" value="{{.Label}}" maxlength="60" placeholder="Name, e.g. Work laptop" aria-label="Passkey name">
-        <button class="secondary" type="submit">Rename</button>
-      </form>
     </div>
     <div class="actions record-actions">
       {{if gt (len $.Passkeys) 1}}
@@ -33,9 +29,8 @@
 </ul>
 
 <h3>Add another passkey</h3>
-<p class="muted">Do this on the device you want to add. Your browser or phone will ask you to confirm with your fingerprint, face, or screen lock.</p>
+<p class="muted">Do this on the device you want to add. Your browser or phone will ask you to confirm with your fingerprint, face, or screen lock. Beacon names the passkey after the device and the app that stores it.</p>
 <form id="add-passkey" class="invite-row" style="max-width:28rem">
-  <input type="text" id="passkey-label" maxlength="60" placeholder="Name, e.g. Work laptop" aria-label="Name for the new passkey">
   <button type="submit">Add passkey</button>
 </form>
 <p id="add-passkey-error" class="flash error" hidden></p>
@@ -49,7 +44,7 @@
     err.hidden = true;
     btn.disabled = true;
     try {
-      const result = await addPasskey(document.getElementById('passkey-label').value.trim());
+      const result = await addPasskey();
       window.location.href = result.redirect || '/account';
     } catch (ex) {
       err.textContent = ex.name === 'InvalidStateError'

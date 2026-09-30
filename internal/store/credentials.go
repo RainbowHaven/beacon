@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	"github.com/RainbowHaven/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/passkeylabel"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 )
@@ -115,7 +116,7 @@ func (s *Store) MarkCredentialUsed(ctx context.Context, userID int64, credID []b
 
 func (s *Store) ListPasskeys(ctx context.Context, userID int64) ([]domain.Passkey, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, label, created_at, last_used_at
+		SELECT id, label, aaguid, transport, created_at, last_used_at
 		FROM webauthn_credentials WHERE user_id = $1
 		ORDER BY created_at, id`, userID)
 	if err != nil {
@@ -125,9 +126,17 @@ func (s *Store) ListPasskeys(ctx context.Context, userID int64) ([]domain.Passke
 	var out []domain.Passkey
 	for rows.Next() {
 		var p domain.Passkey
+		var in passkeylabel.Input
+		var transportJSON []byte
 		var lastUsed sql.NullTime
-		if err := rows.Scan(&p.ID, &p.Label, &p.CreatedAt, &lastUsed); err != nil {
+		if err := rows.Scan(&p.ID, &p.Label, &in.AAGUID, &transportJSON, &p.CreatedAt, &lastUsed); err != nil {
 			return nil, err
+		}
+		if p.Label == "" {
+			if len(transportJSON) > 0 {
+				_ = json.Unmarshal(transportJSON, &in.Transports)
+			}
+			p.Label = passkeylabel.Derive(in)
 		}
 		if lastUsed.Valid {
 			t := lastUsed.Time
@@ -154,20 +163,6 @@ func (s *Store) CountPasskeysByUser(ctx context.Context) (map[int64]int, error) 
 		out[id] = n
 	}
 	return out, rows.Err()
-}
-
-// RenamePasskey sets the label and returns the previous one.
-func (s *Store) RenamePasskey(ctx context.Context, userID int64, credID []byte, label string) (string, error) {
-	var old string
-	err := s.db.QueryRowContext(ctx, `
-		UPDATE webauthn_credentials c SET label = $3
-		FROM webauthn_credentials prev
-		WHERE c.id = prev.id AND c.user_id = $1 AND c.id = $2
-		RETURNING prev.label`, userID, credID, label).Scan(&old)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", ErrNotFound
-	}
-	return old, err
 }
 
 // DeleteOwnPasskey removes one of the user's passkeys, refusing to remove the

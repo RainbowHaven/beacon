@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -70,6 +71,7 @@ func (s *Server) handleInvitePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.setInviteCookie(w, token)
+	requestClientHints(w)
 	s.render(w, r, "invite.html", map[string]any{
 		"Title": "Invite",
 		"Email": u.Email,
@@ -168,7 +170,12 @@ func (s *Server) handleRegisterFinish(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "registration failed", http.StatusBadRequest)
 		return
 	}
-	if err := s.store.SaveCredential(r.Context(), u.ID, cred); err != nil {
+	label := passkeyLabel(r, cred)
+	if err := s.store.AddCredential(r.Context(), u.ID, cred, label); err != nil {
+		if errors.Is(err, store.ErrCredentialExists) {
+			http.Error(w, "this passkey is already registered", http.StatusBadRequest)
+			return
+		}
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
@@ -188,7 +195,9 @@ func (s *Server) handleRegisterFinish(w http.ResponseWriter, r *http.Request) {
 	s.clearCookie(w, challengeCookie)
 	s.clearCookie(w, inviteCookie)
 	s.setSessionCookie(w, raw)
-	_ = s.store.Audit(r.Context(), &u.ID, "auth.register", "user", idString(u.ID), nil)
+	_ = s.store.Audit(r.Context(), &u.ID, "auth.register", "user", idString(u.ID), map[string]any{
+		"passkey": shortKey(base64.RawURLEncoding.EncodeToString(cred.ID)), "label": label,
+	})
 	writeJSON(w, map[string]string{"status": "ok", "redirect": "/"})
 }
 

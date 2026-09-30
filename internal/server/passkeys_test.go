@@ -3,6 +3,7 @@ package server_test
 import (
 	"context"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -57,8 +58,9 @@ func newPasskeyEnv(t *testing.T) passkeyEnv {
 }
 
 type passkeyDevice struct {
-	auth virtualwebauthn.Authenticator
-	cred virtualwebauthn.Credential
+	auth   virtualwebauthn.Authenticator
+	cred   virtualwebauthn.Credential
+	header http.Header
 }
 
 func newDevice() *passkeyDevice {
@@ -66,6 +68,23 @@ func newDevice() *passkeyDevice {
 		auth: virtualwebauthn.NewAuthenticator(),
 		cred: virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2),
 	}
+}
+
+// newBrowserDevice is a device whose browser sends ua and the Client Hints in
+// hints (name → value) and whose authenticator reports aaguid.
+func newBrowserDevice(t *testing.T, aaguid, ua string, hints map[string]string) *passkeyDevice {
+	t.Helper()
+	d := newDevice()
+	b, err := hex.DecodeString(strings.ReplaceAll(aaguid, "-", ""))
+	if err != nil || len(b) != 16 {
+		t.Fatalf("bad aaguid %q", aaguid)
+	}
+	copy(d.auth.Aaguid[:], b)
+	d.header = http.Header{"User-Agent": {ua}}
+	for k, v := range hints {
+		d.header.Set(k, v)
+	}
+	return d
 }
 
 func newClient() (*http.Client, *http.Client) {
@@ -85,19 +104,19 @@ func (e passkeyEnv) enroll(t *testing.T, in store.CreateUserInput, dev *passkeyD
 		t.Fatal(err)
 	}
 	c, nf := newClient()
-	register(t, c, e.ts.URL, token, e.rp, &dev.auth, &dev.cred)
+	registerWithHeader(t, c, e.ts.URL, token, e.rp, &dev.auth, &dev.cred, dev.header)
 	return u, c, nf
 }
 
-func addPasskeyHTTP(t *testing.T, client *http.Client, base, label string, rp virtualwebauthn.RelyingParty, dev *passkeyDevice, mustExclude ...virtualwebauthn.Credential) {
+func addPasskeyHTTP(t *testing.T, client *http.Client, base string, rp virtualwebauthn.RelyingParty, dev *passkeyDevice, mustExclude ...virtualwebauthn.Credential) {
 	t.Helper()
-	if status, body := tryAddPasskey(t, client, base, label, rp, dev, mustExclude...); status != 200 {
+	if status, body := tryAddPasskey(t, client, base, rp, dev, mustExclude...); status != 200 {
 		t.Fatalf("add finish %d: %s", status, body)
 	}
 	dev.auth.AddCredential(dev.cred)
 }
 
-func tryAddPasskey(t *testing.T, client *http.Client, base, label string, rp virtualwebauthn.RelyingParty, dev *passkeyDevice, mustExclude ...virtualwebauthn.Credential) (int, string) {
+func tryAddPasskey(t *testing.T, client *http.Client, base string, rp virtualwebauthn.RelyingParty, dev *passkeyDevice, mustExclude ...virtualwebauthn.Credential) (int, string) {
 	t.Helper()
 	res, err := client.Post(base+"/account/passkeys/begin", "application/json", nil)
 	if err != nil {
@@ -124,7 +143,10 @@ func tryAddPasskey(t *testing.T, client *http.Client, base, label string, rp vir
 		}
 	}
 	resp := virtualwebauthn.CreateAttestationResponse(rp, dev.auth, dev.cred, *parsed)
-	req, _ := http.NewRequest(http.MethodPost, base+"/account/passkeys/finish?label="+url.QueryEscape(label), strings.NewReader(resp))
+	req, _ := http.NewRequest(http.MethodPost, base+"/account/passkeys/finish", strings.NewReader(resp))
+	for k, v := range dev.header {
+		req.Header[k] = v
+	}
 	req.Header.Set("Content-Type", "application/json")
 	res2, err := client.Do(req)
 	if err != nil {
@@ -170,21 +192,66 @@ func lastAudit(t *testing.T, st *store.Store, action string) domain.AuditEvent {
 	return domain.AuditEvent{}
 }
 
+const (
+	aaguidApplePasswords = "fbfc3007-154e-4ecc-8c0b-6e020557d7bd"
+	aaguidWindowsHello   = "08987058-cadc-4b81-b6e1-30de50dcbe96"
+	aaguidGooglePM       = "ea9b8d66-4d01-1d21-3ce4-b6b48cb575d4"
+
+	uaIPhone        = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1"
+	uaWindowsChrome = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+	uaAndroidChrome = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+
+	labelIPhone  = "iPhone · iOS 18 · Apple Passwords"
+	labelWindows = "Windows PC · Windows 11 · Windows Hello"
+	labelPixel   = "Pixel 8 · Android 15 · Google Password Manager"
+)
+
+func newIPhone(t *testing.T) *passkeyDevice {
+	return newBrowserDevice(t, aaguidApplePasswords, uaIPhone, nil)
+}
+
+func newWindowsPC(t *testing.T) *passkeyDevice {
+	return newBrowserDevice(t, aaguidWindowsHello, uaWindowsChrome, map[string]string{
+		"Sec-CH-UA-Platform": `"Windows"`, "Sec-CH-UA-Platform-Version": `"15.0.0"`, "Sec-CH-UA-Mobile": "?0",
+	})
+}
+
+func newPixel(t *testing.T) *passkeyDevice {
+	return newBrowserDevice(t, aaguidGooglePM, uaAndroidChrome, map[string]string{
+		"Sec-CH-UA-Platform": `"Android"`, "Sec-CH-UA-Platform-Version": `"15.0.0"`,
+		"Sec-CH-UA-Model": `"Pixel 8"`, "Sec-CH-UA-Mobile": "?1",
+	})
+}
+
+func pageBody(t *testing.T, client *http.Client, target string) (*http.Response, string) {
+	t.Helper()
+	res, err := client.Get(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := io.ReadAll(res.Body)
+	res.Body.Close()
+	return res, string(b)
+}
+
 func TestAddSecondPasskeyAndKeepLast(t *testing.T) {
 	e := newPasskeyEnv(t)
 	ctx := context.Background()
-	phone := newDevice()
+	phone := newIPhone(t)
 	u, client, noFollow := e.enroll(t, store.CreateUserInput{
 		Email: "mgr@example.com", Role: domain.RoleSafeHouseManager, SafeHouseID: &e.house.ID, RHLID: &e.house.RHLID,
 	}, phone)
+	if ev := lastAudit(t, e.st, "auth.register"); ev.Meta["label"] != labelIPhone {
+		t.Fatalf("register audit meta %v", ev.Meta)
+	}
 
-	laptop := newDevice()
-	addPasskeyHTTP(t, client, e.ts.URL, "  Work   laptop ", e.rp, laptop, phone.cred)
-	if ev := lastAudit(t, e.st, "auth.passkey.add"); ev.Meta["label"] != "Work laptop" {
+	laptop := newWindowsPC(t)
+	addPasskeyHTTP(t, client, e.ts.URL, e.rp, laptop, phone.cred)
+	if ev := lastAudit(t, e.st, "auth.passkey.add"); ev.Meta["label"] != labelWindows {
 		t.Fatalf("add audit meta %v", ev.Meta)
 	}
 
-	if status, body := tryAddPasskey(t, client, e.ts.URL, "again", e.rp, laptop); status != http.StatusBadRequest {
+	if status, body := tryAddPasskey(t, client, e.ts.URL, e.rp, laptop); status != http.StatusBadRequest {
 		t.Fatalf("re-adding the same credential: %d %s", status, body)
 	}
 
@@ -192,35 +259,40 @@ func TestAddSecondPasskeyAndKeepLast(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(passkeys) != 2 || passkeys[1].Label != "Work laptop" || passkeys[1].LastUsedAt != nil {
+	if len(passkeys) != 2 || passkeys[0].Label != labelIPhone || passkeys[1].Label != labelWindows || passkeys[1].LastUsedAt != nil {
 		t.Fatalf("passkeys after add: %+v", passkeys)
 	}
 
-	// Sign in on a fresh client with the laptop passkey only.
+	// Sign in on a fresh client with the laptop passkey only; its Go
+	// User-Agent must not change the stored label.
 	laptopClient, laptopNoFollow := newClient()
 	login(t, laptopClient, e.ts.URL, "mgr@example.com", e.rp, laptop.auth, laptop.cred)
 	passkeys, _ = e.st.ListPasskeys(ctx, u.ID)
 	if passkeys[1].LastUsedAt == nil || passkeys[0].LastUsedAt != nil {
 		t.Fatalf("last_used_at after laptop login: %+v", passkeys)
 	}
-
-	page, err := laptopClient.Get(e.ts.URL + "/account")
-	if err != nil {
-		t.Fatal(err)
+	if passkeys[0].Label != labelIPhone || passkeys[1].Label != labelWindows {
+		t.Fatalf("labels changed by sign-in: %+v", passkeys)
 	}
-	body, _ := io.ReadAll(page.Body)
-	page.Body.Close()
-	if !strings.Contains(string(body), "Work laptop") || !strings.Contains(string(body), "Unnamed passkey") {
+
+	page, body := pageBody(t, laptopClient, e.ts.URL+"/account")
+	if !strings.Contains(body, labelIPhone) || !strings.Contains(body, labelWindows) {
 		t.Fatalf("account page missing passkeys: %s", body)
+	}
+	if strings.Contains(body, `name="label"`) || strings.Contains(body, "/rename") {
+		t.Fatalf("account page still offers renaming: %s", body)
+	}
+	if got := page.Header.Get("Accept-CH"); !strings.Contains(got, "Sec-CH-UA-Platform-Version") || !strings.Contains(got, "Sec-CH-UA-Model") {
+		t.Fatalf("account Accept-CH %q", got)
 	}
 
 	phoneKey := passkeys[0].Key()
 	res := postForm(t, laptopNoFollow, e.ts.URL+"/account/passkeys/"+phoneKey+"/rename", url.Values{"label": {"Old phone"}})
-	if res.StatusCode != http.StatusSeeOther {
-		t.Fatalf("rename status %d", res.StatusCode)
+	if res.StatusCode != http.StatusNotFound && res.StatusCode != http.StatusMethodNotAllowed {
+		t.Fatalf("rename status %d, want 404 or 405", res.StatusCode)
 	}
-	if ev := lastAudit(t, e.st, "auth.passkey.rename"); ev.Meta["old_label"] != "" || ev.Meta["label"] != "Old phone" {
-		t.Fatalf("rename audit meta %v", ev.Meta)
+	if passkeys, _ = e.st.ListPasskeys(ctx, u.ID); passkeys[0].Label != labelIPhone {
+		t.Fatalf("label after rename attempt: %+v", passkeys)
 	}
 
 	// Removing the phone passkey from the laptop signs out the phone session.
@@ -237,7 +309,7 @@ func TestAddSecondPasskeyAndKeepLast(t *testing.T) {
 	if !signedIn(t, laptopNoFollow, e.ts.URL) {
 		t.Fatal("the removing session must stay signed in")
 	}
-	if ev := lastAudit(t, e.st, "auth.passkey.remove"); ev.Meta["label"] != "Old phone" {
+	if ev := lastAudit(t, e.st, "auth.passkey.remove"); ev.Meta["label"] != labelIPhone {
 		t.Fatalf("remove audit meta %v", ev.Meta)
 	}
 
@@ -256,9 +328,45 @@ func TestAddSecondPasskeyAndKeepLast(t *testing.T) {
 	_, _, otherNoFollow := e.enroll(t, store.CreateUserInput{
 		Email: "other@example.com", Role: domain.RoleSafeHouseManager, SafeHouseID: &e.house.ID, RHLID: &e.house.RHLID,
 	}, other)
-	res = postForm(t, otherNoFollow, e.ts.URL+"/account/passkeys/"+laptopKey+"/rename", url.Values{"label": {"mine"}})
+	res = postForm(t, otherNoFollow, e.ts.URL+"/account/passkeys/"+laptopKey+"/delete", nil)
 	if res.StatusCode != http.StatusNotFound {
-		t.Fatalf("cross-user rename status %d", res.StatusCode)
+		t.Fatalf("cross-user delete status %d", res.StatusCode)
+	}
+}
+
+func TestInvitePageRequestsClientHints(t *testing.T) {
+	e := newPasskeyEnv(t)
+	_, token, err := e.st.CreateUserWithInvite(context.Background(), store.CreateUserInput{Email: "rhc@example.com", Role: domain.RoleRHCAdmin}, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, _ := pageBody(t, http.DefaultClient, e.ts.URL+"/invite/"+token)
+	if res.StatusCode != 200 {
+		t.Fatalf("invite page status %d", res.StatusCode)
+	}
+	got := res.Header.Get("Accept-CH")
+	for _, h := range []string{"Sec-CH-UA-Platform", "Sec-CH-UA-Platform-Version", "Sec-CH-UA-Model", "Sec-CH-UA-Mobile"} {
+		if !strings.Contains(got, h) {
+			t.Fatalf("invite Accept-CH %q missing %s", got, h)
+		}
+	}
+}
+
+func TestLegacyPasskeyLabelFromAAGUID(t *testing.T) {
+	e := newPasskeyEnv(t)
+	ctx := context.Background()
+	u, _, _ := e.enroll(t, store.CreateUserInput{Email: "rhc@example.com", Role: domain.RoleRHCAdmin}, newIPhone(t))
+	if _, err := e.st.DB().ExecContext(ctx, `UPDATE webauthn_credentials SET label = '' WHERE user_id = $1`, u.ID); err != nil {
+		t.Fatal(err)
+	}
+	if passkeys, _ := e.st.ListPasskeys(ctx, u.ID); len(passkeys) != 1 || passkeys[0].Label != "Apple Passwords" {
+		t.Fatalf("legacy label: %+v", passkeys)
+	}
+	if _, err := e.st.DB().ExecContext(ctx, `UPDATE webauthn_credentials SET aaguid = $2 WHERE user_id = $1`, u.ID, make([]byte, 16)); err != nil {
+		t.Fatal(err)
+	}
+	if passkeys, _ := e.st.ListPasskeys(ctx, u.ID); passkeys[0].Label != "Passkey" {
+		t.Fatalf("legacy label without AAGUID: %+v", passkeys)
 	}
 }
 
@@ -266,7 +374,7 @@ func TestAdminEmailChangeAndPasskeyRemoval(t *testing.T) {
 	e := newPasskeyEnv(t)
 	ctx := context.Background()
 	_, _, adminNF := e.enroll(t, store.CreateUserInput{Email: "rhc@example.com", Role: domain.RoleRHCAdmin}, newDevice())
-	phone := newDevice()
+	phone := newPixel(t)
 	mgr, _, mgrNF := e.enroll(t, store.CreateUserInput{
 		Email: "mgr@example.com", Role: domain.RoleSafeHouseManager, SafeHouseID: &e.house.ID, RHLID: &e.house.RHLID,
 	}, phone)
@@ -324,6 +432,7 @@ func TestAdminEmailChangeAndPasskeyRemoval(t *testing.T) {
 	body, _ = io.ReadAll(edit.Body)
 	edit.Body.Close()
 	if edit.StatusCode != 200 || !strings.Contains(string(body), "/passkeys/"+passkeys[0].Key()+"/delete") ||
+		!strings.Contains(string(body), labelPixel) ||
 		!strings.Contains(string(body), `value="new.mgr@example.com"`) {
 		t.Fatalf("edit page %d missing passkey or email form: %s", edit.StatusCode, body)
 	}

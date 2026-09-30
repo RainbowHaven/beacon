@@ -62,6 +62,9 @@ function publicKeyCredentialToJSON(cred) {
       userHandle: cred.response.userHandle
         ? bufToB64url(cred.response.userHandle)
         : undefined,
+      transports: cred.response.getTransports
+        ? cred.response.getTransports()
+        : undefined,
     },
     clientExtensionResults,
   };
@@ -99,12 +102,12 @@ export async function enrollPasskey(token) {
   return res.json();
 }
 
-export async function addPasskey(label) {
+export async function addPasskey() {
   const creation = await postJSON('/account/passkeys/begin');
   const publicKey = reviveCreationOptions(creation.publicKey);
   const cred = await navigator.credentials.create({ publicKey });
   const payload = publicKeyCredentialToJSON(cred);
-  const res = await fetch('/account/passkeys/finish?label=' + encodeURIComponent(label || ''), {
+  const res = await fetch('/account/passkeys/finish', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',

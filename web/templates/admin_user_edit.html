@@ -51,7 +51,7 @@
 {{range .Passkeys}}
   <li class="record-card">
     <div class="record-main">
-      <div class="record-title">{{if .Label}}{{.Label}}{{else}}Unnamed passkey{{end}}</div>
+      <div class="record-title">{{.Label}}</div>
       <div class="record-meta muted">Added {{.CreatedAt.UTC.Format "Jan 2, 2006"}} · Last used {{with .LastUsedAt}}{{.UTC.Format "Jan 2, 2006"}}{{else}}never{{end}}</div>
     </div>
     <div class="actions record-actions">

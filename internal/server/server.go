@@ -201,7 +201,6 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /account", s.requireLogin(http.HandlerFunc(s.handleAccount)))
 	mux.Handle("POST /account/passkeys/begin", s.requireLogin(http.HandlerFunc(s.handleAddPasskeyBegin)))
 	mux.Handle("POST /account/passkeys/finish", s.requireLogin(http.HandlerFunc(s.handleAddPasskeyFinish)))
-	mux.Handle("POST /account/passkeys/{cred}/rename", s.requireLogin(http.HandlerFunc(s.handleRenamePasskey)))
 	mux.Handle("POST /account/passkeys/{cred}/delete", s.requireLogin(http.HandlerFunc(s.handleDeletePasskey)))
 
 	mux.Handle("GET /admin/users", s.requireRole(domain.RoleRHCAdmin, http.HandlerFunc(s.handleAdminUsers)))
