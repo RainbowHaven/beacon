@@ -232,6 +232,12 @@ func TestInviteRegisterLoginLock(t *testing.T) {
 
 func register(t *testing.T, client *http.Client, base, token string, rp virtualwebauthn.RelyingParty, authenticator *virtualwebauthn.Authenticator, credential *virtualwebauthn.Credential) {
 	t.Helper()
+	registerWithHeader(t, client, base, token, rp, authenticator, credential, nil)
+}
+
+// registerWithHeader sends hdr (User-Agent, Client Hints) on the finish request.
+func registerWithHeader(t *testing.T, client *http.Client, base, token string, rp virtualwebauthn.RelyingParty, authenticator *virtualwebauthn.Authenticator, credential *virtualwebauthn.Credential, hdr http.Header) {
+	t.Helper()
 	beginBody, _ := json.Marshal(map[string]string{"token": token})
 	res, err := client.Post(base+"/webauthn/register/begin?token="+url.QueryEscape(token), "application/json", bytes.NewReader(beginBody))
 	if err != nil {
@@ -257,6 +263,9 @@ func register(t *testing.T, client *http.Client, base, token string, rp virtualw
 	}
 	attestationResponse := virtualwebauthn.CreateAttestationResponse(rp, *authenticator, *credential, *parsed)
 	req, _ := http.NewRequest(http.MethodPost, base+"/webauthn/register/finish?token="+url.QueryEscape(token), strings.NewReader(attestationResponse))
+	for k, v := range hdr {
+		req.Header[k] = v
+	}
 	req.Header.Set("Content-Type", "application/json")
 	res2, err := client.Do(req)
 	if err != nil {

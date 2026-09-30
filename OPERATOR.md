@@ -56,7 +56,7 @@ RHC admins should always have a backup passkey, and there should be at least **t
 2. All sessions end immediately and the user cannot sign in, even with a valid passkey.
 3. To restore access later, click **New invite** (this unlocks the account, removes the old passkeys, and issues a fresh invite link).
 
-Passkey removals, renames, additions, locks, and invites all appear in **Audit** (`auth.passkey.*`, `admin.passkey.remove`, `admin.lock`, `admin.reinvite`).
+Passkey removals, additions, locks, and invites all appear in **Audit** (`auth.passkey.*`, `admin.passkey.remove`, `admin.lock`, `admin.reinvite`).
 
 ## Change a user’s email
 
