@@ -107,4 +107,8 @@ func TestSafeHouseApprovedSleepingPlaces(t *testing.T) {
 	if _, err := st.CreateSafeHouseWithCapacity(ctx, rhl.ID, "House B", "CAD", &zero, true); err == nil {
 		t.Fatal("expected check violation for zero sleeping places")
 	}
+	tooMany := 101
+	if _, err := st.CreateSafeHouseWithCapacity(ctx, rhl.ID, "House C", "CAD", &tooMany, true); err == nil {
+		t.Fatal("expected check violation for more than 100 sleeping places")
+	}
 }

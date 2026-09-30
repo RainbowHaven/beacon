@@ -68,7 +68,7 @@
                   {{end}}
                 </select>
               </label>
-              <label>Sleeping places <input type="number" name="approved_sleeping_places" value="{{with $house.ApprovedSleepingPlaces}}{{.}}{{end}}" min="1" max="10000" step="1" placeholder="Not set" style="width:7rem"></label>
+              <label>Sleeping places <input type="number" name="approved_sleeping_places" value="{{with $house.ApprovedSleepingPlaces}}{{.}}{{end}}" min="1" max="100" step="1" placeholder="Not set" style="width:7rem"></label>
               <label>Status
                 <select name="active">
                   <option value="true" {{if $house.Active}}selected{{end}}>Active</option>
@@ -100,7 +100,7 @@
         {{range .Currencies}}<option value="{{.}}" {{if eq . "CAD"}}selected{{end}}>{{.}}</option>{{end}}
       </select>
     </label>
-    <label>Approved sleeping places <input type="number" name="approved_sleeping_places" min="1" max="10000" step="1" placeholder="Optional"></label>
+    <label>Approved sleeping places <input type="number" name="approved_sleeping_places" min="1" max="100" step="1" placeholder="Optional"></label>
     <input type="hidden" name="active" value="true">
     <button type="submit">Add safe house</button>
   </form>

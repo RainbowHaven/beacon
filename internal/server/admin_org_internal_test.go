@@ -12,12 +12,12 @@ func TestParseSleepingPlaces(t *testing.T) {
 		{"  ", 0, true},
 		{"1", 1, true},
 		{" 12 ", 12, true},
-		{"10000", 10000, true},
+		{"100", 100, true},
 		{"0", 0, false},
 		{"-3", 0, false},
 		{"2.5", 0, false},
 		{"abc", 0, false},
-		{"10001", 0, false},
+		{"101", 0, false},
 		{"99999999999", 0, false},
 	}
 	for _, c := range cases {
