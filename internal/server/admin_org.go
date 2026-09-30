@@ -49,7 +49,7 @@ func formActive(r *http.Request) bool {
 	return r.FormValue("active") != "false"
 }
 
-const maxSleepingPlaces = 10000
+const maxSleepingPlaces = 100
 
 // parseSleepingPlaces reads an optional positive whole number; blank means not set.
 func parseSleepingPlaces(s string) (*int, bool) {
