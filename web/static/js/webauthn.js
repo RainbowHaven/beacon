@@ -99,6 +99,21 @@ export async function enrollPasskey(token) {
   return res.json();
 }
 
+export async function addPasskey(label) {
+  const creation = await postJSON('/account/passkeys/begin');
+  const publicKey = reviveCreationOptions(creation.publicKey);
+  const cred = await navigator.credentials.create({ publicKey });
+  const payload = publicKeyCredentialToJSON(cred);
+  const res = await fetch('/account/passkeys/finish?label=' + encodeURIComponent(label || ''), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 export async function loginWithPasskey(email) {
   const assertion = await postJSON('/webauthn/login/begin', { email });
   const publicKey = reviveRequestOptions(assertion.publicKey);
