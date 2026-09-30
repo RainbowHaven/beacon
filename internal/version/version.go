@@ -8,9 +8,9 @@ import (
 
 // Set at link time via -ldflags, e.g.
 //
-//	-X github.com/magiconair/beacon/internal/version.Version=1.2.3
-//	-X github.com/magiconair/beacon/internal/version.Commit=abc1234
-//	-X github.com/magiconair/beacon/internal/version.Date=2026-09-29T14:32Z
+//	-X github.com/RainbowHaven/beacon/internal/version.Version=1.2.3
+//	-X github.com/RainbowHaven/beacon/internal/version.Commit=abc1234
+//	-X github.com/RainbowHaven/beacon/internal/version.Date=2026-09-29T14:32Z
 var (
 	Version = "0.0.0"
 	Commit  = "unknown"

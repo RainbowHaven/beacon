@@ -15,10 +15,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/RainbowHaven/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/server"
+	"github.com/RainbowHaven/beacon/internal/store"
 	"github.com/descope/virtualwebauthn"
-	"github.com/magiconair/beacon/internal/domain"
-	"github.com/magiconair/beacon/internal/server"
-	"github.com/magiconair/beacon/internal/store"
 )
 
 type passkeyEnv struct {

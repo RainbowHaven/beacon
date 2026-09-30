@@ -14,9 +14,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/RainbowHaven/beacon/internal/migrate"
+	"github.com/RainbowHaven/beacon/internal/server"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/magiconair/beacon/internal/migrate"
-	"github.com/magiconair/beacon/internal/server"
 )
 
 func main() {

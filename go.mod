@@ -1,4 +1,4 @@
-module github.com/magiconair/beacon
+module github.com/RainbowHaven/beacon
 
 go 1.27.0
 

@@ -7,8 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/magiconair/beacon/internal/demographics"
-	"github.com/magiconair/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/demographics"
+	"github.com/RainbowHaven/beacon/internal/domain"
 )
 
 const day = 24 * time.Hour

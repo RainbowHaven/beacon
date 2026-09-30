@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/magiconair/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/domain"
 )
 
 // DueDays is how many days after the end of a month its data are due. The

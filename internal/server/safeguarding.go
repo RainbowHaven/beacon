@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/magiconair/beacon/internal/domain"
-	"github.com/magiconair/beacon/internal/store"
-	"github.com/magiconair/beacon/web"
+	"github.com/RainbowHaven/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/store"
+	"github.com/RainbowHaven/beacon/web"
 )
 
 // canAccessSafeguarding decides who may see and record safeguarding concerns

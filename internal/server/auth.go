@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/RainbowHaven/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/store"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/magiconair/beacon/internal/domain"
-	"github.com/magiconair/beacon/internal/store"
 )
 
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/magiconair/beacon/internal/demographics"
-	"github.com/magiconair/beacon/internal/domain"
-	"github.com/magiconair/beacon/internal/store"
+	"github.com/RainbowHaven/beacon/internal/demographics"
+	"github.com/RainbowHaven/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/store"
 )
 
 func (s *Server) requireLogin(next http.Handler) http.Handler {

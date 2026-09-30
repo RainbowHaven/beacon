@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/magiconair/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/domain"
 )
 
 func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {

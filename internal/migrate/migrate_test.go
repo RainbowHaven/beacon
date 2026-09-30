@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/RainbowHaven/beacon/internal/migrate"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/magiconair/beacon/internal/migrate"
 )
 
 func testDB(t *testing.T) *sql.DB {

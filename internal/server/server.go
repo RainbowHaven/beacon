@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RainbowHaven/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/store"
+	"github.com/RainbowHaven/beacon/internal/version"
+	"github.com/RainbowHaven/beacon/internal/wauser"
+	"github.com/RainbowHaven/beacon/web"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/magiconair/beacon/internal/domain"
-	"github.com/magiconair/beacon/internal/store"
-	"github.com/magiconair/beacon/internal/version"
-	"github.com/magiconair/beacon/internal/wauser"
-	"github.com/magiconair/beacon/web"
 )
 
 const (

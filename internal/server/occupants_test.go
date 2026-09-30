@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/magiconair/beacon/internal/domain"
-	"github.com/magiconair/beacon/internal/server"
-	"github.com/magiconair/beacon/internal/store"
+	"github.com/RainbowHaven/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/server"
+	"github.com/RainbowHaven/beacon/internal/store"
 )
 
 func TestOccupantCreateScoped(t *testing.T) {

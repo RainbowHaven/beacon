@@ -3,7 +3,7 @@ package version_test
 import (
 	"testing"
 
-	"github.com/magiconair/beacon/internal/version"
+	"github.com/RainbowHaven/beacon/internal/version"
 )
 
 func TestLineDefaults(t *testing.T) {

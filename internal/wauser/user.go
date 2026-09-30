@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/RainbowHaven/beacon/internal/domain"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/magiconair/beacon/internal/domain"
 )
 
 // User adapts a domain user + credentials to webauthn.User.

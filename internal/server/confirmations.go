@@ -8,9 +8,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/magiconair/beacon/internal/domain"
-	"github.com/magiconair/beacon/internal/report"
-	"github.com/magiconair/beacon/internal/store"
+	"github.com/RainbowHaven/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/report"
+	"github.com/RainbowHaven/beacon/internal/store"
 )
 
 const historyMonths = 12

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/magiconair/beacon/internal/store"
+	"github.com/RainbowHaven/beacon/internal/store"
 )
 
 func TestRHLCodeUniqueAndNormalized(t *testing.T) {
