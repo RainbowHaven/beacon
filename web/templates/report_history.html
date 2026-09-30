@@ -1,0 +1,30 @@
+{{template "layout_start" .}}
+<h1>Reporting history</h1>
+<p>{{.House.Name}} · {{if .RHL.Code}}{{.RHL.Code}} · {{end}}{{.RHL.Name}}</p>
+<p class="muted">The last {{len .Statuses}} months that have ended. Monthly data are due by the end of the seventh day after the month (UTC).</p>
+
+<div class="table-scroll">
+<table>
+  <thead>
+    <tr>
+      <th>Month</th>
+      <th>Status</th>
+      <th>Days overdue</th>
+      <th>Latest confirmation</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {{range .Statuses}}
+    <tr>
+      <td>{{.MonthLabel}}</td>
+      <td><span class="report-status reporting-{{.State}}">{{.State.Label}}</span></td>
+      <td>{{if .Overdue}}{{.DaysOverdue}}{{else}}—{{end}}</td>
+      <td>{{if .Confirmation}}{{.Confirmation.ConfirmedAt.Format "2006-01-02 15:04"}} UTC by {{.ConfirmedBy}}{{else}}—{{end}}</td>
+      <td><a href="/reports?month={{.MonthKey}}&amp;house={{$.House.ID}}">Report</a></td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
+{{template "layout_end" .}}

@@ -23,6 +23,7 @@ type houseReport struct {
 	Expenses     reportExpenses
 	Safeguarding reportSafeguarding
 	Operations   []domain.OperationalIssue
+	Reporting    reportConfirmation
 	GeneratedAt  time.Time
 }
 
@@ -129,6 +130,9 @@ func (s *Server) handleReports(w http.ResponseWriter, r *http.Request) {
 		"SelectedHouseID": int64(0),
 		"Error":           q.Get("error"),
 	}
+	if q.Get("ok") == "confirmed" {
+		data["Flash"] = "Data entry confirmed complete."
+	}
 	if selected != nil {
 		rep, err := s.buildHouseReport(r.Context(), *selected, month, now)
 		if err != nil {
@@ -136,6 +140,7 @@ func (s *Server) handleReports(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "failed to build report", http.StatusInternalServerError)
 			return
 		}
+		rep.Reporting.CanConfirm = rep.Reporting.Fingerprint != "" && s.canConfirmMonth(u, *selected)
 		data["SelectedHouseID"] = selected.ID
 		data["Report"] = rep
 	} else if len(houses) > 0 {
@@ -218,6 +223,10 @@ func (s *Server) buildHouseReport(ctx context.Context, house domain.SafeHouse, m
 	if err != nil {
 		return houseReport{}, err
 	}
+	reporting, err := s.reportConfirmationFor(ctx, house.ID, month, now)
+	if err != nil {
+		return houseReport{}, err
+	}
 	return houseReport{
 		RHL:          rhl,
 		House:        house,
@@ -225,6 +234,7 @@ func (s *Server) buildHouseReport(ctx context.Context, house domain.SafeHouse, m
 		Expenses:     summarizeExpenses(totals),
 		Safeguarding: reportSafeguarding{Reported: reported, Concerns: concerns},
 		Operations:   issues,
+		Reporting:    reporting,
 		GeneratedAt:  now,
 	}, nil
 }
@@ -437,6 +447,7 @@ func csvHeaderRows(rep houseReport) [][]string {
 		{"Safe house", rep.House.Name},
 		{"Reporting month", m.MonthKey()},
 		{"Status", status},
+		{"Data entry", rep.Reporting.Status.Summary()},
 		{"Approved sleeping places", places},
 		{"Generated", rep.GeneratedAt.Format("2006-01-02 15:04") + " UTC"},
 	}

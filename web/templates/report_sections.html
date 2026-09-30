@@ -16,6 +16,22 @@
 </section>
 {{end}}
 
+{{define "reporting_tone"}}{{if or (eq .State "confirmed") (eq .State "not_yet_due")}}flash notice{{else if or (eq .State "changed") .Overdue}}flash error{{else}}flash{{end}}{{end}}
+
+{{define "report_confirmation"}}
+<section class="report-section report-confirmation">
+  <p class="{{template "reporting_tone" .Reporting.Status}}" role="status">{{.Reporting.Status.Summary}}</p>
+  {{if and .Reporting.CanConfirm (ne .Reporting.Status.State "confirmed")}}
+  <form method="post" action="/reports/{{.House.ID}}/{{.Monthly.MonthKey}}/confirm" class="actions no-print">
+    <input type="hidden" name="fingerprint" value="{{.Reporting.Fingerprint}}">
+    <button type="submit">Confirm data entry complete</button>
+    <span class="muted">Confirm once every resident, expense, safeguarding concern and operational problem for {{.Monthly.MonthLabel}} is recorded.</span>
+  </form>
+  {{end}}
+  <p class="muted no-print">Reports have no draft or final version. To correct the report, correct the records; if that changes a confirmed month, it must be confirmed again. <a href="/reports/{{.House.ID}}/history">Reporting history</a></p>
+</section>
+{{end}}
+
 {{define "report_summary"}}
 <section class="report-section">
   <h2>Occupancy</h2>

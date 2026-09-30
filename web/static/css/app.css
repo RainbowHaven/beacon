@@ -549,6 +549,8 @@ body.handoff {
   font-weight: 600;
   vertical-align: middle;
 }
+.report-status.reporting-overdue,
+.report-status.reporting-changed { border-color: var(--danger); color: var(--danger); }
 .report-facts {
   display: grid;
   grid-template-columns: max-content 1fr;

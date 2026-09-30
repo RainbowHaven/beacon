@@ -86,7 +86,7 @@ func TestLayoutNavRenders(t *testing.T) {
 
 	// The phone bar keeps Occupants, Expenses, Reports and More; the rest is
 	// sidebar-only and repeated in the More panel.
-	for _, path := range []string{"/operations", "/safeguarding", "/admin/users", "/admin/houses", "/admin/audit"} {
+	for _, path := range []string{"/operations", "/safeguarding", "/dashboard", "/admin/users", "/admin/houses", "/admin/audit"} {
 		if !strings.Contains(html, `<a class="nav-desktop-only" href="`+path+`"`) {
 			t.Fatalf("%s should be sidebar-only in the bar", path)
 		}
@@ -105,8 +105,28 @@ func TestLayoutNavRenders(t *testing.T) {
 		before, _, _ := strings.Cut(after, "</details>")
 		return before
 	}
-	if p := panel(html); !strings.Contains(p, `href="/operations"`) || !strings.Contains(p, `href="/safeguarding"`) || !strings.Contains(p, `href="/admin/users" aria-current="page"`) {
+	if p := panel(html); !strings.Contains(p, `href="/operations"`) || !strings.Contains(p, `href="/safeguarding"`) || !strings.Contains(p, `href="/dashboard"`) || !strings.Contains(p, `href="/admin/users" aria-current="page"`) {
 		t.Fatalf("admin More panel %s", p)
+	}
+
+	buf.Reset()
+	data = map[string]any{
+		"Title": "Dashboard",
+		"Path":  "/dashboard",
+		"User":  map[string]any{"Email": "rhl@example.com", "Role": "rhl_admin"},
+	}
+	if err := tmpl.ExecuteTemplate(&buf, "admin_users.html", data); err != nil {
+		t.Fatal(err)
+	}
+	rhl := buf.String()
+	if !strings.Contains(rhl, `<a class="nav-desktop-only" href="/dashboard" aria-current="page">Dashboard</a>`) {
+		t.Fatal("RHL admin should see Dashboard in the sidebar")
+	}
+	if !strings.Contains(rhl, `<summary aria-current="page">More</summary>`) || !strings.Contains(panel(rhl), `href="/dashboard" aria-current="page"`) {
+		t.Fatalf("RHL admin More panel %s", panel(rhl))
+	}
+	if nav, _, _ := strings.Cut(rhl, "</nav>"); strings.Contains(nav, "/admin/") {
+		t.Fatal("RHL admin nav should not link to admin pages")
 	}
 
 	buf.Reset()
@@ -126,8 +146,8 @@ func TestLayoutNavRenders(t *testing.T) {
 	if !strings.Contains(p, `href="/operations"`) || !strings.Contains(p, `href="/safeguarding" aria-current="page"`) {
 		t.Fatalf("manager More panel %s", p)
 	}
-	if nav, _, _ := strings.Cut(mgr, "</nav>"); strings.Contains(nav, "/admin/") {
-		t.Fatal("manager nav should not link to admin pages")
+	if nav, _, _ := strings.Cut(mgr, "</nav>"); strings.Contains(nav, "/admin/") || strings.Contains(nav, "/dashboard") {
+		t.Fatal("manager nav should not link to admin pages or the dashboard")
 	}
 
 	buf.Reset()

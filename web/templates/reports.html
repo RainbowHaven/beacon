@@ -7,6 +7,7 @@
     <button type="button" class="btn" onclick="window.print()">Print</button>
   </div>
   <h1 class="print-only">Monthly report</h1>
+  {{if .Flash}}<p class="flash no-print">{{.Flash}}</p>{{end}}
   {{if .Error}}<p class="flash error no-print">{{.Error}}</p>{{end}}
   <p class="muted no-print">Built from resident records, expenses, safeguarding tracking records and operational problems as they are right now. No private key required. Residents are listed by nickname only.</p>
 
@@ -29,6 +30,7 @@
 
   {{if .Report}}
     {{template "report_header" .Report}}
+    {{template "report_confirmation" .Report}}
     {{template "report_summary" .Report}}
     {{template "report_demographics" .Report}}
     {{template "report_residents" .Report}}

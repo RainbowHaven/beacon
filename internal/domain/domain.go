@@ -326,6 +326,19 @@ func IncidentID(rhlCode string, year, seq int) string {
 	return fmt.Sprintf("Incident-%s-%d-%d", rhlCode, year, seq)
 }
 
+// MonthConfirmation records that data entry for a safe house and reporting
+// month was confirmed complete. Fingerprint is the month's data fingerprint at
+// that time.
+type MonthConfirmation struct {
+	ID              int64
+	SafeHouseID     int64
+	Month           time.Time // first day of the month, UTC
+	Fingerprint     string
+	ConfirmedBy     *int64
+	ConfirmedByName string // display name, or email when there is none
+	ConfirmedAt     time.Time
+}
+
 const (
 	OperationalIssueOpen     = "open"
 	OperationalIssueResolved = "resolved"
