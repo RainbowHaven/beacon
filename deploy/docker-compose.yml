@@ -23,13 +23,13 @@ services:
   # Prefer: Railway → New → Database → PostgreSQL, then set app DATABASE_URL
   # to ${{Postgres.DATABASE_URL}} instead of this service.
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: beacon
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a strong password}
       POSTGRES_DB: beacon
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
 
 volumes:
   pgdata:

@@ -4,7 +4,7 @@
 
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: beacon
       POSTGRES_PASSWORD: beacon
@@ -17,7 +17,7 @@ services:
       timeout: 3s
       retries: 10
     volumes:
-      - beacon_pg:/var/lib/postgresql/data
+      - beacon_pg18:/var/lib/postgresql
 
   app:
     build: .
@@ -37,4 +37,4 @@ services:
         condition: service_healthy
 
 volumes:
-  beacon_pg:
+  beacon_pg18:
