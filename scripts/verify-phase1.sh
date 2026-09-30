@@ -30,8 +30,8 @@ for _ in $(seq 1 40); do
   sleep 1
 done
 
-go test ./...
-pass "go test ./..."
+go test -p 1 ./...
+pass "go test -p 1 ./..."
 
 # Fresh schema so bootstrap invite is deterministic for this run.
 ./scripts/compose.sh exec -T db psql -U beacon -d beacon -v ON_ERROR_STOP=1 <<'SQL'
