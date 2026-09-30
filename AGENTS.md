@@ -16,7 +16,7 @@ Beacon helps Rainbow Haven run LGBTQ safe houses: occupancy, expenses, and RHC r
 
 ## Stack
 
-- Go 1.27, `cmd/beacon`, Postgres 16
+- Go 1.27, `cmd/beacon`, Postgres 18
 - Compose: `./scripts/compose.sh` (Docker if available, else Podman); prefer `make run` / `make test` / `make verify-phaseN`
 - Verify Phase 0: `make verify` (`./scripts/verify-bootstrap.sh`)
 - Verify Phase 1: `make verify-phase1`
