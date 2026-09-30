@@ -224,6 +224,13 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /expenses", s.requireLogin(http.HandlerFunc(s.handleExpenseCreate)))
 	mux.Handle("GET /expenses/{id}/receipt", s.requireLogin(http.HandlerFunc(s.handleExpenseReceipt)))
 	mux.Handle("POST /expenses/{id}/delete", s.requireLogin(http.HandlerFunc(s.handleExpenseDelete)))
+
+	mux.Handle("GET /operations", s.requireLogin(http.HandlerFunc(s.handleOperationalIssues)))
+	mux.Handle("GET /operations/new", s.requireLogin(http.HandlerFunc(s.handleOperationalIssueNew)))
+	mux.Handle("POST /operations", s.requireLogin(http.HandlerFunc(s.handleOperationalIssueCreate)))
+	mux.Handle("GET /operations/{id}/edit", s.requireLogin(http.HandlerFunc(s.handleOperationalIssueEdit)))
+	mux.Handle("POST /operations/{id}", s.requireLogin(http.HandlerFunc(s.handleOperationalIssueUpdate)))
+
 	mux.Handle("GET /reports", s.requireLogin(http.HandlerFunc(s.handleReports)))
 
 	return mux
