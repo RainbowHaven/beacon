@@ -1,10 +1,13 @@
 package server
 
 import (
+	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/magiconair/beacon/internal/domain"
+	"github.com/magiconair/beacon/internal/store"
 )
 
 func (s *Server) handleAdminHouses(w http.ResponseWriter, r *http.Request) {
@@ -21,7 +24,7 @@ func (s *Server) handleAdminHouses(w http.ResponseWriter, r *http.Request) {
 	}
 	rhlName := map[int64]string{}
 	for _, rhl := range rhls {
-		rhlName[rhl.ID] = rhl.Name
+		rhlName[rhl.ID] = rhl.Label()
 	}
 	type houseRow struct {
 		domain.SafeHouse
@@ -46,6 +49,36 @@ func formActive(r *http.Request) bool {
 	return r.FormValue("active") != "false"
 }
 
+const maxSleepingPlaces = 10000
+
+// parseSleepingPlaces reads an optional positive whole number; blank means not set.
+func parseSleepingPlaces(s string) (*int, bool) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, true
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil || n <= 0 || n > maxSleepingPlaces {
+		return nil, false
+	}
+	return &n, true
+}
+
+// rhlCodeErrorRedirect maps store code errors to a friendly message; ok is false for other errors.
+func rhlCodeErrorRedirect(err error) (string, bool) {
+	switch {
+	case errors.Is(err, store.ErrRHLCodeTaken):
+		return "/admin/houses?error=RHL+code+already+in+use", true
+	case errors.Is(err, store.ErrRHLCodeInvalid):
+		return invalidRHLCodeRedirect, true
+	}
+	return "", false
+}
+
+const invalidRHLCodeRedirect = "/admin/houses?error=RHL+code+must+be+2-12+letters,+digits+or+hyphens"
+
+const invalidSleepingPlacesRedirect = "/admin/houses?error=sleeping+places+must+be+a+whole+number+above+zero"
+
 func (s *Server) handleAdminCreateRHL(w http.ResponseWriter, r *http.Request) {
 	actor, _ := s.currentUser(r)
 	if err := r.ParseForm(); err != nil {
@@ -57,13 +90,24 @@ func (s *Server) handleAdminCreateRHL(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/admin/houses?error=name+required", http.StatusSeeOther)
 		return
 	}
+	code, ok := domain.NormalizeRHLCode(r.FormValue("code"))
+	if !ok {
+		http.Redirect(w, r, invalidRHLCodeRedirect, http.StatusSeeOther)
+		return
+	}
 	active := formActive(r)
-	rhl, err := s.store.CreateRHL(r.Context(), name, active)
+	rhl, err := s.store.CreateRHLWithCode(r.Context(), name, code, active)
 	if err != nil {
+		if to, ok := rhlCodeErrorRedirect(err); ok {
+			http.Redirect(w, r, to, http.StatusSeeOther)
+			return
+		}
 		http.Redirect(w, r, "/admin/houses?error=create+failed", http.StatusSeeOther)
 		return
 	}
-	_ = s.store.Audit(r.Context(), &actor.ID, "admin.rhl.create", "rhl", idString(rhl.ID), map[string]any{"name": rhl.Name})
+	_ = s.store.Audit(r.Context(), &actor.ID, "admin.rhl.create", "rhl", idString(rhl.ID), map[string]any{
+		"name": rhl.Name, "code": rhl.Code, "active": rhl.Active,
+	})
 	http.Redirect(w, r, "/admin/houses?flash=rhl+created", http.StatusSeeOther)
 }
 
@@ -83,12 +127,23 @@ func (s *Server) handleAdminUpdateRHL(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/admin/houses?error=name+required", http.StatusSeeOther)
 		return
 	}
+	code, ok := domain.NormalizeRHLCode(r.FormValue("code"))
+	if !ok {
+		http.Redirect(w, r, invalidRHLCodeRedirect, http.StatusSeeOther)
+		return
+	}
 	active := formActive(r)
-	if err := s.store.UpdateRHL(r.Context(), id, name, active); err != nil {
+	if err := s.store.UpdateRHL(r.Context(), id, name, code, active); err != nil {
+		if to, ok := rhlCodeErrorRedirect(err); ok {
+			http.Redirect(w, r, to, http.StatusSeeOther)
+			return
+		}
 		http.Redirect(w, r, "/admin/houses?error=update+failed", http.StatusSeeOther)
 		return
 	}
-	_ = s.store.Audit(r.Context(), &actor.ID, "admin.rhl.update", "rhl", idString(id), map[string]any{"name": name, "active": active})
+	_ = s.store.Audit(r.Context(), &actor.ID, "admin.rhl.update", "rhl", idString(id), map[string]any{
+		"name": name, "code": code, "active": active,
+	})
 	http.Redirect(w, r, "/admin/houses?flash=rhl+updated", http.StatusSeeOther)
 }
 
@@ -108,14 +163,20 @@ func (s *Server) handleAdminCreateSafeHouse(w http.ResponseWriter, r *http.Reque
 	if !ok {
 		currency = "CAD"
 	}
+	places, ok := parseSleepingPlaces(r.FormValue("approved_sleeping_places"))
+	if !ok {
+		http.Redirect(w, r, invalidSleepingPlacesRedirect, http.StatusSeeOther)
+		return
+	}
 	active := formActive(r)
-	h, err := s.store.CreateSafeHouse(r.Context(), rhlID, name, currency, active)
+	h, err := s.store.CreateSafeHouseWithCapacity(r.Context(), rhlID, name, currency, places, active)
 	if err != nil {
 		http.Redirect(w, r, "/admin/houses?error=create+failed", http.StatusSeeOther)
 		return
 	}
 	_ = s.store.Audit(r.Context(), &actor.ID, "admin.house.create", "safe_house", idString(h.ID), map[string]any{
 		"name": h.Name, "rhl_id": h.RHLID, "currency": h.DefaultCurrency,
+		"approved_sleeping_places": h.ApprovedSleepingPlaces, "active": h.Active,
 	})
 	http.Redirect(w, r, "/admin/houses?flash=house+created", http.StatusSeeOther)
 }
@@ -142,13 +203,18 @@ func (s *Server) handleAdminUpdateSafeHouse(w http.ResponseWriter, r *http.Reque
 		http.Redirect(w, r, "/admin/houses?error=invalid+currency", http.StatusSeeOther)
 		return
 	}
+	places, ok := parseSleepingPlaces(r.FormValue("approved_sleeping_places"))
+	if !ok {
+		http.Redirect(w, r, invalidSleepingPlacesRedirect, http.StatusSeeOther)
+		return
+	}
 	active := formActive(r)
-	if err := s.store.UpdateSafeHouse(r.Context(), id, rhlID, name, currency, active); err != nil {
+	if err := s.store.UpdateSafeHouse(r.Context(), id, rhlID, name, currency, places, active); err != nil {
 		http.Redirect(w, r, "/admin/houses?error=update+failed", http.StatusSeeOther)
 		return
 	}
 	_ = s.store.Audit(r.Context(), &actor.ID, "admin.house.update", "safe_house", idString(id), map[string]any{
-		"name": name, "rhl_id": rhlID, "currency": currency, "active": active,
+		"name": name, "rhl_id": rhlID, "currency": currency, "approved_sleeping_places": places, "active": active,
 	})
 	http.Redirect(w, r, "/admin/houses?flash=house+updated", http.StatusSeeOther)
 }

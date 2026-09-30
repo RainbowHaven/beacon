@@ -8,10 +8,48 @@ import (
 	"github.com/magiconair/beacon/internal/domain"
 )
 
-func (s *Store) GetRHL(ctx context.Context, id int64) (domain.RHL, error) {
+var (
+	ErrRHLCodeTaken   = errors.New("rhl code taken")
+	ErrRHLCodeInvalid = errors.New("rhl code invalid")
+)
+
+const rhlCols = `id, name, COALESCE(code, ''), active`
+
+func scanRHL(row interface{ Scan(dest ...any) error }) (domain.RHL, error) {
 	var r domain.RHL
-	err := s.db.QueryRowContext(ctx, `SELECT id, name, active FROM rhls WHERE id = $1`, id).
-		Scan(&r.ID, &r.Name, &r.Active)
+	err := row.Scan(&r.ID, &r.Name, &r.Code, &r.Active)
+	return r, err
+}
+
+const safeHouseCols = `id, rhl_id, name, default_currency, approved_sleeping_places, active`
+
+func scanSafeHouse(row interface{ Scan(dest ...any) error }) (domain.SafeHouse, error) {
+	var h domain.SafeHouse
+	var places sql.NullInt32
+	if err := row.Scan(&h.ID, &h.RHLID, &h.Name, &h.DefaultCurrency, &places, &h.Active); err != nil {
+		return domain.SafeHouse{}, err
+	}
+	if places.Valid {
+		n := int(places.Int32)
+		h.ApprovedSleepingPlaces = &n
+	}
+	return h, nil
+}
+
+// rhlCodeArg normalizes code and returns nil for "no code" so the column is NULL.
+func rhlCodeArg(code string) (any, error) {
+	c, ok := domain.NormalizeRHLCode(code)
+	if !ok {
+		return nil, ErrRHLCodeInvalid
+	}
+	if c == "" {
+		return nil, nil
+	}
+	return c, nil
+}
+
+func (s *Store) GetRHL(ctx context.Context, id int64) (domain.RHL, error) {
+	r, err := scanRHL(s.db.QueryRowContext(ctx, `SELECT `+rhlCols+` FROM rhls WHERE id = $1`, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.RHL{}, ErrNotFound
 	}
@@ -19,16 +57,35 @@ func (s *Store) GetRHL(ctx context.Context, id int64) (domain.RHL, error) {
 }
 
 func (s *Store) CreateRHL(ctx context.Context, name string, active bool) (domain.RHL, error) {
-	var r domain.RHL
-	err := s.db.QueryRowContext(ctx, `
-		INSERT INTO rhls (name, active) VALUES ($1, $2)
-		RETURNING id, name, active`, name, active).Scan(&r.ID, &r.Name, &r.Active)
+	return s.CreateRHLWithCode(ctx, name, "", active)
+}
+
+// CreateRHLWithCode stores an RHL with an optional code ("" for none).
+func (s *Store) CreateRHLWithCode(ctx context.Context, name, code string, active bool) (domain.RHL, error) {
+	codeArg, err := rhlCodeArg(code)
+	if err != nil {
+		return domain.RHL{}, err
+	}
+	r, err := scanRHL(s.db.QueryRowContext(ctx, `
+		INSERT INTO rhls (name, code, active) VALUES ($1, $2, $3)
+		RETURNING `+rhlCols, name, codeArg, active))
+	if isUniqueViolation(err) {
+		return domain.RHL{}, ErrRHLCodeTaken
+	}
 	return r, err
 }
 
-func (s *Store) UpdateRHL(ctx context.Context, id int64, name string, active bool) error {
-	res, err := s.db.ExecContext(ctx, `UPDATE rhls SET name = $2, active = $3 WHERE id = $1`, id, name, active)
+// UpdateRHL sets name, code ("" clears it) and active.
+func (s *Store) UpdateRHL(ctx context.Context, id int64, name, code string, active bool) error {
+	codeArg, err := rhlCodeArg(code)
 	if err != nil {
+		return err
+	}
+	res, err := s.db.ExecContext(ctx, `UPDATE rhls SET name = $2, code = $3, active = $4 WHERE id = $1`, id, name, codeArg, active)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return ErrRHLCodeTaken
+		}
 		return err
 	}
 	n, _ := res.RowsAffected()
@@ -39,21 +96,25 @@ func (s *Store) UpdateRHL(ctx context.Context, id int64, name string, active boo
 }
 
 func (s *Store) CreateSafeHouse(ctx context.Context, rhlID int64, name, currency string, active bool) (domain.SafeHouse, error) {
-	var h domain.SafeHouse
-	err := s.db.QueryRowContext(ctx, `
-		INSERT INTO safe_houses (rhl_id, name, default_currency, active)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, rhl_id, name, default_currency, active`,
-		rhlID, name, currency, active).
-		Scan(&h.ID, &h.RHLID, &h.Name, &h.DefaultCurrency, &h.Active)
-	return h, err
+	return s.CreateSafeHouseWithCapacity(ctx, rhlID, name, currency, nil, active)
 }
 
-func (s *Store) UpdateSafeHouse(ctx context.Context, id, rhlID int64, name, currency string, active bool) error {
+// CreateSafeHouseWithCapacity stores a safe house with optional approved
+// sleeping places (nil for not set).
+func (s *Store) CreateSafeHouseWithCapacity(ctx context.Context, rhlID int64, name, currency string, sleepingPlaces *int, active bool) (domain.SafeHouse, error) {
+	return scanSafeHouse(s.db.QueryRowContext(ctx, `
+		INSERT INTO safe_houses (rhl_id, name, default_currency, approved_sleeping_places, active)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING `+safeHouseCols,
+		rhlID, name, currency, sleepingPlaces, active))
+}
+
+// UpdateSafeHouse sets all editable fields; nil sleepingPlaces clears the value.
+func (s *Store) UpdateSafeHouse(ctx context.Context, id, rhlID int64, name, currency string, sleepingPlaces *int, active bool) error {
 	res, err := s.db.ExecContext(ctx, `
 		UPDATE safe_houses
-		SET rhl_id = $2, name = $3, default_currency = $4, active = $5
-		WHERE id = $1`, id, rhlID, name, currency, active)
+		SET rhl_id = $2, name = $3, default_currency = $4, approved_sleeping_places = $5, active = $6
+		WHERE id = $1`, id, rhlID, name, currency, sleepingPlaces, active)
 	if err != nil {
 		return err
 	}

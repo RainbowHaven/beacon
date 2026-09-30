@@ -52,13 +52,11 @@ func (s *Store) CountUsers(ctx context.Context) (int, error) {
 }
 
 func (s *Store) EnsureDemoTenancy(ctx context.Context) (domain.RHL, domain.SafeHouse, error) {
-	var rhl domain.RHL
-	err := s.db.QueryRowContext(ctx, `SELECT id, name, active FROM rhls ORDER BY created_at LIMIT 1`).
-		Scan(&rhl.ID, &rhl.Name, &rhl.Active)
+	rhl, err := scanRHL(s.db.QueryRowContext(ctx, `SELECT `+rhlCols+` FROM rhls ORDER BY created_at LIMIT 1`))
 	if errors.Is(err, sql.ErrNoRows) {
-		err = s.db.QueryRowContext(ctx, `
-			INSERT INTO rhls (name, active) VALUES ($1, true) RETURNING id, name, active`,
-			"Rainbow Haven Local (Pilot)").Scan(&rhl.ID, &rhl.Name, &rhl.Active)
+		rhl, err = scanRHL(s.db.QueryRowContext(ctx, `
+			INSERT INTO rhls (name, active) VALUES ($1, true) RETURNING `+rhlCols,
+			"Rainbow Haven Local (Pilot)"))
 		if err != nil {
 			return domain.RHL{}, domain.SafeHouse{}, err
 		}
@@ -66,17 +64,14 @@ func (s *Store) EnsureDemoTenancy(ctx context.Context) (domain.RHL, domain.SafeH
 		return domain.RHL{}, domain.SafeHouse{}, err
 	}
 
-	var house domain.SafeHouse
-	err = s.db.QueryRowContext(ctx, `
-		SELECT id, rhl_id, name, default_currency, active
-		FROM safe_houses WHERE rhl_id = $1 ORDER BY created_at LIMIT 1`, rhl.ID).
-		Scan(&house.ID, &house.RHLID, &house.Name, &house.DefaultCurrency, &house.Active)
+	house, err := scanSafeHouse(s.db.QueryRowContext(ctx, `
+		SELECT `+safeHouseCols+`
+		FROM safe_houses WHERE rhl_id = $1 ORDER BY created_at LIMIT 1`, rhl.ID))
 	if errors.Is(err, sql.ErrNoRows) {
-		err = s.db.QueryRowContext(ctx, `
+		house, err = scanSafeHouse(s.db.QueryRowContext(ctx, `
 			INSERT INTO safe_houses (rhl_id, name, default_currency, active) VALUES ($1, $2, $3, true)
-			RETURNING id, rhl_id, name, default_currency, active`,
-			rhl.ID, "Pilot Safe House", "CAD").
-			Scan(&house.ID, &house.RHLID, &house.Name, &house.DefaultCurrency, &house.Active)
+			RETURNING `+safeHouseCols,
+			rhl.ID, "Pilot Safe House", "CAD"))
 		if err != nil {
 			return domain.RHL{}, domain.SafeHouse{}, err
 		}
@@ -140,15 +135,15 @@ func (s *Store) ListUsers(ctx context.Context) ([]domain.User, error) {
 }
 
 func (s *Store) ListRHLs(ctx context.Context) ([]domain.RHL, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, name, active FROM rhls ORDER BY name`)
+	rows, err := s.db.QueryContext(ctx, `SELECT `+rhlCols+` FROM rhls ORDER BY name`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var out []domain.RHL
 	for rows.Next() {
-		var r domain.RHL
-		if err := rows.Scan(&r.ID, &r.Name, &r.Active); err != nil {
+		r, err := scanRHL(rows)
+		if err != nil {
 			return nil, err
 		}
 		out = append(out, r)
@@ -157,15 +152,15 @@ func (s *Store) ListRHLs(ctx context.Context) ([]domain.RHL, error) {
 }
 
 func (s *Store) ListSafeHouses(ctx context.Context) ([]domain.SafeHouse, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, rhl_id, name, default_currency, active FROM safe_houses ORDER BY name`)
+	rows, err := s.db.QueryContext(ctx, `SELECT `+safeHouseCols+` FROM safe_houses ORDER BY name`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var out []domain.SafeHouse
 	for rows.Next() {
-		var h domain.SafeHouse
-		if err := rows.Scan(&h.ID, &h.RHLID, &h.Name, &h.DefaultCurrency, &h.Active); err != nil {
+		h, err := scanSafeHouse(rows)
+		if err != nil {
 			return nil, err
 		}
 		out = append(out, h)
