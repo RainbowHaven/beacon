@@ -2,14 +2,14 @@
 
 ## Mission
 
-Beacon helps Rainbow Haven run LGBTQ safe houses: occupancy, expenses, and RHC reporting. Resident legal identity is **not** collected in Beacon.
+Beacon helps Rainbow Haven run LGBTQ safe houses: occupancy, expenses, and RHC reporting. For residents Beacon stores a nickname, stay dates, and reporting demographics (country of origin, gender, birth year). Resident legal identity is **not** collected in Beacon.
 
 ## Hard constraints (do not violate)
 
 - **No React. No HTMX.** Server-rendered Go multi-page HTML + minimal vanilla JS only where required (optional receipt image resize).
 - **Auth:** passkeys for daily login; RHC invite / lock / recovery. No standing field passwords as the default path.
-- **PII:** do not collect legal names, UNHCR file numbers, or other government IDs. Nickname + arrival/departure (and later demographics) only.
-- **Monthly reports (headcount, expense totals, receipt counts) must not require any private key.**
+- **PII:** do not collect legal names, UNHCR file numbers, or other government IDs. Nickname + arrival/departure + reporting demographics (country, gender, birth year) only.
+- **Monthly reports (occupancy, demographic aggregates, expense totals, receipt counts) must not require any private key.** The monthly report replaces Document 50 and is built in `internal/report`.
 - **RBAC and authz live in Go**, not in Supabase RLS/PostgREST (Postgres is storage).
 - **Local-first:** every phase must run on a laptop via Compose/`go test`/scripts before cloud deploy.
 - **CLA:** external contributors must sign [CLA.md](./CLA.md); do not pre-create `signatures/version1/cla.json`.
@@ -35,4 +35,4 @@ Beacon helps Rainbow Haven run LGBTQ safe houses: occupancy, expenses, and RHC r
 
 ## Out of MVP
 
-MCP/AI reporting, offline write queue, demographic aggregates, expense approvals, OCR, Shamir key splitting, duress mode.
+MCP/AI reporting, offline write queue, expense approvals, OCR, Shamir key splitting, duress mode.

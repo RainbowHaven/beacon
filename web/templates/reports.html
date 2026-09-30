@@ -3,96 +3,40 @@
   <p class="print-only report-brand">Beacon</p>
   <div class="report-toolbar no-print actions">
     <h1 style="margin:0;flex:1">Monthly report</h1>
+    {{if .Report}}<a class="btn secondary" href="/reports/{{.Report.House.ID}}/{{.Report.Monthly.MonthKey}}.csv">Download CSV</a>{{end}}
     <button type="button" class="btn" onclick="window.print()">Print</button>
   </div>
   <h1 class="print-only">Monthly report</h1>
   {{if .Error}}<p class="flash error no-print">{{.Error}}</p>{{end}}
-  <p class="muted no-print">Headcount is current occupancy. Expense totals cover the selected calendar month — no private key required. Amounts are not converted across currencies.</p>
-  <p class="print-only report-meta"><strong>{{.MonthLabel}}</strong> · printed {{.PrintedOn}}</p>
+  <p class="muted no-print">Built from resident records and expenses as they are right now. No private key required. Residents are listed by nickname only.</p>
 
-  <form method="get" action="/reports" class="actions no-print" style="margin-bottom:1.25rem">
+  <form method="get" action="/reports" class="actions no-print report-picker">
     <label>Month
-      <input type="month" name="month" value="{{.Month}}" required>
+      <input type="month" name="month" value="{{.Month}}" max="{{.MaxMonth}}" required>
     </label>
-    <button type="submit">Update</button>
+    {{if gt (len .Houses) 1}}
+    <label>Safe house
+      <select name="house">
+        <option value="">All houses (overview)</option>
+        {{range .Houses}}
+        <option value="{{.ID}}"{{if eq .ID $.SelectedHouseID}} selected{{end}}>{{.Name}}</option>
+        {{end}}
+      </select>
+    </label>
+    {{end}}
+    <button type="submit">Show</button>
   </form>
 
-  <section class="stack report-section" style="margin-bottom:1.5rem">
-    <h2 style="margin:0;font-size:1.1rem">Headcount (current)</h2>
-    {{if .Headcount}}
-    <ul>
-    {{range .Headcount}}
-      <li><strong>{{.SafeHouseName}}</strong>: {{.Current}}</li>
-    {{end}}
-    </ul>
-    {{else}}
+  {{if .Report}}
+    {{template "report_header" .Report}}
+    {{template "report_summary" .Report}}
+    {{template "report_demographics" .Report}}
+    {{template "report_residents" .Report}}
+    {{template "report_expenses" .Report}}
+  {{else if .Overview}}
+    {{template "report_overview" .}}
+  {{else}}
     <p class="muted">No houses in scope.</p>
-    {{end}}
-  </section>
-
-  <section class="stack report-section">
-    <h2 style="margin:0;font-size:1.1rem">Expenses · {{.MonthLabel}}</h2>
-    {{if .Totals}}
-    <div class="table-scroll">
-    <table>
-      <thead>
-        <tr>
-          <th>House</th>
-          <th>Currency</th>
-          <th>Expenses</th>
-          <th>With receipt</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-      {{range .Totals}}
-        <tr>
-          <td>{{.SafeHouseName}}</td>
-          <td>{{.Currency}}</td>
-          <td>{{.ExpenseCount}}</td>
-          <td>{{.ReceiptCount}}</td>
-          <td>{{.Amount}} {{.Currency}}</td>
-        </tr>
-      {{end}}
-      </tbody>
-    </table>
-    </div>
-    {{if .CurrencyTotals}}
-    <h3 style="margin:1rem 0 0.5rem;font-size:1rem">Totals by currency</h3>
-    <div class="table-scroll">
-    <table>
-      <thead>
-        <tr>
-          <th>Currency</th>
-          <th>Expenses</th>
-          <th>With receipt</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-      {{range .CurrencyTotals}}
-        <tr>
-          <td><strong>{{.Currency}}</strong></td>
-          <td>{{.ExpenseCount}}</td>
-          <td>{{.ReceiptCount}}</td>
-          <td><strong>{{.Amount}} {{.Currency}}</strong></td>
-        </tr>
-      {{end}}
-        <tr>
-          <td colspan="4" class="muted">All rows: {{.SumExpenses}} expenses · {{.SumReceipts}} with receipt (amounts not mixed across currencies)</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-    {{end}}
-    {{else}}
-    <p class="muted">No expense data for this month.</p>
-    {{end}}
-  </section>
-
-  <p class="actions no-print" style="margin-top:1.5rem">
-    <a class="btn secondary" href="/expenses">Expenses</a>
-    <a class="btn secondary" href="/occupants">Occupants</a>
-  </p>
+  {{end}}
 </div>
 {{template "layout_end" .}}

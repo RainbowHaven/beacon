@@ -1,0 +1,178 @@
+{{define "report_status"}}{{if .InProgress}}<span class="report-status">Month in progress</span>{{end}}{{end}}
+
+{{define "report_header"}}
+<section class="report-section report-header">
+  <h2>{{.House.Name}} · {{.Monthly.MonthLabel}} {{template "report_status" .Monthly}}</h2>
+  <dl class="report-facts">
+    <dt>RHL</dt><dd>{{if .RHL.Code}}{{.RHL.Code}} · {{end}}{{.RHL.Name}}</dd>
+    <dt>Safe house</dt><dd>{{.House.Name}}</dd>
+    <dt>Reporting month</dt><dd>{{.Monthly.MonthLabel}}</dd>
+    <dt>Approved sleeping places</dt><dd>{{with .House.ApprovedSleepingPlaces}}{{.}}{{else}}not set{{end}}</dd>
+    <dt>Generated</dt><dd>{{.GeneratedAt.Format "2006-01-02 15:04"}} UTC</dd>
+  </dl>
+  {{if .Monthly.InProgress}}
+  <p class="muted">{{if .Monthly.NightsCounted}}Nights are counted up to and including {{.Monthly.LastCountedDay.Format "2006-01-02"}}. A stay that continues tonight is not counted yet.{{else}}No nights have ended yet this month.{{end}}</p>
+  {{end}}
+</section>
+{{end}}
+
+{{define "report_summary"}}
+<section class="report-section">
+  <h2>Occupancy</h2>
+  <dl class="report-facts">
+    <dt>Residents served</dt><dd>{{.Monthly.ResidentsServed}}</dd>
+    <dt>Bed-nights</dt><dd>{{.Monthly.BedNights}}</dd>
+    <dt>Admissions</dt><dd>{{.Monthly.Admissions}}</dd>
+    <dt>Departures</dt><dd>{{.Monthly.Departures}}</dd>
+    <dt>Average occupancy</dt>
+    <dd>{{with .Monthly.OccupancyText}}{{.}}{{else}}not available{{end}}</dd>
+  </dl>
+  {{if not .House.ApprovedSleepingPlaces}}
+  <p class="muted">Average occupancy needs the approved sleeping places for this house. An RHC admin can set them on the Houses page.</p>
+  {{end}}
+</section>
+{{end}}
+
+{{define "report_demographics"}}
+<section class="report-section">
+  <h2>Residents by gender and country</h2>
+  {{if .Monthly.Residents}}
+  <div class="report-columns">
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Gender</th><th>Residents</th></tr></thead>
+      <tbody>
+      {{range .Monthly.ByGender}}<tr><td>{{.Label}}</td><td>{{.N}}</td></tr>{{end}}
+      </tbody>
+    </table>
+    </div>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Country of origin</th><th>Residents</th></tr></thead>
+      <tbody>
+      {{range .Monthly.ByCountry}}<tr><td>{{.Label}}</td><td>{{.N}}</td></tr>{{end}}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  {{else}}
+  <p class="muted">No residents stayed a night this month.</p>
+  {{end}}
+</section>
+{{end}}
+
+{{define "report_residents"}}
+<section class="report-section report-long">
+  <h2>Residents</h2>
+  {{if .Monthly.Residents}}
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>Nickname</th>
+        <th>Arrival</th>
+        <th>Departure</th>
+        <th>Bed-nights</th>
+        <th>Country of origin</th>
+        <th>Gender</th>
+        <th>Birth year</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .Monthly.Residents}}
+      <tr>
+        <td>{{.Nickname}}</td>
+        <td>{{.ArrivedAt.Format "2006-01-02"}}</td>
+        <td>{{if .DepartedAt}}{{.DepartedAt.Format "2006-01-02"}}{{else}}—{{end}}</td>
+        <td>{{.BedNights}}</td>
+        <td>{{.Country}}</td>
+        <td>{{.Gender}}</td>
+        <td>{{with .BirthYear}}{{.}}{{else}}—{{end}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{else}}
+  <p class="muted">No residents stayed a night this month.</p>
+  {{end}}
+</section>
+{{end}}
+
+{{define "report_expenses"}}
+<section class="report-section">
+  <h2>Expenses</h2>
+  {{if .Expenses.Currencies}}
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>Currency</th>
+        <th>Expenses</th>
+        <th>With receipt</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .Expenses.Currencies}}
+      <tr>
+        <td><strong>{{.Currency}}</strong></td>
+        <td>{{.ExpenseCount}}</td>
+        <td>{{.ReceiptCount}}</td>
+        <td><strong>{{.Amount}} {{.Currency}}</strong></td>
+      </tr>
+    {{end}}
+      <tr>
+        <td colspan="4" class="muted">{{.Expenses.ExpenseCount}} expenses · {{.Expenses.ReceiptCount}} with receipt (amounts are not converted across currencies)</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  {{else}}
+  <p class="muted">No expenses this month.</p>
+  {{end}}
+</section>
+{{end}}
+
+{{define "report_overview"}}
+<section class="report-section">
+  <h2>All houses · {{.OverviewMonth.MonthLabel}} {{template "report_status" .OverviewMonth}}</h2>
+  <p class="muted">Generated {{.GeneratedAt.Format "2006-01-02 15:04"}} UTC. Open a house for residents, demographics and expenses.</p>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>House</th>
+        <th>RHL</th>
+        <th>Residents served</th>
+        <th>Bed-nights</th>
+        <th>Admissions</th>
+        <th>Departures</th>
+        <th>Average occupancy</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .Overview}}
+      <tr>
+        <td><a href="/reports?month={{.Monthly.MonthKey}}&amp;house={{.House.ID}}">{{.House.Name}}</a></td>
+        <td>{{.RHL.Label}}</td>
+        <td>{{.Monthly.ResidentsServed}}</td>
+        <td>{{.Monthly.BedNights}}</td>
+        <td>{{.Monthly.Admissions}}</td>
+        <td>{{.Monthly.Departures}}</td>
+        <td>{{with .Monthly.OccupancyText}}{{.}}{{else}}<span class="muted">not available</span>{{end}}</td>
+      </tr>
+    {{end}}
+      <tr>
+        <td colspan="2"><strong>All houses</strong></td>
+        <td><strong>{{.OverviewTotals.ResidentsServed}}</strong></td>
+        <td><strong>{{.OverviewTotals.BedNights}}</strong></td>
+        <td><strong>{{.OverviewTotals.Admissions}}</strong></td>
+        <td><strong>{{.OverviewTotals.Departures}}</strong></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+{{end}}

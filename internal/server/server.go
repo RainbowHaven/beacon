@@ -244,6 +244,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /operations/{id}", s.requireLogin(http.HandlerFunc(s.handleOperationalIssueUpdate)))
 
 	mux.Handle("GET /reports", s.requireLogin(http.HandlerFunc(s.handleReports)))
+	mux.Handle("GET /reports/{houseID}/{file}", s.requireLogin(http.HandlerFunc(s.handleReportCSV)))
 
 	mux.Handle("GET /safeguarding", s.requireLogin(http.HandlerFunc(s.handleSafeguarding)))
 	mux.Handle("GET /safeguarding/new", s.requireLogin(http.HandlerFunc(s.handleSafeguardingNew)))

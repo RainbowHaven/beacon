@@ -301,6 +301,38 @@ func (s *Store) ListOccupantsByHouses(ctx context.Context, houseIDs []int64, cur
 	return out, rows.Err()
 }
 
+// ListOccupantsInPeriod returns occupants whose stay touches [from, to]
+// inclusive, including those who arrived or departed on either end.
+func (s *Store) ListOccupantsInPeriod(ctx context.Context, houseIDs []int64, from, to time.Time) ([]domain.Occupant, error) {
+	if len(houseIDs) == 0 {
+		return nil, nil
+	}
+	from = from.UTC().Truncate(24 * time.Hour)
+	to = to.UTC().Truncate(24 * time.Hour)
+	in, args := int64InClause(1, houseIDs)
+	args = append(args, from, to)
+	q := fmt.Sprintf(`SELECT %s FROM occupants
+		WHERE safe_house_id IN (%s)
+			AND arrived_at <= $%d::date
+			AND (departed_at IS NULL OR departed_at >= $%d::date)
+		ORDER BY arrived_at, nickname`,
+		occupantCols, in, len(houseIDs)+2, len(houseIDs)+1)
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []domain.Occupant
+	for rows.Next() {
+		o, err := scanOccupant(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, o)
+	}
+	return out, rows.Err()
+}
+
 func (s *Store) MarkOccupantDeparted(ctx context.Context, id int64, departedAt time.Time) error {
 	day := departedAt.UTC().Truncate(24 * time.Hour)
 	res, err := s.db.ExecContext(ctx, `
