@@ -225,6 +225,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /expenses/{id}/receipt", s.requireLogin(http.HandlerFunc(s.handleExpenseReceipt)))
 	mux.Handle("POST /expenses/{id}/delete", s.requireLogin(http.HandlerFunc(s.handleExpenseDelete)))
 	mux.Handle("GET /reports", s.requireLogin(http.HandlerFunc(s.handleReports)))
+	mux.Handle("GET /reports/{houseID}/{file}", s.requireLogin(http.HandlerFunc(s.handleReportCSV)))
 
 	return mux
 }
