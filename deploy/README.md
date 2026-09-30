@@ -60,15 +60,15 @@ security add-generic-password -s RAILWAY_BEACON_PRODUCTION_TOKEN -a "$USER" -w
 
 Install the CLI once: `brew install railway`.
 
-The working tree must be clean. The command creates an annotated tag, stamps `VERSION` / `GIT_COMMIT` / `GIT_DATE` on the service, runs `railway up`, then pushes the tag to `origin`.
+The working tree must be clean. The command creates an annotated tag, pushes it to `origin`, stamps `VERSION` / `GIT_COMMIT` / `GIT_DATE` on the service, then runs `railway up`. A tag records what was published, not that the deploy succeeded: if the deploy fails, the tag stays on `origin` and the next publish uses the next tag.
 
 ## Day-to-day workflow
 
-Staging requires a suffix. The annotated tag is `<latest version>-<suffix>`, where the latest version is the semver from `git describe --tags --abbrev=0` (`v1.2.3` and `v1.2.3-menu.1` both use base `v1.2.3`). With no tags yet, the base is `v0.0.0`.
+Staging requires a suffix. The annotated tag is `<latest version>-staging-<suffix>`, where the latest version is the semver from `git describe --tags --abbrev=0` (`v1.2.3` and `v1.2.3-staging-menu.1` both use base `v1.2.3`). With no tags yet, the base is `v0.0.0`.
 
 ```bash
 make publish-staging SUFFIX=menu.1
-# tag: v1.2.3-menu.1  →  Railway environment staging
+# tag: v1.2.3-staging-menu.1  →  Railway environment staging
 ```
 
 Smoke-test staging (passkeys are host-bound to the staging hostname). Staging is **shared**: the latest publish wins. Staging wipes on **each deploy** (Railway pre-deploy), not on crash restarts of a running container.

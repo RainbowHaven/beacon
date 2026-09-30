@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Tag the current commit and deploy it to Railway.
 #
-# Staging (annotated tag <latest version>-<suffix>, environment staging):
+# Staging (annotated tag <latest version>-staging-<suffix>, environment staging):
 #   make publish-staging SUFFIX=menu.1
 #
 # Production (annotated semver tag, environment production):
@@ -21,17 +21,17 @@ PRODUCTION_TOKEN_SERVICE="RAILWAY_BEACON_PRODUCTION_TOKEN"
 
 TAG=""
 TAGGED=0
-DEPLOYED=0
+PUSHED=0
 
 cleanup() {
   local status=$?
-  if [[ $status -ne 0 && $TAGGED -eq 1 && $DEPLOYED -eq 0 && -n "$TAG" ]]; then
+  if [[ $status -ne 0 && $TAGGED -eq 1 && $PUSHED -eq 0 && -n "$TAG" ]]; then
     git tag -d "$TAG" >/dev/null 2>&1 || true
     echo "Removed local tag ${TAG} after a failed publish." >&2
   fi
 }
 
-# semver_base prints vMAJOR.MINOR.PATCH from a tag like v1.2.3 or v1.2.3-menu.1.
+# semver_base prints vMAJOR.MINOR.PATCH from a tag like v1.2.3 or v1.2.3-staging-menu.1.
 semver_base() {
   local raw="$1"
   if [[ "$raw" =~ ^(v[0-9]+\.[0-9]+\.[0-9]+) ]]; then
@@ -52,14 +52,14 @@ latest_described_tag() {
   printf '%s\n' "$raw"
 }
 
-# staging_tag appends a suffix to the semver of the latest tag reachable from HEAD.
-# v1.2.3 or v1.2.3-older both become v1.2.3-<suffix>.
+# staging_tag appends -staging-<suffix> to the semver of the latest tag reachable from HEAD.
+# v1.2.3 or v1.2.3-staging-older both become v1.2.3-staging-<suffix>.
 staging_tag() {
   local suffix="$1"
   local raw base
   raw="$(latest_described_tag)"
   base="$(semver_base "$raw")"
-  printf '%s-%s\n' "$base" "$suffix"
+  printf '%s-staging-%s\n' "$base" "$suffix"
 }
 
 # highest_release_tag is the greatest exact vMAJOR.MINOR.PATCH tag, or v0.0.0.
@@ -223,6 +223,10 @@ publish_release_main() {
   TAGGED=1
   trap cleanup EXIT
 
+  echo "Pushing ${TAG} to origin..."
+  git push origin "refs/tags/${TAG}"
+  PUSHED=1
+
   commit="$(git rev-parse --short=7 HEAD)"
   date="$(TZ=UTC git show -s --format=%cd --date=format:%Y-%m-%dT%H:%MZ HEAD)"
   version="${TAG#v}"
@@ -232,22 +236,17 @@ publish_release_main() {
   unset token
 
   echo "Setting build version ${version} (${commit}, ${date})"
-  railway variable set --skip-deploys \
-    --service "$RAILWAY_SERVICE" --environment "$environment" \
-    "VERSION=${version}" "GIT_COMMIT=${commit}" "GIT_DATE=${date}"
-
   echo "Deploying ${TAG} to ${environment}..."
-  railway up --ci \
-    --project "$RAILWAY_PROJECT_ID" \
-    --service "$RAILWAY_SERVICE" \
-    --environment "$environment" \
-    --message "$message"
-  DEPLOYED=1
-
-  echo "Pushing ${TAG} to origin..."
-  if ! git push origin "refs/tags/${TAG}"; then
-    echo "Deploy of ${TAG} succeeded, but the tag was not pushed." >&2
-    echo "Push it with: git push origin refs/tags/${TAG}" >&2
+  if ! railway variable set --skip-deploys \
+    --service "$RAILWAY_SERVICE" --environment "$environment" \
+    "VERSION=${version}" "GIT_COMMIT=${commit}" "GIT_DATE=${date}" ||
+    ! railway up --ci \
+      --project "$RAILWAY_PROJECT_ID" \
+      --service "$RAILWAY_SERVICE" \
+      --environment "$environment" \
+      --message "$message"; then
+    echo "Tag ${TAG} is on origin, but the deploy to ${environment} failed." >&2
+    echo "Fix the cause and publish again; the next run creates a new tag." >&2
     return 1
   fi
   echo "Published ${TAG} to ${environment}."
