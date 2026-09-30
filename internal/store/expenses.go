@@ -23,7 +23,7 @@ type CreateExpenseInput struct {
 	AmountCents        int64
 	Currency           string
 	Merchant           string
-	Category           domain.ExpenseCategory
+	Category           string
 	Note               string
 	NoReceiptReason    string
 	SpentOn            time.Time
@@ -39,7 +39,7 @@ type UpdateExpenseInput struct {
 	AmountCents        int64
 	Currency           string
 	Merchant           string
-	Category           domain.ExpenseCategory
+	Category           string
 	Note               string
 	NoReceiptReason    string
 	SpentOn            time.Time
@@ -55,14 +55,20 @@ func normalizeExpenseCurrency(c string) string {
 	return c
 }
 
-func normalizeExpenseCategory(c domain.ExpenseCategory) (domain.ExpenseCategory, error) {
+func normalizeExpenseCategory(c string) string {
+	c = strings.TrimSpace(c)
 	if c == "" {
-		return domain.CategoryOther, nil
+		return domain.ExpenseCategoryOther
 	}
-	if _, ok := domain.ParseExpenseCategory(string(c)); !ok {
-		return "", ErrExpenseCategory
+	return c
+}
+
+// expenseWriteErr maps a rejected category key to ErrExpenseCategory.
+func expenseWriteErr(err error) error {
+	if isForeignKeyViolation(err, "expenses_category_fkey") {
+		return ErrExpenseCategory
 	}
-	return c, nil
+	return err
 }
 
 // noReceiptReason returns the stored explanation: cleared when a receipt exists, required otherwise.
@@ -83,10 +89,7 @@ func (s *Store) CreateExpense(ctx context.Context, in CreateExpenseInput) (domai
 	}
 	cur := normalizeExpenseCurrency(in.Currency)
 	spent := in.SpentOn.UTC().Truncate(24 * time.Hour)
-	cat, err := normalizeExpenseCategory(in.Category)
-	if err != nil {
-		return domain.Expense{}, err
-	}
+	cat := normalizeExpenseCategory(in.Category)
 
 	hasReceipt := len(in.ReceiptData) > 0
 	if hasReceipt {
@@ -112,12 +115,12 @@ func (s *Store) CreateExpense(ctx context.Context, in CreateExpenseInput) (domai
 			receipt_data, receipt_content_type, receipt_bytes, created_by
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8::date,$9,$10,$11,$12)
 		RETURNING id`,
-		in.SafeHouseID, in.AmountCents, cur, strings.TrimSpace(in.Merchant), string(cat),
+		in.SafeHouseID, in.AmountCents, cur, strings.TrimSpace(in.Merchant), cat,
 		strings.TrimSpace(in.Note), reason, spent,
 		in.ReceiptData, in.ReceiptContentType, in.ReceiptBytes, in.CreatedBy,
 	).Scan(&id)
 	if err != nil {
-		return domain.Expense{}, err
+		return domain.Expense{}, expenseWriteErr(err)
 	}
 	return s.GetExpense(ctx, id)
 }
@@ -128,16 +131,15 @@ func scanExpense(row interface{ Scan(dest ...any) error }) (domain.Expense, erro
 	var receiptBytes sql.NullInt64
 	var createdBy, reviewedBy sql.NullInt64
 	var reviewedAt sql.NullTime
-	var category, status string
+	var status string
 	err := row.Scan(
-		&e.ID, &e.SafeHouseID, &e.AmountCents, &e.Currency, &e.Merchant, &category, &e.Note, &e.NoReceiptReason, &e.SpentOn,
+		&e.ID, &e.SafeHouseID, &e.AmountCents, &e.Currency, &e.Merchant, &e.Category, &e.CategoryLabel, &e.Note, &e.NoReceiptReason, &e.SpentOn,
 		&receiptCT, &receiptBytes, &status, &reviewedBy, &reviewedAt, &e.ReviewNote,
 		&createdBy, &e.CreatedAt, &e.UpdatedAt,
 	)
 	if err != nil {
 		return domain.Expense{}, err
 	}
-	e.Category = domain.ExpenseCategory(category)
 	e.ReviewStatus = domain.ExpenseReviewStatus(status)
 	e.SpentOn = e.SpentOn.UTC().Truncate(24 * time.Hour)
 	if receiptCT.Valid {
@@ -164,7 +166,8 @@ func scanExpense(row interface{ Scan(dest ...any) error }) (domain.Expense, erro
 }
 
 // expenseCols omits receipt_data so list/get stay lightweight.
-const expenseCols = `id, safe_house_id, amount_cents, currency, merchant, category, note, no_receipt_reason, spent_on,
+const expenseCols = `id, safe_house_id, amount_cents, currency, merchant, category,
+	COALESCE((SELECT c.label FROM expense_categories c WHERE c.key = expenses.category), category), note, no_receipt_reason, spent_on,
 	receipt_content_type, receipt_bytes, review_status, reviewed_by, reviewed_at, review_note,
 	created_by, created_at, updated_at`
 
@@ -183,10 +186,7 @@ func (s *Store) UpdateExpense(ctx context.Context, id int64, in UpdateExpenseInp
 	if in.AmountCents < 0 {
 		return before, after, errors.New("amount must be non-negative")
 	}
-	cat, err := normalizeExpenseCategory(in.Category)
-	if err != nil {
-		return before, after, err
-	}
+	cat := normalizeExpenseCategory(in.Category)
 	replaceReceipt := len(in.ReceiptData) > 0
 	if replaceReceipt && (in.ReceiptContentType == nil || strings.TrimSpace(*in.ReceiptContentType) == "") {
 		return before, after, errors.New("receipt content type required")
@@ -223,7 +223,7 @@ func (s *Store) UpdateExpense(ctx context.Context, id int64, in UpdateExpenseInp
 	}
 
 	args := []any{
-		id, next.AmountCents, next.Currency, next.Merchant, string(next.Category),
+		id, next.AmountCents, next.Currency, next.Merchant, next.Category,
 		next.Note, next.NoReceiptReason, next.SpentOn,
 	}
 	receiptSet := ""
@@ -238,7 +238,7 @@ func (s *Store) UpdateExpense(ctx context.Context, id int64, in UpdateExpenseInp
 			review_status = 'submitted', reviewed_by = NULL, reviewed_at = NULL,
 			updated_at = now()
 		WHERE id = $1`, args...); err != nil {
-		return before, after, err
+		return before, after, expenseWriteErr(err)
 	}
 	after, err = scanExpense(tx.QueryRowContext(ctx, `SELECT `+expenseCols+` FROM expenses WHERE id = $1`, id))
 	if err != nil {

@@ -63,7 +63,7 @@ type expenseFields struct {
 	Currency        string
 	SpentOn         time.Time
 	Merchant        string
-	Category        domain.ExpenseCategory
+	Category        string
 	Note            string
 	NoReceiptReason string
 }
@@ -89,14 +89,16 @@ func expenseFormFromExpense(e domain.Expense) expenseFormValues {
 		Currency:        e.Currency,
 		SpentOn:         formatUSDate(e.SpentOn),
 		Merchant:        e.Merchant,
-		Category:        string(e.Category),
+		Category:        e.Category,
 		Note:            e.Note,
 		NoReceiptReason: e.NoReceiptReason,
 	}
 }
 
+const expenseCategoryMsg = "Pick a category."
+
 // parse validates the form. An unknown currency falls back to the house default.
-func (v expenseFormValues) parse(defaultCurrency string) (expenseFields, string) {
+func (v expenseFormValues) parse(defaultCurrency string, categories domain.Categories) (expenseFields, string) {
 	var f expenseFields
 	cents, err := parseMoneyToCents(v.Amount)
 	if err != nil || cents < 0 {
@@ -113,9 +115,8 @@ func (v expenseFormValues) parse(defaultCurrency string) (expenseFields, string)
 	if !ok {
 		return f, "Pick a currency."
 	}
-	category, ok := domain.ParseExpenseCategory(v.Category)
-	if !ok {
-		return f, "Pick a category."
+	if !categories.IsOffered(v.Category) {
+		return f, expenseCategoryMsg
 	}
 	switch {
 	case utf8.RuneCountInString(v.Merchant) > maxMerchantLen:
@@ -130,7 +131,7 @@ func (v expenseFormValues) parse(defaultCurrency string) (expenseFields, string)
 		Currency:        currency,
 		SpentOn:         spent,
 		Merchant:        v.Merchant,
-		Category:        category,
+		Category:        v.Category,
 		Note:            v.Note,
 		NoReceiptReason: v.NoReceiptReason,
 	}, ""
@@ -249,7 +250,7 @@ func (s *Server) handleExpenses(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Server) renderExpenseNew(w http.ResponseWriter, r *http.Request, u domain.User, houses []domain.SafeHouse, form expenseFormValues, errMsg string) {
+func (s *Server) renderExpenseNew(w http.ResponseWriter, r *http.Request, u domain.User, houses []domain.SafeHouse, categories domain.Categories, form expenseFormValues, errMsg string) {
 	if form.SafeHouseID == 0 && len(houses) > 0 {
 		form.SafeHouseID = houses[0].ID
 	}
@@ -268,7 +269,7 @@ func (s *Server) renderExpenseNew(w http.ResponseWriter, r *http.Request, u doma
 		"User":       &u,
 		"Houses":     houses,
 		"Currencies": expenseCurrencies,
-		"Categories": domain.ExpenseCategories(),
+		"Categories": categories.Offered(),
 		"Form":       form,
 		"Error":      errMsg,
 		"MaxMB":      s.cfg.MaxReceiptBytes / (1024 * 1024),
@@ -282,7 +283,12 @@ func (s *Server) handleExpenseNew(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no safe house in scope", http.StatusForbidden)
 		return
 	}
-	s.renderExpenseNew(w, r, u, houses, expenseFormValues{}, r.URL.Query().Get("error"))
+	categories, err := s.store.ExpenseCategories(r.Context())
+	if err != nil {
+		http.Error(w, "failed to load categories", http.StatusInternalServerError)
+		return
+	}
+	s.renderExpenseNew(w, r, u, houses, categories, expenseFormValues{}, r.URL.Query().Get("error"))
 }
 
 func (s *Server) handleExpenseCreate(w http.ResponseWriter, r *http.Request) {
@@ -292,9 +298,14 @@ func (s *Server) handleExpenseCreate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no safe house in scope", http.StatusForbidden)
 		return
 	}
+	categories, err := s.store.ExpenseCategories(r.Context())
+	if err != nil {
+		http.Error(w, "failed to load categories", http.StatusInternalServerError)
+		return
+	}
 	maxMem := s.cfg.MaxReceiptBytes + (1 << 20)
 	if err := r.ParseMultipartForm(maxMem); err != nil {
-		s.renderExpenseNew(w, r, u, houses, expenseFormValues{}, "The form could not be read or the file is too large.")
+		s.renderExpenseNew(w, r, u, houses, categories, expenseFormValues{}, "The form could not be read or the file is too large.")
 		return
 	}
 	form := expenseFormFromRequest(r)
@@ -303,18 +314,18 @@ func (s *Server) handleExpenseCreate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	fields, msg := form.parse(house.DefaultCurrency)
+	fields, msg := form.parse(house.DefaultCurrency, categories)
 	if msg != "" {
-		s.renderExpenseNew(w, r, u, houses, form, msg)
+		s.renderExpenseNew(w, r, u, houses, categories, form, msg)
 		return
 	}
 	data, ct, msg := s.readReceipt(r)
 	if msg != "" {
-		s.renderExpenseNew(w, r, u, houses, form, msg)
+		s.renderExpenseNew(w, r, u, houses, categories, form, msg)
 		return
 	}
 	if data == nil && fields.NoReceiptReason == "" {
-		s.renderExpenseNew(w, r, u, houses, form, noReceiptReasonMsg)
+		s.renderExpenseNew(w, r, u, houses, categories, form, noReceiptReasonMsg)
 		return
 	}
 
@@ -334,15 +345,19 @@ func (s *Server) handleExpenseCreate(w http.ResponseWriter, r *http.Request) {
 		in.ReceiptContentType = &ct
 	}
 	e, err := s.store.CreateExpense(r.Context(), in)
+	if errors.Is(err, store.ErrExpenseCategory) {
+		s.renderExpenseNew(w, r, u, houses, categories, form, expenseCategoryMsg)
+		return
+	}
 	if err != nil {
 		s.log.Error("create expense", "err", err)
-		s.renderExpenseNew(w, r, u, houses, form, "Could not save the expense.")
+		s.renderExpenseNew(w, r, u, houses, categories, form, "Could not save the expense.")
 		return
 	}
 	_ = s.store.Audit(r.Context(), &u.ID, "expense.create", "expense", idString(e.ID), map[string]any{
 		"safe_house_id": house.ID,
 		"amount_cents":  e.AmountCents,
-		"category":      string(e.Category),
+		"category":      e.Category,
 		"has_receipt":   e.HasReceipt(),
 	})
 	http.Redirect(w, r, "/expenses?ok=logged", http.StatusSeeOther)
@@ -351,6 +366,7 @@ func (s *Server) handleExpenseCreate(w http.ResponseWriter, r *http.Request) {
 type expenseEditView struct {
 	Expense     domain.Expense
 	House       domain.SafeHouse
+	Categories  domain.Categories
 	Form        expenseFormValues
 	Error       string
 	ReviewError string
@@ -378,11 +394,11 @@ func (s *Server) renderExpenseEdit(w http.ResponseWriter, r *http.Request, u dom
 		"ReviewedAt": reviewedAt,
 		"Form":       v.Form,
 		"Currencies": expenseCurrencies,
-		"Categories": domain.ExpenseCategories(),
+		"Categories": v.Categories.Offered(),
 		"Statuses":   domain.ExpenseReviewStatuses(),
 		"CanReview":  canReviewExpenses(u),
 		"ReviewNote": v.ReviewNote,
-		"History":    expenseHistory(events),
+		"History":    expenseHistory(events, v.Categories),
 		"MaxMB":      s.cfg.MaxReceiptBytes / (1024 * 1024),
 		"Flash":      r.URL.Query().Get("ok"),
 		"Error":      v.Error,
@@ -396,11 +412,17 @@ func (s *Server) handleExpenseEdit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	categories, err := s.store.ExpenseCategories(r.Context())
+	if err != nil {
+		http.Error(w, "failed to load categories", http.StatusInternalServerError)
+		return
+	}
 	s.renderExpenseEdit(w, r, u, expenseEditView{
-		Expense: e,
-		House:   house,
-		Form:    expenseFormFromExpense(e),
-		Error:   r.URL.Query().Get("error"),
+		Expense:    e,
+		House:      house,
+		Categories: categories,
+		Form:       expenseFormFromExpense(e),
+		Error:      r.URL.Query().Get("error"),
 	})
 }
 
@@ -410,7 +432,12 @@ func (s *Server) handleExpenseUpdate(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	view := expenseEditView{Expense: e, House: house, Form: expenseFormFromExpense(e)}
+	categories, err := s.store.ExpenseCategories(r.Context())
+	if err != nil {
+		http.Error(w, "failed to load categories", http.StatusInternalServerError)
+		return
+	}
+	view := expenseEditView{Expense: e, House: house, Categories: categories, Form: expenseFormFromExpense(e)}
 	maxMem := s.cfg.MaxReceiptBytes + (1 << 20)
 	if err := r.ParseMultipartForm(maxMem); err != nil {
 		view.Error = "The form could not be read or the file is too large."
@@ -419,7 +446,7 @@ func (s *Server) handleExpenseUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	view.Form = expenseFormFromRequest(r)
 	view.Form.SafeHouseID = e.SafeHouseID
-	fields, msg := view.Form.parse(house.DefaultCurrency)
+	fields, msg := view.Form.parse(house.DefaultCurrency, categories)
 	if msg != "" {
 		view.Error = msg
 		s.renderExpenseEdit(w, r, u, view)
@@ -446,9 +473,12 @@ func (s *Server) handleExpenseUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	before, after, err := s.store.UpdateExpense(r.Context(), e.ID, in)
 	if err != nil {
-		if errors.Is(err, store.ErrNoReceiptReason) {
+		switch {
+		case errors.Is(err, store.ErrNoReceiptReason):
 			view.Error = noReceiptReasonMsg
-		} else {
+		case errors.Is(err, store.ErrExpenseCategory):
+			view.Error = expenseCategoryMsg
+		default:
 			s.log.Error("update expense", "err", err)
 			view.Error = "Could not save the expense."
 		}
@@ -492,7 +522,12 @@ func (s *Server) handleExpenseReview(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad form", http.StatusBadRequest)
 		return
 	}
-	view := expenseEditView{Expense: e, House: house, Form: expenseFormFromExpense(e)}
+	categories, err := s.store.ExpenseCategories(r.Context())
+	if err != nil {
+		http.Error(w, "failed to load categories", http.StatusInternalServerError)
+		return
+	}
+	view := expenseEditView{Expense: e, House: house, Categories: categories, Form: expenseFormFromExpense(e)}
 	note := strings.TrimSpace(r.FormValue("review_note"))
 	view.ReviewNote = note
 	status, ok := domain.ParseExpenseReviewStatus(r.FormValue("review_status"))
@@ -537,7 +572,7 @@ func expenseChanges(before, after domain.Expense) map[string]map[string]any {
 	add("currency", before.Currency, after.Currency)
 	add("spent_on", before.SpentOn.Format("2006-01-02"), after.SpentOn.Format("2006-01-02"))
 	add("merchant", before.Merchant, after.Merchant)
-	add("category", string(before.Category), string(after.Category))
+	add("category", before.Category, after.Category)
 	add("note", before.Note, after.Note)
 	add("no_receipt_reason", before.NoReceiptReason, after.NoReceiptReason)
 	add("review_status", string(before.ReviewStatus), string(after.ReviewStatus))
@@ -555,7 +590,7 @@ var expenseFieldLabels = []struct{ Key, Label string }{
 	{"review_status", "Review status"},
 }
 
-func formatExpenseValue(field string, v any) string {
+func formatExpenseValue(field string, v any, categories domain.Categories) string {
 	switch field {
 	case "amount_cents":
 		switch n := v.(type) {
@@ -572,7 +607,7 @@ func formatExpenseValue(field string, v any) string {
 		}
 	case "category":
 		if s, ok := v.(string); ok {
-			return domain.ExpenseCategory(s).Label()
+			return categories.Label(s)
 		}
 	case "review_status":
 		if s, ok := v.(string); ok {
@@ -593,7 +628,7 @@ type expenseHistoryRow struct {
 	Lines   []string
 }
 
-func expenseHistory(events []domain.AuditEvent) []expenseHistoryRow {
+func expenseHistory(events []domain.AuditEvent, categories domain.Categories) []expenseHistoryRow {
 	rows := make([]expenseHistoryRow, 0, len(events))
 	for _, ev := range events {
 		row := expenseHistoryRow{
@@ -618,7 +653,7 @@ func expenseHistory(events []domain.AuditEvent) []expenseHistoryRow {
 					continue
 				}
 				row.Lines = append(row.Lines, fmt.Sprintf("%s: %s → %s",
-					f.Label, formatExpenseValue(f.Key, c["from"]), formatExpenseValue(f.Key, c["to"])))
+					f.Label, formatExpenseValue(f.Key, c["from"], categories), formatExpenseValue(f.Key, c["to"], categories)))
 			}
 			switch ev.Meta["receipt"] {
 			case "replaced":

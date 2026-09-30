@@ -13,11 +13,11 @@ func TestExpenseChanges(t *testing.T) {
 	day := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
 	before := domain.Expense{
 		AmountCents: 1250, Currency: "USD", SpentOn: day, Merchant: "Market",
-		Category: domain.CategoryFood, Note: "veg", ReviewStatus: domain.ExpenseReviewed,
+		Category: "food", Note: "veg", ReviewStatus: domain.ExpenseReviewed,
 	}
 	after := before
 	after.AmountCents = 1300
-	after.Category = domain.CategoryHouseholdSupplies
+	after.Category = "household_supplies"
 	after.SpentOn = day.AddDate(0, 0, 1)
 	after.ReviewStatus = domain.ExpenseSubmitted
 
@@ -44,10 +44,11 @@ func TestExpenseChanges(t *testing.T) {
 
 func TestExpenseHistoryFromAuditMeta(t *testing.T) {
 	day := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
-	before := domain.Expense{AmountCents: 2000, Currency: "USD", SpentOn: day, Category: domain.CategoryOther, ReviewStatus: domain.ExpenseNeedsCorrection}
+	before := domain.Expense{AmountCents: 2000, Currency: "USD", SpentOn: day, Category: "other", ReviewStatus: domain.ExpenseNeedsCorrection}
 	after := before
 	after.AmountCents = 2500
 	after.Merchant = "Hardware store"
+	after.Category = "transport"
 	after.ReviewStatus = domain.ExpenseSubmitted
 
 	// Round-trip through JSON the way audit_events.meta is stored.
@@ -63,7 +64,7 @@ func TestExpenseHistoryFromAuditMeta(t *testing.T) {
 		{Action: "expense.create", ActorEmail: "mgr@example.com"},
 		{Action: "expense.update", ActorName: "Agent", Meta: meta},
 		{Action: "expense.review", Meta: map[string]any{"to": "needs_correction", "note": "wrong total"}},
-	})
+	}, testExpenseCategories)
 	if len(rows) != 3 {
 		t.Fatalf("rows=%+v", rows)
 	}
@@ -74,6 +75,7 @@ func TestExpenseHistoryFromAuditMeta(t *testing.T) {
 	for _, s := range []string{
 		"Amount: 20.00 → 25.00",
 		"Merchant: — → Hardware store",
+		"Category: Other → Transport (retired)",
 		"Review status: Needs correction → Submitted",
 		"Receipt replaced",
 	} {
@@ -89,10 +91,17 @@ func TestExpenseHistoryFromAuditMeta(t *testing.T) {
 	}
 }
 
+var testExpenseCategories = domain.Categories{
+	{Key: "food", Label: "Food", SortOrder: 10, Active: true},
+	{Key: "rent", Label: "Rent", SortOrder: 20, Active: true},
+	{Key: "transport", Label: "Transport (retired)", SortOrder: 30},
+	{Key: "other", Label: "Other", SortOrder: 40, Active: true},
+}
+
 func TestExpenseFormParse(t *testing.T) {
 	ok := expenseFormValues{Amount: "12.5", Currency: "", SpentOn: "09/30/2026", Category: "rent", Merchant: "Landlord"}
-	f, msg := ok.parse("KES")
-	if msg != "" || f.AmountCents != 1250 || f.Currency != "KES" || f.Category != domain.CategoryRent {
+	f, msg := ok.parse("KES", testExpenseCategories)
+	if msg != "" || f.AmountCents != 1250 || f.Currency != "KES" || f.Category != "rent" {
 		t.Fatalf("f=%+v msg=%q", f, msg)
 	}
 	bad := []expenseFormValues{
@@ -100,10 +109,11 @@ func TestExpenseFormParse(t *testing.T) {
 		{Amount: "1", SpentOn: "30/09/2026", Category: "rent"},
 		{Amount: "1", SpentOn: "09/30/2026", Category: ""},
 		{Amount: "1", SpentOn: "09/30/2026", Category: "groceries"},
+		{Amount: "1", SpentOn: "09/30/2026", Category: "transport"},
 		{Amount: "1", SpentOn: "09/30/2026", Category: "food", Merchant: strings.Repeat("m", maxMerchantLen+1)},
 	}
 	for _, v := range bad {
-		if _, msg := v.parse("USD"); msg == "" {
+		if _, msg := v.parse("USD", testExpenseCategories); msg == "" {
 			t.Fatalf("expected error for %+v", v)
 		}
 	}

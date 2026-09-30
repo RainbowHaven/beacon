@@ -12,6 +12,10 @@ import (
 )
 
 func TestOperationalIssueFormFields(t *testing.T) {
+	categories := domain.Categories{
+		{Key: "food_supplies", Label: "Food or supplies", SortOrder: 10, Active: true},
+		{Key: "staffing_agent", Label: "Staffing or Agent change", SortOrder: 20},
+	}
 	today := time.Date(2026, 3, 15, 22, 0, 0, 0, time.UTC)
 	base := operationalIssueForm{
 		IdentifiedOn: "2026-03-10",
@@ -21,7 +25,7 @@ func TestOperationalIssueFormFields(t *testing.T) {
 		ClosedOn:     "2026-03-12",
 		ClosureNotes: "ignored while open",
 	}
-	f, err := base.fields(today)
+	f, err := base.fields(today, categories)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +35,7 @@ func TestOperationalIssueFormFields(t *testing.T) {
 
 	tomorrow := base
 	tomorrow.IdentifiedOn = "2026-03-16"
-	if _, err := tomorrow.fields(today); err != nil {
+	if _, err := tomorrow.fields(today, categories); err != nil {
 		t.Fatalf("one day of time zone slack: %v", err)
 	}
 
@@ -55,12 +59,15 @@ func TestOperationalIssueFormFields(t *testing.T) {
 			f.Status = "resolved"
 			f.ClosedOn = ""
 		}, "date is required"},
+		{"no category", func(f *operationalIssueForm) { f.Category = "" }, "Choose a category"},
+		{"unknown category", func(f *operationalIssueForm) { f.Category = "residents" }, "Choose a category"},
+		{"retired category", func(f *operationalIssueForm) { f.Category = "staffing_agent" }, "Choose a category"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			f := base
 			tc.mod(&f)
-			_, err := f.fields(today)
+			_, err := f.fields(today, categories)
 			var ve store.ValidationError
 			if !errors.As(err, &ve) || !strings.Contains(ve.Error(), tc.want) {
 				t.Fatalf("err=%v want %q", err, tc.want)

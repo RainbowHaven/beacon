@@ -78,7 +78,7 @@ func operationalIssueFormFromIssue(o domain.OperationalIssue) operationalIssueFo
 }
 
 // fields parses dates and applies the store rules. today bounds both dates.
-func (f operationalIssueForm) fields(today time.Time) (store.OperationalIssueFields, error) {
+func (f operationalIssueForm) fields(today time.Time, categories domain.Categories) (store.OperationalIssueFields, error) {
 	latest := today.UTC().Truncate(24*time.Hour).AddDate(0, 0, 1)
 	out := store.OperationalIssueFields{
 		Category:     f.Category,
@@ -110,7 +110,11 @@ func (f operationalIssueForm) fields(today time.Time) (store.OperationalIssueFie
 		}
 		out.ClosedOn = &closed
 	}
-	return store.NormalizeOperationalIssueFields(out)
+	out, err = store.NormalizeOperationalIssueFields(out)
+	if err == nil && !categories.IsOffered(out.Category) {
+		err = store.ErrOperationalIssueCategory
+	}
+	return out, err
 }
 
 // operationalIssueChanges lists changed field names only, never their text.
@@ -146,14 +150,6 @@ func operationalIssueChanges(old domain.OperationalIssue, f store.OperationalIss
 		changed = append(changed, "closure_notes")
 	}
 	return changed
-}
-
-func operationalIssueCategoryOptions() []labeledOption {
-	out := make([]labeledOption, len(domain.OperationalIssueCategories))
-	for i, c := range domain.OperationalIssueCategories {
-		out[i] = labeledOption{Key: c.Key, Label: c.Label}
-	}
-	return out
 }
 
 func operationalIssueStatusOptions() []labeledOption {
@@ -258,13 +254,18 @@ func (s *Server) renderOperationalIssueForm(w http.ResponseWriter, r *http.Reque
 	if issue.ID != 0 {
 		title = "Edit operational issue"
 	}
+	categories, err := s.store.OperationalIssueCategories(r.Context())
+	if err != nil {
+		http.Error(w, "failed to load categories", http.StatusInternalServerError)
+		return
+	}
 	s.render(w, r, "operational_issue_form.html", map[string]any{
 		"Title":      title,
 		"User":       &u,
 		"Houses":     houses,
 		"Issue":      issue,
 		"Form":       form,
-		"Categories": operationalIssueCategoryOptions(),
+		"Categories": categories.Offered(),
 		"Statuses":   operationalIssueStatusOptions(),
 		"MaxDate":    time.Now().UTC().AddDate(0, 0, 1).Format("2006-01-02"),
 		"Error":      errMsg,
@@ -294,7 +295,12 @@ func (s *Server) handleOperationalIssueCreate(w http.ResponseWriter, r *http.Req
 		return
 	}
 	form.SafeHouseID = houseID
-	fields, err := form.fields(time.Now())
+	categories, err := s.store.OperationalIssueCategories(r.Context())
+	if err != nil {
+		http.Error(w, "failed to load categories", http.StatusInternalServerError)
+		return
+	}
+	fields, err := form.fields(time.Now(), categories)
 	if err != nil {
 		s.renderOperationalIssueForm(w, r, u, houses, domain.OperationalIssue{}, form, operationalIssueErrorMessage(err))
 		return
@@ -303,7 +309,7 @@ func (s *Server) handleOperationalIssueCreate(w http.ResponseWriter, r *http.Req
 	o, err := s.store.CreateOperationalIssue(r.Context(), houseID, fields, &uid)
 	if err != nil {
 		s.log.Error("create operational issue", "err", err)
-		s.renderOperationalIssueForm(w, r, u, houses, domain.OperationalIssue{}, form, "Could not save the operational issue.")
+		s.renderOperationalIssueForm(w, r, u, houses, domain.OperationalIssue{}, form, operationalIssueErrorMessage(err))
 		return
 	}
 	_ = s.store.Audit(r.Context(), &uid, "operational_issue.create", "operational_issue", idString(o.ID), map[string]any{
@@ -355,7 +361,12 @@ func (s *Server) handleOperationalIssueUpdate(w http.ResponseWriter, r *http.Req
 	}
 	form := operationalIssueFormFromRequest(r)
 	form.SafeHouseID = o.SafeHouseID
-	fields, err := form.fields(time.Now())
+	categories, err := s.store.OperationalIssueCategories(r.Context())
+	if err != nil {
+		http.Error(w, "failed to load categories", http.StatusInternalServerError)
+		return
+	}
+	fields, err := form.fields(time.Now(), categories)
 	if err != nil {
 		s.renderOperationalIssueForm(w, r, u, nil, o, form, operationalIssueErrorMessage(err))
 		return
@@ -369,7 +380,7 @@ func (s *Server) handleOperationalIssueUpdate(w http.ResponseWriter, r *http.Req
 	updated, err := s.store.UpdateOperationalIssue(r.Context(), o.ID, fields, &uid)
 	if err != nil {
 		s.log.Error("update operational issue", "err", err)
-		s.renderOperationalIssueForm(w, r, u, nil, o, form, "Could not save the operational issue.")
+		s.renderOperationalIssueForm(w, r, u, nil, o, form, operationalIssueErrorMessage(err))
 		return
 	}
 	meta := map[string]any{

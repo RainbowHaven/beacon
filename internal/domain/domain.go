@@ -118,58 +118,52 @@ type HeadcountRow struct {
 	Current       int
 }
 
-// ExpenseCategory is a stable key stored in expenses.category.
-type ExpenseCategory string
-
-const (
-	CategoryFood               ExpenseCategory = "food"
-	CategoryHouseholdSupplies  ExpenseCategory = "household_supplies"
-	CategoryUtilities          ExpenseCategory = "utilities"
-	CategoryRent               ExpenseCategory = "rent"
-	CategoryMaintenanceRepairs ExpenseCategory = "maintenance_repairs"
-	CategoryTransport          ExpenseCategory = "transport"
-	CategoryCommunication      ExpenseCategory = "communication"
-	CategoryOther              ExpenseCategory = "other"
-)
-
-type ExpenseCategoryOption struct {
-	Key   ExpenseCategory
-	Label string
+// Category is a row of a category lookup table (expense_categories,
+// operational_issue_categories). Inactive categories are kept for existing
+// records but are not offered in forms.
+type Category struct {
+	Key       string
+	Label     string
+	SortOrder int
+	Active    bool
 }
 
-var expenseCategories = []ExpenseCategoryOption{
-	{CategoryFood, "Food"},
-	{CategoryHouseholdSupplies, "Household supplies"},
-	{CategoryUtilities, "Utilities"},
-	{CategoryRent, "Rent"},
-	{CategoryMaintenanceRepairs, "Maintenance and repairs"},
-	{CategoryTransport, "Transport"},
-	{CategoryCommunication, "Communication"},
-	{CategoryOther, "Other"},
-}
+// Categories is a category table in display order.
+type Categories []Category
 
-// ExpenseCategories returns categories in display order.
-func ExpenseCategories() []ExpenseCategoryOption {
-	return append([]ExpenseCategoryOption(nil), expenseCategories...)
-}
-
-func ParseExpenseCategory(s string) (ExpenseCategory, bool) {
-	for _, c := range expenseCategories {
-		if string(c.Key) == s {
-			return c.Key, true
+// Offered returns the active categories.
+func (cs Categories) Offered() Categories {
+	var out Categories
+	for _, c := range cs {
+		if c.Active {
+			out = append(out, c)
 		}
 	}
-	return "", false
+	return out
 }
 
-func (c ExpenseCategory) Label() string {
-	for _, o := range expenseCategories {
-		if o.Key == c {
-			return o.Label
+// IsOffered reports whether key is an active category.
+func (cs Categories) IsOffered(key string) bool {
+	for _, c := range cs {
+		if c.Key == key {
+			return c.Active
 		}
 	}
-	return string(c)
+	return false
 }
+
+// Label returns the stored label for key, active or not, and key itself when it is unknown.
+func (cs Categories) Label(key string) string {
+	for _, c := range cs {
+		if c.Key == key {
+			return c.Label
+		}
+	}
+	return key
+}
+
+// ExpenseCategoryOther is the category of expenses saved without one, including those logged before categories existed.
+const ExpenseCategoryOther = "other"
 
 type ExpenseReviewStatus string
 
@@ -213,7 +207,8 @@ type Expense struct {
 	AmountCents        int64
 	Currency           string
 	Merchant           string
-	Category           ExpenseCategory
+	Category           string
+	CategoryLabel      string
 	Note               string // shown as "Description"
 	NoReceiptReason    string
 	SpentOn            time.Time
@@ -345,41 +340,6 @@ const (
 	OperationalIssueClosed   = "closed"
 )
 
-type OperationalIssueCategory struct {
-	Key   string
-	Label string
-}
-
-// OperationalIssueCategories keys are stored in the database; labels are display only.
-var OperationalIssueCategories = []OperationalIssueCategory{
-	{"building_maintenance", "Building or maintenance problem"},
-	{"utilities", "Utilities"},
-	{"safety_security", "Safety or security issue that is not a safeguarding concern"},
-	{"food_supplies", "Food or supplies"},
-	{"staffing_agent", "Staffing or Agent change"},
-	{"capacity_occupancy", "Capacity or occupancy change"},
-	{"service_availability", "Service availability"},
-	{"other_change", "Other significant operational change"},
-}
-
-func OperationalIssueCategoryLabel(key string) string {
-	for _, c := range OperationalIssueCategories {
-		if c.Key == key {
-			return c.Label
-		}
-	}
-	return key
-}
-
-func ValidOperationalIssueCategory(key string) bool {
-	for _, c := range OperationalIssueCategories {
-		if c.Key == key {
-			return true
-		}
-	}
-	return false
-}
-
 func ValidOperationalIssueStatus(s string) bool {
 	return s == OperationalIssueOpen || s == OperationalIssueResolved || s == OperationalIssueClosed
 }
@@ -392,6 +352,7 @@ type OperationalIssue struct {
 	SafeHouseName string
 	IdentifiedOn  time.Time // date
 	Category      string
+	CategoryLabel string
 	Description   string
 	Effect        string
 	ActionTaken   string
@@ -404,8 +365,6 @@ type OperationalIssue struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }
-
-func (o OperationalIssue) CategoryLabel() string { return OperationalIssueCategoryLabel(o.Category) }
 
 func (o OperationalIssue) StatusLabel() string { return OperationalIssueStatusLabel(o.Status) }
 
