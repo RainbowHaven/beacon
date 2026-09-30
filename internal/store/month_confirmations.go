@@ -178,7 +178,8 @@ func (s *Store) MonthFingerprint(ctx context.Context, houseID int64, month time.
 	}
 
 	for _, e := range expenses {
-		add("expense", e.id, date(e.spentOn), e.amountCents, e.currency, e.note, e.hasReceipt, e.receiptBytes)
+		add("expense", e.id, date(e.spentOn), e.amountCents, e.currency, e.merchant, e.category,
+			e.note, e.noReceiptReason, e.hasReceipt, e.receiptBytes)
 	}
 
 	h := sha256.New()
@@ -191,19 +192,24 @@ func (s *Store) MonthFingerprint(ctx context.Context, houseID int64, month time.
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
+// fingerprintExpense holds what the house enters. Review status and notes are
+// the bookkeeper's and do not reopen a confirmed month.
 type fingerprintExpense struct {
-	id           int64
-	spentOn      time.Time
-	amountCents  int64
-	currency     string
-	note         string
-	hasReceipt   bool
-	receiptBytes int64
+	id              int64
+	spentOn         time.Time
+	amountCents     int64
+	currency        string
+	merchant        string
+	category        string
+	note            string
+	noReceiptReason string
+	hasReceipt      bool
+	receiptBytes    int64
 }
 
 func (s *Store) fingerprintExpenses(ctx context.Context, houseID int64, from, to time.Time) ([]fingerprintExpense, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, spent_on, amount_cents, currency, note,
+		SELECT id, spent_on, amount_cents, currency, merchant, category, note, no_receipt_reason,
 			receipt_data IS NOT NULL, COALESCE(octet_length(receipt_data), 0)
 		FROM expenses
 		WHERE safe_house_id = $1 AND spent_on >= $2::date AND spent_on <= $3::date
@@ -215,7 +221,8 @@ func (s *Store) fingerprintExpenses(ctx context.Context, houseID int64, from, to
 	var out []fingerprintExpense
 	for rows.Next() {
 		var e fingerprintExpense
-		if err := rows.Scan(&e.id, &e.spentOn, &e.amountCents, &e.currency, &e.note, &e.hasReceipt, &e.receiptBytes); err != nil {
+		if err := rows.Scan(&e.id, &e.spentOn, &e.amountCents, &e.currency, &e.merchant, &e.category,
+			&e.note, &e.noReceiptReason, &e.hasReceipt, &e.receiptBytes); err != nil {
 			return nil, err
 		}
 		out = append(out, e)

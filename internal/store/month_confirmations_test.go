@@ -46,7 +46,7 @@ func TestMonthFingerprint(t *testing.T) {
 	march := occupant(house.ID, "Plover", "2026-03-05")
 	elsewhere := occupant(other.ID, "Heron", "2026-02-10")
 	febExpense := expense(house.ID, "2026-02-14", 1250)
-	expense(house.ID, "2026-02-20", 900)
+	febExpense2 := expense(house.ID, "2026-02-20", 900)
 	concern, err := st.CreateSafeguardingConcern(ctx, house.ID, openConcern("Incident-TOR-2026-1", "2026-02-03"), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -116,6 +116,36 @@ func TestMonthFingerprint(t *testing.T) {
 		t.Fatal(err)
 	}
 	changed("deleting an expense in the month")
+
+	bookkeeper, _, err := st.CreateUserWithInvite(ctx, store.CreateUserInput{
+		Email: "books@example.com", DisplayName: "Books", Role: domain.RoleRHLAdmin, RHLID: &rhl.ID,
+	}, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := st.SetExpenseReview(ctx, febExpense2.ID, domain.ExpenseReviewed, bookkeeper.ID, "ok"); err != nil {
+		t.Fatal(err)
+	}
+	same("reviewing an expense")
+	edit := store.UpdateExpenseInput{
+		AmountCents: 900, Currency: "CAD", SpentOn: day("2026-02-20"),
+		Category: domain.CategoryOther, NoReceiptReason: "market stall",
+	}
+	for _, step := range []struct {
+		what string
+		set  func(*store.UpdateExpenseInput)
+	}{
+		{"changing an expense's merchant", func(in *store.UpdateExpenseInput) { in.Merchant = "Corner shop" }},
+		{"changing an expense's category", func(in *store.UpdateExpenseInput) { in.Category = domain.CategoryFood }},
+		{"changing an expense's no-receipt explanation", func(in *store.UpdateExpenseInput) { in.NoReceiptReason = "receipt lost" }},
+	} {
+		step.set(&edit)
+		if _, _, err := st.UpdateExpense(ctx, febExpense2.ID, edit); err != nil {
+			t.Fatal(err)
+		}
+		changed(step.what)
+	}
+
 	closedInMonth := closedLater
 	closedInMonth.ClosedOn = dayPtr("2026-02-20")
 	if _, err := st.UpdateSafeguardingConcern(ctx, concern.ID, closedInMonth, nil); err != nil {
