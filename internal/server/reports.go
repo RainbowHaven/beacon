@@ -339,17 +339,34 @@ func writeReportCSV(w http.ResponseWriter, rep houseReport) error {
 	_ = cw.Write([]string{"Field", "Value"})
 	for _, section := range reportCSVSections {
 		for _, row := range section(rep) {
-			_ = cw.Write(row)
+			_ = cw.Write(csvSafeRow(row))
 		}
 	}
 	for _, table := range reportCSVTables {
 		_ = cw.Write(nil)
 		for _, row := range table(rep) {
-			_ = cw.Write(row)
+			_ = cw.Write(csvSafeRow(row))
 		}
 	}
 	cw.Flush()
 	return cw.Error()
+}
+
+// csvSafeRow keeps spreadsheets from running user text as a formula.
+// Numbers such as "-3" are left alone so they still sort and sum.
+func csvSafeRow(row []string) []string {
+	out := make([]string, len(row))
+	for i, cell := range row {
+		out[i] = cell
+		if cell == "" || !strings.ContainsRune("=+-@\t\r", rune(cell[0])) {
+			continue
+		}
+		if _, err := strconv.ParseFloat(cell, 64); err == nil {
+			continue
+		}
+		out[i] = "'" + cell
+	}
+	return out
 }
 
 func csvResidentRows(rep houseReport) [][]string {
