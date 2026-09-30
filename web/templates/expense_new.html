@@ -1,33 +1,21 @@
 {{template "layout_start" .}}
 <h1>Log expense</h1>
-{{if .Error}}<p class="flash error">{{.Error}}</p>{{end}}
-<p class="muted">Pick a currency (defaults from the safe house). Receipts are optional (JPEG, PNG, WebP, or PDF; max {{.MaxMB}}&nbsp;MB). Large photos are resized in the browser before upload.</p>
+{{if .Error}}<p class="flash error" role="alert">{{.Error}}</p>{{end}}
+<p class="muted">Pick a currency (defaults from the safe house). Attach a receipt if you have one (JPEG, PNG, WebP, or PDF; max {{.MaxMB}}&nbsp;MB); otherwise explain why there is none. Large photos are resized in the browser before upload.</p>
 <form id="expense-form" class="stack" method="post" action="/expenses" enctype="multipart/form-data" style="max-width:28rem">
   <label>Safe house
     <select name="safe_house_id" id="safe_house_id" required>
       {{range .Houses}}
-      <option value="{{.ID}}" data-currency="{{.DefaultCurrency}}">{{.Name}} ({{.DefaultCurrency}})</option>
+      <option value="{{.ID}}" data-currency="{{.DefaultCurrency}}"{{if eq .ID $.Form.SafeHouseID}} selected{{end}}>{{.Name}} ({{.DefaultCurrency}})</option>
       {{end}}
     </select>
   </label>
-  <label>Currency
-    <select name="currency" id="currency" required>
-      {{range .Currencies}}
-      <option value="{{.}}">{{.}}</option>
-      {{end}}
-    </select>
-  </label>
-  <label>Amount
-    <input name="amount" type="text" inputmode="decimal" placeholder="12.50" required autocomplete="off">
-  </label>
-  <label>Date spent (MM/DD/YYYY)
-    <input type="text" name="spent_on" value="{{.Today}}" placeholder="MM/DD/YYYY" inputmode="numeric" autocomplete="off" required pattern="(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/[0-9]{4}" title="MM/DD/YYYY">
-  </label>
-  <label>Note
-    <input name="note" maxlength="240" autocomplete="off">
-  </label>
-  <label>Receipt (optional)
+  {{template "expense_fields" .}}
+  <label>Receipt
     <input id="receipt" name="receipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
+  </label>
+  <label>No receipt? Explain why
+    <textarea name="no_receipt_reason" rows="2" maxlength="500" placeholder="For example: market stall, no receipt given">{{.Form.NoReceiptReason}}</textarea>
   </label>
   <p id="expense-error" class="flash error" hidden></p>
   <button type="submit">Save</button>
@@ -39,7 +27,7 @@
   const house = document.getElementById("safe_house_id");
   const currency = document.getElementById("currency");
   if (!house || !currency) return;
-  function syncCurrency() {
+  house.addEventListener("change", function () {
     const opt = house.options[house.selectedIndex];
     const def = opt && opt.getAttribute("data-currency");
     if (!def) return;
@@ -49,9 +37,7 @@
         break;
       }
     }
-  }
-  house.addEventListener("change", syncCurrency);
-  syncCurrency();
+  });
 })();
 </script>
 {{template "layout_end" .}}
