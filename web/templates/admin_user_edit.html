@@ -18,7 +18,7 @@
     <select name="rhl_id">
       <option value="">—</option>
       {{range .RHLs}}
-      <option value="{{.ID}}" {{if eq .ID $.SelectedRHL}}selected{{end}}>{{.Name}}</option>
+      <option value="{{.ID}}" {{if eq .ID $.SelectedRHL}}selected{{end}}>{{.Label}}</option>
       {{end}}
     </select>
   </label>
