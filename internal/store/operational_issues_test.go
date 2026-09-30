@@ -65,7 +65,7 @@ func TestNormalizeOperationalIssueFields(t *testing.T) {
 		want string
 	}{
 		{"no date", func(f *store.OperationalIssueFields) { f.IdentifiedOn = time.Time{} }, "Date identified"},
-		{"bad category", func(f *store.OperationalIssueFields) { f.Category = "residents" }, "category"},
+		{"no category", func(f *store.OperationalIssueFields) { f.Category = " " }, "category"},
 		{"no description", func(f *store.OperationalIssueFields) { f.Description = "   " }, "description"},
 		{"long description", func(f *store.OperationalIssueFields) { f.Description = strings.Repeat("a", 2001) }, "at most"},
 		{"bad status", func(f *store.OperationalIssueFields) { f.Status = "pending" }, "status"},

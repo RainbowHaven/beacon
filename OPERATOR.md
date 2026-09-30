@@ -119,6 +119,30 @@ The bootstrap does not check the role of an existing account with that email, so
 - **Download CSV** exports one house and month.
 - Print from the browser if RHC needs a paper copy.
 
+## Expense and operations categories
+
+The categories offered for expenses and on **Operations** live in the database tables `expense_categories` and `operational_issue_categories` (`key`, `label`, `sort_order`, `active`). Change them only with a new numbered migration in `internal/migrate/sql/`, so every environment gets the same list. Forms offer active categories in `sort_order`; lists, reports, CSV and history always show the current label of the stored key.
+
+- **Add:** insert a row. The key is permanent and must be lower-case snake case (`a-z`, `0-9`, `_`); pick a `sort_order` between the neighbours.
+
+  ```sql
+  INSERT INTO expense_categories (key, label, sort_order) VALUES ('medical', 'Medical', 65);
+  ```
+
+- **Rename:** change the label only. Existing records and past reports show the new label; confirmed months stay confirmed.
+
+  ```sql
+  UPDATE operational_issue_categories SET label = 'Staffing or Agent handover' WHERE key = 'staffing_agent';
+  ```
+
+- **Retire:** set `active = false`. The category disappears from the forms, existing records keep it and its label, and editing such a record asks for a current category. Set `active = true` to bring it back.
+
+  ```sql
+  UPDATE expense_categories SET active = false WHERE key = 'communication';
+  ```
+
+Do not delete categories (the database refuses while any record uses them) and do not change keys: a key change is copied to every record and marks the confirmed months of those records as changed. Keep the expense category `other`; expenses logged without a category use it.
+
 ## Local DB tip
 
 `go test` and `./scripts/verify-phase{1,2,3}.sh` **drop** the database schema. `verify-phase4.sh`, `verify-phase5.sh`, and `verify-phase6.sh` do not. Do not run drop scripts against a DB you care about keeping (enrolled passkeys will disappear).

@@ -117,7 +117,7 @@ func TestExpenseCreateAndMonthlyTotals(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(list) != 1 || list[0].AmountCents != 1250 || list[0].Currency != "USD" || !list[0].HasReceipt() ||
-		list[0].Category != domain.CategoryFood || list[0].Merchant != "Corner market" || list[0].ReviewStatus != domain.ExpenseSubmitted {
+		list[0].Category != "food" || list[0].Merchant != "Corner market" || list[0].ReviewStatus != domain.ExpenseSubmitted {
 		t.Fatalf("list=%+v", list)
 	}
 

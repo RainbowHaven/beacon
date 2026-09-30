@@ -129,14 +129,14 @@ func TestMonthFingerprint(t *testing.T) {
 	same("reviewing an expense")
 	edit := store.UpdateExpenseInput{
 		AmountCents: 900, Currency: "CAD", SpentOn: day("2026-02-20"),
-		Category: domain.CategoryOther, NoReceiptReason: "market stall",
+		Category: "other", NoReceiptReason: "market stall",
 	}
 	for _, step := range []struct {
 		what string
 		set  func(*store.UpdateExpenseInput)
 	}{
 		{"changing an expense's merchant", func(in *store.UpdateExpenseInput) { in.Merchant = "Corner shop" }},
-		{"changing an expense's category", func(in *store.UpdateExpenseInput) { in.Category = domain.CategoryFood }},
+		{"changing an expense's category", func(in *store.UpdateExpenseInput) { in.Category = "food" }},
 		{"changing an expense's no-receipt explanation", func(in *store.UpdateExpenseInput) { in.NoReceiptReason = "receipt lost" }},
 	} {
 		step.set(&edit)

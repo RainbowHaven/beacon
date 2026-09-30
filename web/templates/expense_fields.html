@@ -17,9 +17,9 @@
   </label>
   <label>Category
     <select name="category" required>
-      <option value=""{{if not .Form.Category}} selected{{end}} disabled>Choose a category</option>
+      <option value=""{{if not (.Categories.IsOffered .Form.Category)}} selected{{end}} disabled>Choose a category</option>
       {{range .Categories}}
-      <option value="{{.Key}}"{{if eq (print .Key) $.Form.Category}} selected{{end}}>{{.Label}}</option>
+      <option value="{{.Key}}"{{if eq .Key $.Form.Category}} selected{{end}}>{{.Label}}</option>
       {{end}}
     </select>
   </label>

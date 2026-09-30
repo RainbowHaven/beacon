@@ -17,6 +17,17 @@ type ValidationError string
 
 func (e ValidationError) Error() string { return string(e) }
 
+// ErrOperationalIssueCategory is returned for a missing or unknown category.
+const ErrOperationalIssueCategory = ValidationError("Choose a category.")
+
+// operationalIssueWriteErr maps a rejected category key to ErrOperationalIssueCategory.
+func operationalIssueWriteErr(err error) error {
+	if isForeignKeyViolation(err, "operational_issues_category_fkey") {
+		return ErrOperationalIssueCategory
+	}
+	return err
+}
+
 const (
 	maxOperationalIssueDescription = 2000
 	maxOperationalIssueText        = 4000
@@ -37,6 +48,8 @@ type OperationalIssueFields struct {
 
 // NormalizeOperationalIssueFields trims text, truncates dates to UTC days and
 // checks the closure rules. An open issue has no closure date or notes.
+// Whether the category is offered is checked by the caller against
+// OperationalIssueCategories; the foreign key rejects unknown keys.
 func NormalizeOperationalIssueFields(f OperationalIssueFields) (OperationalIssueFields, error) {
 	f.Category = strings.TrimSpace(f.Category)
 	f.Description = strings.TrimSpace(f.Description)
@@ -53,8 +66,8 @@ func NormalizeOperationalIssueFields(f OperationalIssueFields) (OperationalIssue
 		return f, ValidationError("Date identified is required.")
 	}
 	f.IdentifiedOn = f.IdentifiedOn.UTC().Truncate(24 * time.Hour)
-	if !domain.ValidOperationalIssueCategory(f.Category) {
-		return f, ValidationError("Choose a category.")
+	if f.Category == "" {
+		return f, ErrOperationalIssueCategory
 	}
 	if f.Description == "" {
 		return f, ValidationError("Brief description is required.")
@@ -106,7 +119,7 @@ func (s *Store) CreateOperationalIssue(ctx context.Context, safeHouseID int64, f
 		f.RHLRequest, f.Status, f.ClosedOn, f.ClosureNotes, by,
 	).Scan(&id)
 	if err != nil {
-		return domain.OperationalIssue{}, err
+		return domain.OperationalIssue{}, operationalIssueWriteErr(err)
 	}
 	return s.GetOperationalIssue(ctx, id)
 }
@@ -128,7 +141,7 @@ func (s *Store) UpdateOperationalIssue(ctx context.Context, id int64, f Operatio
 		f.ClosureNotes, by,
 	)
 	if err != nil {
-		return domain.OperationalIssue{}, err
+		return domain.OperationalIssue{}, operationalIssueWriteErr(err)
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
 		return domain.OperationalIssue{}, ErrNotFound
@@ -136,18 +149,20 @@ func (s *Store) UpdateOperationalIssue(ctx context.Context, id int64, f Operatio
 	return s.GetOperationalIssue(ctx, id)
 }
 
-const operationalIssueCols = `oi.id, oi.safe_house_id, sh.name, oi.identified_on, oi.category, oi.description,
+const operationalIssueCols = `oi.id, oi.safe_house_id, sh.name, oi.identified_on, oi.category, c.label, oi.description,
 	oi.effect, oi.action_taken, oi.rhl_request, oi.status, oi.closed_on, oi.closure_notes,
 	oi.created_by, oi.updated_by, oi.created_at, oi.updated_at`
 
-const operationalIssueFrom = ` FROM operational_issues oi JOIN safe_houses sh ON sh.id = oi.safe_house_id`
+const operationalIssueFrom = ` FROM operational_issues oi
+	JOIN safe_houses sh ON sh.id = oi.safe_house_id
+	JOIN operational_issue_categories c ON c.key = oi.category`
 
 func scanOperationalIssue(row interface{ Scan(dest ...any) error }) (domain.OperationalIssue, error) {
 	var o domain.OperationalIssue
 	var closedOn sql.NullTime
 	var createdBy, updatedBy sql.NullInt64
 	err := row.Scan(
-		&o.ID, &o.SafeHouseID, &o.SafeHouseName, &o.IdentifiedOn, &o.Category, &o.Description,
+		&o.ID, &o.SafeHouseID, &o.SafeHouseName, &o.IdentifiedOn, &o.Category, &o.CategoryLabel, &o.Description,
 		&o.Effect, &o.ActionTaken, &o.RHLRequest, &o.Status, &closedOn, &o.ClosureNotes,
 		&createdBy, &updatedBy, &o.CreatedAt, &o.UpdatedAt,
 	)

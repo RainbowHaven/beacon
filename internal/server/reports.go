@@ -416,7 +416,7 @@ func csvOperationalRows(rep houseReport) [][]string {
 	for _, o := range rep.Operations {
 		rows = append(rows, []string{
 			o.IdentifiedOn.Format("2006-01-02"),
-			o.CategoryLabel(),
+			o.CategoryLabel,
 			o.Description,
 			o.Effect,
 			o.StatusLabel(),

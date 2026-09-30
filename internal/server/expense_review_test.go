@@ -178,7 +178,7 @@ func TestExpenseReviewAndCorrectionFlow(t *testing.T) {
 		t.Fatalf("list=%+v err=%v", list, err)
 	}
 	e := list[0]
-	if e.ReviewStatus != domain.ExpenseSubmitted || e.NoReceiptReason != "market stall, no receipt given" || e.Category != domain.CategoryMaintenanceRepairs {
+	if e.ReviewStatus != domain.ExpenseSubmitted || e.NoReceiptReason != "market stall, no receipt given" || e.Category != "maintenance_repairs" {
 		t.Fatalf("expense=%+v", e)
 	}
 	idPath := "/expenses/" + strconv.FormatInt(e.ID, 10)
