@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/RainbowHaven/beacon/internal/domain"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/magiconair/beacon/internal/domain"
 )
 
 var (

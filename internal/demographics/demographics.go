@@ -16,10 +16,10 @@ const (
 
 // Gender codes per requirements §2.1.
 const (
-	GenderMale         = "M"
-	GenderFemale       = "F"
-	GenderX            = "X"
-	GenderNotReported  = "NR"
+	GenderMale        = "M"
+	GenderFemale      = "F"
+	GenderX           = "X"
+	GenderNotReported = "NR"
 )
 
 // Country is a selectable country-of-origin option.

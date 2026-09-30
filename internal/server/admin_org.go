@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/magiconair/beacon/internal/domain"
-	"github.com/magiconair/beacon/internal/store"
+	"github.com/RainbowHaven/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/store"
 )
 
 func (s *Server) handleAdminHouses(w http.ResponseWriter, r *http.Request) {

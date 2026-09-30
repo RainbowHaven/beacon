@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/magiconair/beacon/internal/demographics"
+	"github.com/RainbowHaven/beacon/internal/demographics"
 )
 
 func TestNormalizeCountry(t *testing.T) {

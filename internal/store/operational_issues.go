@@ -9,7 +9,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/magiconair/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/domain"
 )
 
 // ValidationError carries a plain-English message that is safe to show in a form.

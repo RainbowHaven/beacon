@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/magiconair/beacon/internal/domain"
-	"github.com/magiconair/beacon/internal/report"
+	"github.com/RainbowHaven/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/report"
 )
 
 // houseReport is the monthly report for one safe house. Each report section

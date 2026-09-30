@@ -17,12 +17,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/RainbowHaven/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/migrate"
+	"github.com/RainbowHaven/beacon/internal/server"
+	"github.com/RainbowHaven/beacon/internal/store"
 	"github.com/descope/virtualwebauthn"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/magiconair/beacon/internal/domain"
-	"github.com/magiconair/beacon/internal/migrate"
-	"github.com/magiconair/beacon/internal/server"
-	"github.com/magiconair/beacon/internal/store"
 )
 
 func testDB(t *testing.T) *sql.DB {

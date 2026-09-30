@@ -11,7 +11,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/magiconair/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/domain"
 )
 
 type MonthConfirmationInput struct {

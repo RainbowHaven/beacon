@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/magiconair/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/domain"
 )
 
 func TestComputeStatus(t *testing.T) {

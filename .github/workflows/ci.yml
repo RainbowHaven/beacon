@@ -43,7 +43,7 @@ jobs:
           fi
           COMMIT="$(git rev-parse --short=7 HEAD)"
           DATE="$(TZ=UTC git show -s --format=%cd --date=format:%Y-%m-%dT%H:%MZ HEAD)"
-          go build -ldflags "-s -w -X github.com/magiconair/beacon/internal/version.Version=${VERSION} -X github.com/magiconair/beacon/internal/version.Commit=${COMMIT} -X github.com/magiconair/beacon/internal/version.Date=${DATE}" -o /tmp/beacon ./cmd/beacon
+          go build -ldflags "-s -w -X github.com/RainbowHaven/beacon/internal/version.Version=${VERSION} -X github.com/RainbowHaven/beacon/internal/version.Commit=${COMMIT} -X github.com/RainbowHaven/beacon/internal/version.Date=${DATE}" -o /tmp/beacon ./cmd/beacon
       - name: Verify CLA artifacts
         run: ./scripts/verify-cla.sh
       - name: Publish tag calculation

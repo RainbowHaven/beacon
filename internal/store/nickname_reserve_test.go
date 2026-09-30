@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/RainbowHaven/beacon/internal/migrate"
+	"github.com/RainbowHaven/beacon/internal/store"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/magiconair/beacon/internal/migrate"
-	"github.com/magiconair/beacon/internal/store"
 )
 
 func testStore(t *testing.T) *store.Store {

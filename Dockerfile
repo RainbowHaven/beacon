@@ -27,7 +27,7 @@ RUN set -eu; \
   C="$(printf '%s' "$C" | cut -c1-7)"; \
   echo "beacon build version=v${V} commit=${C} date=${D}"; \
   CGO_ENABLED=0 go build \
-    -ldflags "-s -w -X github.com/magiconair/beacon/internal/version.Version=${V} -X github.com/magiconair/beacon/internal/version.Commit=${C} -X github.com/magiconair/beacon/internal/version.Date=${D}" \
+    -ldflags "-s -w -X github.com/RainbowHaven/beacon/internal/version.Version=${V} -X github.com/RainbowHaven/beacon/internal/version.Commit=${C} -X github.com/RainbowHaven/beacon/internal/version.Date=${D}" \
     -o /out/beacon ./cmd/beacon
 
 FROM alpine:3.22

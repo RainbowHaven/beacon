@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/magiconair/beacon/internal/version"
-	"github.com/magiconair/beacon/web"
+	"github.com/RainbowHaven/beacon/internal/version"
+	"github.com/RainbowHaven/beacon/web"
 )
 
 func TestNavCurrent(t *testing.T) {

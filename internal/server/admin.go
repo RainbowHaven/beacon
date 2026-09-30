@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/magiconair/beacon/internal/domain"
-	"github.com/magiconair/beacon/internal/store"
+	"github.com/RainbowHaven/beacon/internal/domain"
+	"github.com/RainbowHaven/beacon/internal/store"
 )
 
 func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
