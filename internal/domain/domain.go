@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"strings"
 	"time"
 )
 
@@ -37,15 +38,43 @@ func (u User) IsActive() bool { return u.Status == UserActive }
 type RHL struct {
 	ID     int64
 	Name   string
+	Code   string // empty when not set
 	Active bool
 }
 
+// Label is the RHL name followed by its code in parentheses when set.
+func (r RHL) Label() string {
+	if r.Code == "" {
+		return r.Name
+	}
+	return r.Name + " (" + r.Code + ")"
+}
+
+// NormalizeRHLCode trims and upper-cases an RHL code. An empty result means
+// no code; otherwise it must be 2–12 characters of A–Z, 0–9 or hyphen.
+func NormalizeRHLCode(s string) (string, bool) {
+	code := strings.ToUpper(strings.TrimSpace(s))
+	if code == "" {
+		return "", true
+	}
+	if len(code) < 2 || len(code) > 12 {
+		return "", false
+	}
+	for _, c := range code {
+		if (c < 'A' || c > 'Z') && (c < '0' || c > '9') && c != '-' {
+			return "", false
+		}
+	}
+	return code, true
+}
+
 type SafeHouse struct {
-	ID              int64
-	RHLID           int64
-	Name            string
-	DefaultCurrency string
-	Active          bool
+	ID                     int64
+	RHLID                  int64
+	Name                   string
+	DefaultCurrency        string
+	ApprovedSleepingPlaces *int
+	Active                 bool
 }
 
 type Invite struct {
