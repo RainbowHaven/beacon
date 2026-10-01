@@ -1,6 +1,6 @@
 .PHONY: help setup env db-up db-down test run run-tunnel tunnel compose-up compose-down \
 	verify verify-cla verify-phase1 verify-phase2 verify-phase3 verify-phase4 verify-phase5 verify-phase6 \
-	publish-staging publish-major publish-minor publish-patch
+	publish-staging publish-major publish-minor publish-patch mockups
 
 GOTOOLCHAIN ?= auto
 LOCAL_DIR := .local
@@ -37,6 +37,7 @@ help:
 	@echo "  make publish-patch Tag the next patch release and deploy production"
 	@echo "  make publish-minor Tag the next minor release and deploy production"
 	@echo "  make publish-major Tag the next major release and deploy production"
+	@echo "  make mockups       Serve UI mockups at http://127.0.0.1:8765/web/mockups/"
 	@echo ""
 	@echo "Never commit .env"
 
@@ -141,3 +142,7 @@ publish-minor:
 
 publish-patch:
 	./scripts/publish-release.sh patch
+
+mockups:
+	@echo "UI mockups: http://127.0.0.1:8765/web/mockups/"
+	python3 -m http.server 8765

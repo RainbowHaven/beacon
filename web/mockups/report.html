@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Monthly report · Beacon</title>
+  <link rel="icon" href="../static/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/daisyui.css">
+  <link rel="stylesheet" href="css/beacon.css">
+</head>
+<body>
+<div class="app-frame">
+  <aside class="sidebar no-print">
+    <a class="brand-mark" href="index.html">
+      <img src="../static/img/rainbow-haven.svg" alt="Rainbow Haven" width="160" height="144">
+    </a>
+    <ul class="menu">
+      <li><a href="occupants.html">Occupants</a></li>
+      <li><a href="expense.html">Expenses</a></li>
+      <li><a href="#">Operations</a></li>
+      <li><a href="#">Safeguarding</a></li>
+      <li><a class="menu-active" href="report.html">Reports</a></li>
+    </ul>
+  </aside>
+  <div class="main-col">
+    <header class="topbar no-print">
+      <a class="brand-mark" href="index.html">
+        <img src="../static/img/rainbow-haven.svg" alt="Rainbow Haven" width="160" height="144">
+      </a>
+      <div class="mockup-tools">
+        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem">
+          <input type="checkbox" class="toggle" data-theme-toggle>
+          Dark
+        </label>
+        <details class="dropdown dropdown-end">
+          <summary class="btn btn-ghost">manager@example.com</summary>
+          <ul class="dropdown-content menu bg-base-200 rounded-box">
+            <li><a href="login.html">Log out</a></li>
+          </ul>
+        </details>
+      </div>
+    </header>
+    <main class="page">
+      <p class="print-only">
+        <img src="../static/img/rainbow-haven.svg" alt="Rainbow Haven" width="120" height="108">
+      </p>
+      <div class="page-header no-print">
+        <h1>Monthly report</h1>
+        <p class="cluster">
+          <a class="btn btn-outline" href="#">Download CSV</a>
+          <button class="btn btn-primary" type="button" onclick="window.print()">Print</button>
+        </p>
+      </div>
+      <h1 class="print-only">Monthly report · Beacon</h1>
+      <p class="muted no-print">Built from resident records and expenses as they are right now. No private key required. Residents by nickname only.</p>
+      <form class="cluster no-print" style="margin:1rem 0 1.5rem">
+        <label>Month
+          <input class="input" type="month" value="2026-09">
+        </label>
+        <label>Safe house
+          <select class="select">
+            <option>House A</option>
+            <option>All houses</option>
+          </select>
+        </label>
+        <button class="btn btn-outline" type="submit">Show</button>
+      </form>
+      <section class="stack">
+        <h2>Summary</h2>
+        <div class="stats stats-vertical">
+          <div class="stat">
+            <div class="stat-title">Bed nights</div>
+            <div class="stat-value">118</div>
+          </div>
+          <div class="stat">
+            <div class="stat-title">Expenses</div>
+            <div class="stat-value">€ 2 140</div>
+            <div class="stat-desc">12 receipts</div>
+          </div>
+        </div>
+        <h2>Residents this month</h2>
+        <div class="table-scroll">
+          <table class="table">
+            <thead>
+              <tr><th>Nickname</th><th>Arrived</th><th>Departed</th><th>Nights</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Samir</td><td>2026-03-12</td><td>—</td><td>30</td></tr>
+              <tr><td>Noor</td><td>2026-01-04</td><td>—</td><td>30</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <footer class="app-footer no-print">Beacon · mockups</footer>
+    </main>
+  </div>
+</div>
+<nav class="dock dock-md no-print">
+  <a href="occupants.html"><span class="dock-label">Occupants</span></a>
+  <a href="expense.html"><span class="dock-label">Expenses</span></a>
+  <a class="dock-active" href="report.html"><span class="dock-label">Reports</span></a>
+  <a href="index.html"><span class="dock-label">More</span></a>
+</nav>
+<script src="js/theme.js"></script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Log expense · Beacon</title>
+  <link rel="icon" href="../static/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/daisyui.css">
+  <link rel="stylesheet" href="css/beacon.css">
+</head>
+<body>
+<div class="app-frame">
+  <aside class="sidebar">
+    <a class="brand-mark" href="index.html">
+      <img src="../static/img/rainbow-haven.svg" alt="Rainbow Haven" width="160" height="144">
+    </a>
+    <ul class="menu">
+      <li><a href="occupants.html">Occupants</a></li>
+      <li><a class="menu-active" href="expense.html">Expenses</a></li>
+      <li><a href="#">Operations</a></li>
+      <li><a href="#">Safeguarding</a></li>
+      <li><a href="report.html">Reports</a></li>
+    </ul>
+  </aside>
+  <div class="main-col">
+    <header class="topbar no-print">
+      <a class="brand-mark" href="index.html">
+        <img src="../static/img/rainbow-haven.svg" alt="Rainbow Haven" width="160" height="144">
+      </a>
+      <div class="mockup-tools">
+        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem">
+          <input type="checkbox" class="toggle" data-theme-toggle>
+          Dark
+        </label>
+        <details class="dropdown dropdown-end">
+          <summary class="btn btn-ghost">manager@example.com</summary>
+          <ul class="dropdown-content menu bg-base-200 rounded-box">
+            <li><a href="login.html">Log out</a></li>
+          </ul>
+        </details>
+      </div>
+    </header>
+    <main class="page">
+      <div class="page-header">
+        <h1>Log expense</h1>
+      </div>
+      <p class="muted">Pick a currency (defaults from the safe house). Attach a receipt if you have one.</p>
+      <div role="alert" class="alert alert-error" style="display:none"></div>
+      <form class="stack stack-narrow" action="#" method="post">
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">Details</legend>
+          <label class="label">Safe house</label>
+          <select class="select" name="safe_house_id">
+            <option>House A (EUR)</option>
+            <option>House B (EUR)</option>
+          </select>
+          <label class="label">Date</label>
+          <input class="input" type="date" value="2026-10-01">
+          <label class="label">Amount</label>
+          <input class="input" type="text" inputmode="decimal" value="42.50">
+          <label class="label">Category</label>
+          <select class="select">
+            <option>Food</option>
+            <option>Utilities</option>
+            <option>Transport</option>
+          </select>
+          <label class="label">Merchant</label>
+          <input class="input" type="text" value="Local market">
+          <label class="label">Description</label>
+          <textarea class="textarea" rows="3">Vegetables and rice</textarea>
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">Receipt</legend>
+          <input class="file-input" type="file">
+          <p class="label">JPEG, PNG, WebP, or PDF. Large photos are resized in the browser.</p>
+        </fieldset>
+        <button class="btn btn-primary" type="submit">Save</button>
+        <p><a href="occupants.html">Cancel</a></p>
+      </form>
+      <footer class="app-footer">Beacon · mockups</footer>
+    </main>
+  </div>
+</div>
+<nav class="dock dock-md no-print">
+  <a href="occupants.html"><span class="dock-label">Occupants</span></a>
+  <a class="dock-active" href="expense.html"><span class="dock-label">Expenses</span></a>
+  <a href="report.html"><span class="dock-label">Reports</span></a>
+  <a href="index.html"><span class="dock-label">More</span></a>
+</nav>
+<script src="js/theme.js"></script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Occupants · Beacon</title>
+  <link rel="icon" href="../static/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/daisyui.css">
+  <link rel="stylesheet" href="css/beacon.css">
+</head>
+<body>
+<div class="app-frame">
+  <aside class="sidebar">
+    <a class="brand-mark" href="index.html">
+      <img src="../static/img/rainbow-haven.svg" alt="Rainbow Haven" width="160" height="144">
+    </a>
+    <ul class="menu">
+      <li><a class="menu-active" href="occupants.html">Occupants</a></li>
+      <li><a href="expense.html">Expenses</a></li>
+      <li><a href="#">Operations</a></li>
+      <li><a href="#">Safeguarding</a></li>
+      <li><a href="report.html">Reports</a></li>
+      <li><a href="#">Dashboard</a></li>
+    </ul>
+    <ul class="menu" style="margin-top:auto">
+      <li><a href="#">Account</a></li>
+      <li><a href="login.html">Log out</a></li>
+    </ul>
+  </aside>
+  <div class="main-col">
+    <header class="topbar no-print">
+      <a class="brand-mark" href="index.html">
+        <img src="../static/img/rainbow-haven.svg" alt="Rainbow Haven" width="160" height="144">
+      </a>
+      <div class="mockup-tools">
+        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem">
+          <input type="checkbox" class="toggle" data-theme-toggle>
+          Dark
+        </label>
+        <details class="dropdown dropdown-end">
+          <summary class="btn btn-ghost">manager@example.com</summary>
+          <ul class="dropdown-content menu bg-base-200 rounded-box">
+            <li><a href="#">Account &amp; passkeys</a></li>
+            <li><a href="login.html">Log out</a></li>
+          </ul>
+        </details>
+      </div>
+    </header>
+    <main class="page">
+      <div class="page-header">
+        <h1>Occupants</h1>
+        <p class="cluster">
+          <a class="btn btn-primary" href="#">Add occupant</a>
+          <a class="btn btn-outline" href="#">Show departed</a>
+        </p>
+      </div>
+      <div class="stats stats-vertical" style="margin-bottom:1.5rem">
+        <div class="stat">
+          <div class="stat-title">House A</div>
+          <div class="stat-value">4</div>
+          <div class="stat-desc">current</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">House B</div>
+          <div class="stat-value">2</div>
+          <div class="stat-desc">current</div>
+        </div>
+      </div>
+
+      <div class="record-desktop table-scroll">
+        <table class="table table-zebra">
+          <thead>
+            <tr>
+              <th>Nickname</th>
+              <th>House</th>
+              <th>Origin</th>
+              <th>Gender</th>
+              <th>YOB</th>
+              <th>Arrived</th>
+              <th>Departed</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Samir</td>
+              <td>House A</td>
+              <td>Syria</td>
+              <td>Man</td>
+              <td>1994</td>
+              <td>2026-03-12</td>
+              <td>—</td>
+              <td class="cluster"><a class="btn btn-outline" href="#">Edit</a><button class="btn btn-ghost" type="button">Depart</button></td>
+            </tr>
+            <tr>
+              <td>Noor</td>
+              <td>House A</td>
+              <td>Iraq</td>
+              <td>Woman</td>
+              <td>1988</td>
+              <td>2026-01-04</td>
+              <td>—</td>
+              <td class="cluster"><a class="btn btn-outline" href="#">Edit</a><button class="btn btn-ghost" type="button">Depart</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ul class="record-mobile list">
+        <li class="list-row">
+          <div>
+            <div><strong>Samir</strong> · House A</div>
+            <div class="muted">Arrived 2026-03-12</div>
+          </div>
+          <a class="btn btn-outline" href="#">Edit</a>
+        </li>
+        <li class="list-row">
+          <div>
+            <div><strong>Noor</strong> · House A</div>
+            <div class="muted">Arrived 2026-01-04</div>
+          </div>
+          <a class="btn btn-outline" href="#">Edit</a>
+        </li>
+      </ul>
+      <footer class="app-footer">Beacon · mockups</footer>
+    </main>
+  </div>
+</div>
+<nav class="dock dock-md no-print">
+  <a class="dock-active" href="occupants.html"><span class="dock-label">Occupants</span></a>
+  <a href="expense.html"><span class="dock-label">Expenses</span></a>
+  <a href="report.html"><span class="dock-label">Reports</span></a>
+  <a href="index.html"><span class="dock-label">More</span></a>
+</nav>
+<script src="js/theme.js"></script>
+</body>
+</html>

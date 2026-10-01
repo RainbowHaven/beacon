@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Beacon UI mockups</title>
+  <link rel="icon" href="../static/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/daisyui.css">
+  <link rel="stylesheet" href="css/beacon.css">
+</head>
+<body>
+  <main class="page stack" style="max-width:36rem">
+    <a class="brand-mark brand-mark-lg" href="index.html">
+      <img src="../static/img/rainbow-haven.svg" alt="Rainbow Haven" width="160" height="144">
+    </a>
+    <h1>Beacon UI mockups</h1>
+    <p>Static HTML for the redesign. Not wired to Go. Toggle light/dark on any screen; resize the window for desktop sidebar vs mobile dock.</p>
+    <p class="cluster">
+      <label style="display:flex;align-items:center;gap:0.5rem">
+        <input type="checkbox" class="toggle" data-theme-toggle>
+        Dark mode
+      </label>
+    </p>
+    <ul class="list">
+      <li class="list-row"><a href="login.html">Login</a></li>
+      <li class="list-row"><a href="occupants.html">Occupants list</a> (chrome + table/cards)</li>
+      <li class="list-row"><a href="expense.html">Log expense</a> (form)</li>
+      <li class="list-row"><a href="report.html">Monthly report</a></li>
+    </ul>
+    <p class="muted">From the repo root: <code>make mockups</code> then open <a href="http://127.0.0.1:8765/web/mockups/">http://127.0.0.1:8765/web/mockups/</a></p>
+    <footer class="app-footer">Beacon · mockups</footer>
+  </main>
+  <script src="js/theme.js"></script>
+</body>
+</html>

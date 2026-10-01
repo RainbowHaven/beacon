@@ -4,6 +4,8 @@ Source of truth for visual design and HTML in this repo. Agents and humans follo
 
 Stack stays [AGENTS.md](../AGENTS.md): server-rendered Go templates, no React, no HTMX, minimal vanilla JS.
 
+**Mockups (this phase):** open [web/mockups/README.md](../web/mockups/README.md). From the repo root run `make mockups` and visit http://127.0.0.1:8765/web/mockups/. Production templates are unchanged except the favicon.
+
 ## Brand
 
 Rainbow Haven is the NGO. Beacon is the product.
