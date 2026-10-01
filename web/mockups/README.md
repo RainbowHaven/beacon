@@ -22,6 +22,8 @@ same URL.
 
 You can also open `web/mockups/index.html` as a file, but some browsers restrict SVG from `file://`. The local server is the reliable path.
 
+Fira Sans and Lekton load from Google Fonts. Without a network they fall back to system UI / monospace.
+
 ## What to check
 
 - Light / Dark toggle (persists in this browser)

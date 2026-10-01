@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Monthly report · Beacon</title>
   <link rel="icon" href="../static/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Lekton:ital,wght@0,400;0,700;1,400&display=swap">
   <link rel="stylesheet" href="css/daisyui.css">
   <link rel="stylesheet" href="css/beacon.css">
 </head>
@@ -41,9 +44,6 @@
       </div>
     </header>
     <main class="page">
-      <p class="print-only">
-        <img src="../static/img/rainbow-haven.svg" alt="Rainbow Haven" width="120" height="108">
-      </p>
       <div class="page-header no-print">
         <h1>Monthly report</h1>
         <p class="cluster">
@@ -51,7 +51,6 @@
           <button class="btn btn-primary" type="button" onclick="window.print()">Print</button>
         </p>
       </div>
-      <h1 class="print-only">Monthly report · Beacon</h1>
       <p class="muted no-print">Built from resident records and expenses as they are right now. No private key required. Residents by nickname only.</p>
       <form class="cluster no-print" style="margin:1rem 0 1.5rem">
         <label>Month
@@ -65,7 +64,8 @@
         </label>
         <button class="btn btn-outline" type="submit">Show</button>
       </form>
-      <section class="stack">
+      <section class="stack report-doc">
+        <h1 class="print-only">Monthly report · Beacon</h1>
         <h2>Summary</h2>
         <div class="stats stats-vertical">
           <div class="stat">

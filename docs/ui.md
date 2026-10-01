@@ -16,7 +16,7 @@ Rainbow Haven is the NGO. Beacon is the product.
 | Document `<title>` | `{page} · Beacon` |
 | Footer | `Beacon · {version}` — do not repeat the wordmark if it is already in the header |
 | Favicon / app icon | Mark only (rainbow + house), [web/static/img/favicon.svg](../web/static/img/favicon.svg) |
-| Print report | Small full lockup plus the product name Beacon |
+| Print report | Product name Beacon only — no Rainbow Haven lockup in the document |
 
 **Files**
 
@@ -75,9 +75,10 @@ The official daisyUI skill says “if daisyUI cannot do it, use Tailwind utiliti
 
 ## Tokens
 
-System UI stack only (no webfont download):
+**Mockup trial (Google Fonts):** Fira Sans for UI, Lekton for tables and reports. Production may self-host a WOFF2 subset if we keep them (first-load cost vs system fonts).
 
-`system-ui, -apple-system, "Segoe UI", "Helvetica Neue", sans-serif`
+` "Fira Sans", system-ui, sans-serif`
+` Lekton, ui-monospace, monospace` — tables, report body, numeric columns (`tabular-nums`)
 
 ### Type
 
@@ -112,27 +113,31 @@ Do not put these hexes in HTML. They belong in the theme CSS.
 
 | Token | Value | Role |
 |---|---|---|
-| `base-100` | `#F4F6F6` | Page |
-| `base-200` | `#E8ECEC` | Sidebar, chips |
-| `base-300` | `#D5DCDC` | Borders |
-| `base-content` | `#012A2C` | Text (logo ink) |
-| `primary` | `#0F5F5A` | One accent; primary button |
+| `base-100` | `#F5F5F5` | Page (neutral grey, no teal wash) |
+| `base-200` | `#ECECEC` | Sidebar, chips |
+| `base-300` | `#D4D4D4` | Borders |
+| `base-content` | `#1A1A1A` | Text |
+| `primary` | `#0F5F5A` | One accent; primary button **and** selected menu |
 | `primary-content` | `#FFFFFF` | On primary |
-| `neutral` | `#3D4A4A` | Muted chrome |
+| `neutral` | `#2A2A2A` | Unused for nav highlight |
 | `info` / `success` / `warning` / `error` | daisyUI defaults unless contrast fails AA | Status only |
 
-No cream, no radial warm gradient.
+No cream, no radial warm gradient. Override daisyUI `.menu { --menu-active-bg: var(--color-primary) }` — daisyUI’s default `menu-active` uses `neutral`, which is a different colour from `btn-primary`. That mismatch is not intentional.
+
+daisyUI `.label` is 60% opacity; Beacon labels use full `base-content`. Table headers use ~88% so they stay slightly secondary to cell text.
 
 **Dark (`data-theme="dark"`)**
 
 | Token | Value |
 |---|---|
-| `base-100` | `#0F1A1A` |
-| `base-200` | `#162424` |
-| `base-300` | `#2A3A3A` |
-| `base-content` | `#E8EEEE` |
+| `base-100` | `#161616` |
+| `base-200` | `#1F1F1F` |
+| `base-300` | `#333333` |
+| `base-content` | `#F3F3F3` |
 | `primary` | `#4AA79F` |
-| `primary-content` | `#012A2C` |
+| `primary-content` | `#0A0A0A` |
+
+Dark surfaces are true greys. Do not mix green into `base-*`.
 
 Theme on `<html data-theme="light|dark">`. Persist with a **cookie** so the first HTML response matches (no flash). `prefers-color-scheme` is the default only when no cookie exists. Toggle with daisyUI `theme-controller` plus a tiny script or form POST — no new JS framework.
 
@@ -148,6 +153,7 @@ Implement these in Beacon CSS (not as Tailwind in HTML):
 | `.page-header` | Title row: heading + `.cluster` of actions |
 | `.table-scroll` | Horizontal scroll wrapper for tables (replaces `overflow-x-auto`) |
 | `.brand-mark` | Light chip behind the logo (required in dark mode, optional in light) |
+| `.report-doc` | Report body: Lekton, tabular figures |
 | `.no-print` / `.print-only` | Report toolbar vs paper |
 
 ## Component catalogue
@@ -188,7 +194,7 @@ Centered `.stack` (max 28rem). Full logo above the heading. One `btn-primary`. E
 `.stack` of `fieldset`s. Labels always visible (no placeholder-only). One `btn-primary` submit. Cancel is a link or `btn-ghost`.
 
 **Report**  
-Screen: toolbar `.no-print` (month picker, print, CSV). Paper: `@media print` — hide chrome and dock, show small logo + “Beacon” + report body. daisyUI does not replace print CSS.
+Screen: toolbar `.no-print` (month picker, print, CSV). Paper: `@media print` — hide chrome and dock, title **Monthly report · Beacon**, no Rainbow Haven lockup. Report body uses `.report-doc` (Lekton). daisyUI does not replace print CSS.
 
 **Admin**  
 Same list/form recipes. Role-gated nav stays server-side.
