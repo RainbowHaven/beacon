@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{if .Title}}{{.Title}} · {{end}}Beacon</title>
+  <link rel="icon" href="{{static "img/favicon.svg"}}" type="image/svg+xml">
   <link rel="stylesheet" href="{{static "css/app.css"}}">
 </head>
 <body class="{{if and .User .User.Email}}app-shell{{end}}{{if .BodyClass}} {{.BodyClass}}{{end}}">

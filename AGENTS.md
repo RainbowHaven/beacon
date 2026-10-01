@@ -33,6 +33,10 @@ Beacon helps Rainbow Haven run LGBTQ safe houses: occupancy, expenses, and RHC r
 
 `safe_house_manager` | `rhl_admin` | `rhc_admin` — enforce server-side on every route.
 
+## UI
+
+Follow [docs/ui.md](./docs/ui.md): daisyUI component classes plus named layout classes only. **No Tailwind utilities in HTML.** Rainbow Haven logo in the chrome; Beacon is the product name in the title and footer.
+
 ## Out of MVP
 
 MCP/AI reporting, offline write queue, expense approvals, OCR, Shamir key splitting, duress mode.
