@@ -139,7 +139,7 @@ daisyUI `.label` is 60% opacity; Beacon labels use full `base-content`. Table he
 
 Dark surfaces are true greys. Do not mix green into `base-*`.
 
-Theme on `<html data-theme="light|dark">`. Persist with a **cookie** so the first HTML response matches (no flash). `prefers-color-scheme` is the default only when no cookie exists. Toggle with daisyUI `theme-controller` plus a tiny script or form POST — no new JS framework.
+Theme on `<html data-theme="light|dark">`. Persist with a **cookie** so the first HTML response matches (no flash). `prefers-color-scheme` is the default only when no cookie exists. Toggle with a `.theme-item` button plus a tiny script — no new JS framework.
 
 ## Named layout classes
 
@@ -180,7 +180,7 @@ Read the matching file under `.agents/skills/daisyui/components/` before using a
 | Signed-in desktop | `drawer` + `lg:drawer-open` + `menu` with icons | Logo at top of sidebar. Collapse to icons; persist. |
 | Signed-in mobile | `navbar` (logo + account) + `dock` | Occupants, Expenses, Reports, More. Min 44px targets, `viewport-fit=cover` |
 | Account / more | `dropdown` with `<details>` | No extra JS |
-| Theme toggle | `theme-controller` + labeled checkbox | Desktop: in the sidebar above Account, with an icon. Mobile: topbar. Cookie persist |
+| Theme toggle | `.theme-item` button (moon/sun icons) | Desktop: sidebar above Account. Mobile: topbar. No checkbox. Cookie persist |
 | Destructive confirm | native `confirm()` for now, or `modal` if we add one | |
 
 Unused daisyUI (hero, chat, rating, carousel, mockups, aura, …): do not add.

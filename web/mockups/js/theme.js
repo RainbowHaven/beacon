@@ -9,7 +9,7 @@
     root.setAttribute("data-theme", theme);
     localStorage.setItem(themeKey, theme);
     document.querySelectorAll("[data-theme-toggle]").forEach(function (el) {
-      el.checked = theme === "dark";
+      el.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
     });
   }
 
@@ -31,8 +31,8 @@
   applySidebar(localStorage.getItem(sidebarKey) === "collapsed");
 
   document.querySelectorAll("[data-theme-toggle]").forEach(function (el) {
-    el.addEventListener("change", function () {
-      applyTheme(el.checked ? "dark" : "light");
+    el.addEventListener("click", function () {
+      applyTheme(root.getAttribute("data-theme") === "dark" ? "light" : "dark");
     });
   });
 
