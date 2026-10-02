@@ -1,5 +1,27 @@
 /* Beacon mockup theme + named layout. Production app still uses web/static/css/app.css. */
 
+@font-face {
+  font-family: "Ioskeley Mono";
+  src: url("../fonts/ioskeley/IoskeleyMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Ioskeley Mono";
+  src: url("../fonts/ioskeley/IoskeleyMono-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Ioskeley Mono";
+  src: url("../fonts/ioskeley/IoskeleyMono-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 [data-theme="light"] {
   color-scheme: light;
   --color-base-100: #f5f5f5;
@@ -131,16 +153,19 @@ h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
 
 .table,
 .report-doc {
-  font-family: Lekton, ui-monospace, "Cascadia Code", monospace;
+  font-family: "Ioskeley Mono", ui-monospace, "Cascadia Code", monospace;
   font-variant-numeric: tabular-nums;
-  font-size: 1.05rem;
+  font-variant-ligatures: none;
+  font-feature-settings: "zero" 1;
+  font-size: 1rem;
   font-weight: 400;
 }
 
-/* Lekton has 400 and 700 only — 500 falls back to regular and looks too light. */
 .report-doc h1,
 .report-doc h2,
-.report-doc .stat-title,
+.report-doc .stat-title {
+  font-weight: 500;
+}
 .report-doc .stat-value {
   font-weight: 700;
 }

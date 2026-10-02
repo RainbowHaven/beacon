@@ -75,10 +75,10 @@ The official daisyUI skill says “if daisyUI cannot do it, use Tailwind utiliti
 
 ## Tokens
 
-**Mockup trial (Google Fonts):** Fira Sans for UI, Lekton for tables and reports. Production may self-host a WOFF2 subset if we keep them (first-load cost vs system fonts).
+**Mockup trial:** Fira Sans (Google Fonts) for UI. [Ioskeley Mono](https://github.com/ahatem/IoskeleyMono) v2.1.0 (OFL, Iosevka build inspired by Berkeley Mono) for tables and reports — Regular/Medium/Bold WOFF2 under [web/mockups/fonts/ioskeley/](../web/mockups/fonts/ioskeley/). Not an official Berkeley Mono. Production may keep a subset or switch.
 
 ` "Fira Sans", system-ui, sans-serif`
-` Lekton, ui-monospace, monospace` — tables, report body, numeric columns (`tabular-nums`)
+` "Ioskeley Mono", ui-monospace, monospace` — tables, report body (`tabular-nums`, ligatures off, slashed zero)
 
 ### Type
 
@@ -156,7 +156,7 @@ Implement these in Beacon CSS (not as Tailwind in HTML):
 | `.sidebar-toggle` | Collapse/expand the desktop sidebar (`data-sidebar="collapsed"` on `<html>`) |
 | `.table-scroll` | Horizontal scroll wrapper for tables (replaces `overflow-x-auto`) |
 | `.brand-mark` | Light chip behind the logo (required in dark mode, optional in light) |
-| `.report-doc` | Report body: Lekton, tabular figures |
+| `.report-doc` | Report body: Ioskeley Mono, tabular figures |
 | `.no-print` / `.print-only` | Report toolbar vs paper |
 
 ## Component catalogue
@@ -197,7 +197,7 @@ Centered `.stack` (max 28rem). Full logo above the heading. One `btn-primary`. E
 `.stack` of `fieldset`s. Labels always visible (no placeholder-only). One `btn-primary` submit. Cancel is `btn btn-outline`, in a `.cluster` with Save.
 
 **Report**  
-Screen: `.filter-bar` (month, house, Show) plus toolbar `.no-print` (print, CSV), then a blank daisyUI `divider`, then `.report-doc`. Summary `stats` in one horizontal row (`width: fit-content`). Paper: `@media print` — hide chrome and dock, title **Monthly report · Beacon**, no Rainbow Haven lockup. Report body uses `.report-doc` (Lekton 400 body, 700 headings — Lekton has no 500). daisyUI does not replace print CSS.
+Screen: `.filter-bar` (month, house, Show) plus toolbar `.no-print` (print, CSV), then a blank daisyUI `divider`, then `.report-doc`. Summary `stats` in one horizontal row (`width: fit-content`). Paper: `@media print` — hide chrome and dock, title **Monthly report · Beacon**, no Rainbow Haven lockup. Report body uses `.report-doc` (Ioskeley Mono 400 body, 500 headings, 700 stat values). daisyUI does not replace print CSS.
 
 **Admin**  
 Same list/form recipes. Role-gated nav stays server-side.

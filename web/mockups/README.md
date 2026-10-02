@@ -22,7 +22,7 @@ same URL.
 
 You can also open `web/mockups/index.html` as a file, but some browsers restrict SVG from `file://`. The local server is the reliable path.
 
-Fira Sans and Lekton load from Google Fonts. Without a network they fall back to system UI / monospace.
+Fira Sans loads from Google Fonts. Ioskeley Mono is self-hosted under `web/mockups/fonts/ioskeley/` (works offline). Without a network, Fira Sans falls back to system UI.
 
 ## What to check
 
