@@ -3,33 +3,34 @@
 {{end}}
 
 {{template "layout_start" .}}
-<h1>Operations</h1>
+<div class="page-header">
+  <h1>Operations</h1>
+  <p class="cluster">
+    <a class="btn btn-primary" href="/operations/new{{if .HouseID}}?house={{.HouseID}}{{end}}">Record issue</a>
+  </p>
+</div>
 {{if .Flash}}<p class="alert">{{.Flash}}</p>{{end}}
 {{if .Error}}<p class="alert alert-error">{{.Error}}</p>{{end}}
 {{template "operational_issue_note" .}}
 
-<p class="actions">
-  <a class="btn btn-primary" href="/operations/new{{if .HouseID}}?house={{.HouseID}}{{end}}">Record issue</a>
-</p>
-
-<nav class="actions filter-bar" aria-label="Status filter">
+<nav class="cluster" aria-label="Status filter">
   {{range .Filters}}
   <a class="btn{{if .Current}} btn-primary{{else}} btn-outline{{end}}" href="{{.Href}}"{{if .Current}} aria-current="true"{{end}}>{{.Label}}</a>
   {{end}}
 </nav>
 
 {{if gt (len .Houses) 1}}
-<form class="actions filter-bar" method="get" action="/operations">
+<form class="filter-bar" method="get" action="/operations">
   {{if ne .Status "open"}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
-  <label class="inline-label">Safe house
-    <select name="house">
+  <label class="field">Safe house
+    <select class="select" name="house">
       <option value="">All houses</option>
       {{range .Houses}}
       <option value="{{.ID}}"{{if eq .ID $.HouseID}} selected{{end}}>{{.Name}}</option>
       {{end}}
     </select>
   </label>
-  <button class="btn btn-outline" type="submit">Filter</button>
+  <noscript><button class="btn btn-outline" type="submit">Show</button></noscript>
 </form>
 {{end}}
 

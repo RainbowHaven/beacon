@@ -13,7 +13,11 @@
 
 <form method="get" action="/reports" class="filter-bar no-print">
   <label class="field field-month">Month
-    <input class="input" type="month" name="month" value="{{.Month}}" max="{{.MaxMonth}}" required>
+    <select class="select" name="month" required>
+      {{range .MonthChoices}}
+      <option value="{{.Value}}"{{if eq .Value $.Month}} selected{{end}}>{{.Label}}</option>
+      {{end}}
+    </select>
   </label>
   {{if gt (len .Houses) 1}}
   <label class="field">Safe house
@@ -25,7 +29,7 @@
     </select>
   </label>
   {{end}}
-  <button class="btn btn-outline" type="submit">Show</button>
+  <noscript><button class="btn btn-outline" type="submit">Show</button></noscript>
 </form>
 
 <div class="divider no-print"></div>

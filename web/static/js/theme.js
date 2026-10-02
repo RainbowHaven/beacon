@@ -18,11 +18,18 @@
     document.cookie = name + "=" + encodeURIComponent(value) + "; Path=/; Max-Age=31536000; SameSite=Lax";
   }
 
+  function themeActionLabel(theme) {
+    return theme === "dark" ? "Light mode" : "Dark mode";
+  }
+
   function applyTheme(theme) {
     root.setAttribute("data-theme", theme);
     writeCookie(themeKey, theme);
+    const next = themeActionLabel(theme);
     document.querySelectorAll("[data-theme-toggle]").forEach(function (el) {
       el.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+      el.setAttribute("aria-label", next);
+      el.title = next;
     });
   }
 
@@ -56,6 +63,26 @@
     btn.addEventListener("click", function () {
       const collapsed = root.getAttribute("data-sidebar") !== "collapsed";
       applySidebar(collapsed);
+    });
+  });
+
+  document.querySelectorAll("form.filter-bar").forEach(function (form) {
+    form.addEventListener("change", function () {
+      if (typeof form.requestSubmit === "function") {
+        form.requestSubmit();
+      } else {
+        form.submit();
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-open-modal]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      const id = el.getAttribute("data-open-modal");
+      const dialog = id ? document.getElementById(id) : null;
+      if (dialog && typeof dialog.showModal === "function") {
+        dialog.showModal();
+      }
     });
   });
 })();

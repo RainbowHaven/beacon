@@ -12,8 +12,9 @@
 {{define "icon-moon"}}<svg class="menu-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>{{end}}
 {{define "icon-sun"}}<svg class="menu-icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>{{end}}
 {{define "theme-toggle"}}
-<button type="button" class="theme-item" data-theme-toggle title="Dark mode" aria-pressed="{{if eq .Theme "dark"}}true{{else}}false{{end}}">
-  {{template "icon-moon"}}{{template "icon-sun"}}<span class="menu-label">Dark mode</span>
+{{$next := "Dark mode"}}{{if eq .Theme "dark"}}{{$next = "Light mode"}}{{end}}
+<button type="button" class="theme-item" data-theme-toggle title="{{$next}}" aria-label="{{$next}}" aria-pressed="{{if eq .Theme "dark"}}true{{else}}false{{end}}">
+  {{template "icon-moon"}}{{template "icon-sun"}}<span class="menu-label theme-label-dark">Dark mode</span><span class="menu-label theme-label-light">Light mode</span>
 </button>
 {{end}}
 {{define "brand-lockup"}}

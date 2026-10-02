@@ -173,3 +173,47 @@ func TestLayoutNavRenders(t *testing.T) {
 		t.Fatal("login page missing auth shell")
 	}
 }
+
+func TestListFilterTemplatesRender(t *testing.T) {
+	tmpl := parseLayout(t)
+	data := map[string]any{
+		"Title":        "x",
+		"Path":         "/reports",
+		"User":         map[string]any{"Email": "a@b.c", "Role": "rhc_admin"},
+		"Theme":        "dark",
+		"Month":        "2026-10",
+		"MonthChoices": []monthChoice{{Value: "2026-10", Label: "October 2026"}},
+		"Houses":       []any{},
+		"Filters":      []any{},
+		"DocVersion":   "12 September 2026",
+		"Status":       "open",
+		"StatusFilter": "open",
+	}
+	for _, page := range []string{"reports.html", "expenses.html", "safeguarding.html", "operational_issues.html"} {
+		var buf strings.Builder
+		if err := tmpl.ExecuteTemplate(&buf, page, data); err != nil {
+			t.Fatalf("%s: %v", page, err)
+		}
+		html := buf.String()
+		if !strings.Contains(html, "Light mode") || strings.Contains(html, `type="month"`) {
+			t.Fatalf("%s theme/month markup unexpected", page)
+		}
+		if strings.Contains(html, ">Filter</button>") {
+			t.Fatalf("%s still has a Filter button", page)
+		}
+	}
+	var reports strings.Builder
+	if err := tmpl.ExecuteTemplate(&reports, "reports.html", data); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(reports.String(), "October 2026") || !strings.Contains(reports.String(), `class="select"`) {
+		t.Fatal("report month select missing")
+	}
+	var sg strings.Builder
+	if err := tmpl.ExecuteTemplate(&sg, "safeguarding.html", data); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(sg.String(), `data-open-modal="doc37-modal"`) || !strings.Contains(sg.String(), `id="doc37-modal"`) {
+		t.Fatal("Document 37 modal missing")
+	}
+}

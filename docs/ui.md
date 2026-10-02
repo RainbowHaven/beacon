@@ -147,17 +147,17 @@ Implement these in Beacon CSS (not as Tailwind in HTML):
 
 | Class | Job |
 |---|---|
-| `.page` | Main column: **width 100%**, max ~64rem, left of the main column (not shrink-wrapped/centered). Horizontal padding `1rem`, safe-area aware |
+| `.page` | Main column: **width 100%**, max ~64rem, left of the main column (not shrink-wrapped/centered). Horizontal padding `1.25rem` (desktop `1.75rem`), safe-area aware |
 | `.stack` | Vertical rhythm, gap `1rem`. Forms: max-width `28rem` unless the page is a wide table |
 | `.cluster` | Horizontal group, wrap, gap `0.75rem` (page actions, filters) |
-| `.filter-bar` | Filter row: labeled fields + action, `align-items: flex-end` |
-| `.field` | Caption above control in a filter bar |
+| `.filter-bar` | Filter row: labeled fields, `align-items: flex-end`. Submit on change (no Filter/Show button; `<noscript>` fallback) |
+| `.field` | Caption above control in a filter bar. Body size (1rem), not a tiny caption |
 | `.menu-icon` / `.menu-label` | Sidebar icon + text; label hides when the sidebar is collapsed |
 | `.sidebar-toggle` | Collapse/expand the desktop sidebar (`data-sidebar="collapsed"` on `<html>`) |
 | `.table-scroll` | Horizontal scroll wrapper for tables (replaces `overflow-x-auto`) |
 | `.brand-mark` | Light chip behind the logo (required in dark mode, optional in light) |
 | `.report-doc` | Report body: Ioskeley Mono, tabular figures |
-| `.theme-item` | Dark-mode control: button with moon/sun icons, no checkbox |
+| `.theme-item` | Theme control: moon/sun icons; label is the opposite of the current mode |
 
 ## Component catalogue
 
@@ -168,7 +168,7 @@ Read the matching file under `.agents/skills/daisyui/components/` before using a
 | Primary / secondary / danger button | `btn btn-primary` / `btn btn-outline` / `btn btn-error` | Default size. Avoid `btn-xs`. |
 | Flash / form error | `alert` + `alert-success` / `alert-error` / `alert-info`, `role="alert"` | One slot in the layout, not copy-paste per page |
 | Text / email / date | `input` | 16px effective size |
-| Select | `select` | |
+| Select | `select` | Keep `class="select"` so the chevron shows. Do not set `background` on `.select` in Beacon CSS. |
 | Textarea | `textarea` | |
 | File | `file-input` | Receipts |
 | Label + hint | `fieldset` + `fieldset-legend` + `label` | |
@@ -180,8 +180,8 @@ Read the matching file under `.agents/skills/daisyui/components/` before using a
 | Signed-in desktop | `drawer` + `lg:drawer-open` + `menu` with icons | Logo at top of sidebar. Collapse to icons; persist. |
 | Signed-in mobile | `navbar` (logo + account) + `dock` | Occupants, Expenses, Reports, More. Min 44px targets, `viewport-fit=cover` |
 | Account / more | `dropdown` with `<details>` | No extra JS |
-| Theme toggle | `.theme-item` button (moon/sun icons) | Desktop: sidebar above Account. Mobile: topbar. No checkbox. Cookie persist |
-| Destructive confirm | native `confirm()` for now, or `modal` if we add one | |
+| Theme toggle | `.theme-item` button (moon/sun icons) | Desktop: sidebar above Account. Mobile: topbar. No checkbox. Cookie persist. Visible label and `title` are the **next** mode (Dark mode in light, Light mode in dark) |
+| Destructive confirm | native `confirm()` for now, or `modal` if we add one | Document 37 uses `dialog.modal` |
 
 Unused daisyUI (hero, chat, rating, carousel, mockups, aura, …): do not add.
 
@@ -191,13 +191,19 @@ Unused daisyUI (hero, chat, rating, carousel, mockups, aura, …): do not add.
 Centered `.stack` (max 28rem). Full logo above the heading. One `btn-primary`. Errors as `alert-error`.
 
 **List (occupants, expenses, admin users)**  
-`.page-header` with title + primary action. Optional filters in `.cluster`. Desktop: table. Narrow: `list` / `card`. Empty: muted sentence + the same primary action.
+`.page-header` with title + primary action. Optional filters in `.filter-bar` (labeled `.field` + daisyUI `select`; change submits). Desktop: table. Narrow: `list` / `card`. Empty: muted sentence + the same primary action.
 
 **Form (occupant, expense, operations)**  
 `.stack` of `fieldset`s. Labels always visible (no placeholder-only). One `btn-primary` submit. Cancel is `btn btn-outline`, in a `.cluster` with Save.
 
 **Report**  
-Screen: `.filter-bar` (month, house, Show) plus toolbar `.no-print` (print, CSV), then a blank daisyUI `divider`, then `.report-doc`. Summary `stats` in one horizontal row (`width: fit-content`). Paper: `@media print` — hide chrome and dock, title **Monthly report · Beacon**, no Rainbow Haven lockup. Report body uses `.report-doc` (Ioskeley Mono 400 body, 500 headings, 700 stat values). daisyUI does not replace print CSS.
+Screen: `.filter-bar` (named month `<select>`, house `<select class="select">` so the chevron is visible) plus toolbar `.no-print` (print, CSV), then a blank daisyUI `divider`, then `.report-doc`. Do not use `<input type="month">` — native month fields show `YYYY-MM` without a clear picker. Summary `stats` in one horizontal row (`width: fit-content`). Paper: `@media print` — hide chrome and dock, title **Monthly report · Beacon**, no Rainbow Haven lockup. Report body uses `.report-doc` (Ioskeley Mono 400 body, 500 headings, 700 stat values). daisyUI does not replace print CSS.
+
+**Safeguarding**  
+`.page-header` with Record concern + Download Document 37. Explanations live in a `dialog.modal`; the page does not show the long copy. House filter uses the same `.filter-bar` / `.field` / `select` as Reports.
+
+**Operations**  
+Same list recipe: `.page-header`, status as `.cluster` of buttons, house filter as `.filter-bar` (no Filter button).
 
 **Admin**  
 Same list/form recipes. Role-gated nav stays server-side.

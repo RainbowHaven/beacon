@@ -5,11 +5,18 @@
   const saved = localStorage.getItem(themeKey);
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
+  function themeActionLabel(theme) {
+    return theme === "dark" ? "Light mode" : "Dark mode";
+  }
+
   function applyTheme(theme) {
     root.setAttribute("data-theme", theme);
     localStorage.setItem(themeKey, theme);
+    const next = themeActionLabel(theme);
     document.querySelectorAll("[data-theme-toggle]").forEach(function (el) {
       el.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+      el.setAttribute("aria-label", next);
+      el.title = next;
     });
   }
 
