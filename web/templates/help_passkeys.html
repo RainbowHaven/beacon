@@ -1,13 +1,15 @@
 {{template "layout_start" .}}
-<h1>Passkey help</h1>
-
+<div class="page-header">
+  <h1>Passkey help</h1>
+</div>
+<div class="stack">
 <h2>What is a passkey?</h2>
 <p>A passkey replaces a password. It is stored safely on your phone or computer and is unlocked with your fingerprint, your face, or your screen lock PIN. There is nothing to remember or type, and nobody can guess it or trick you into giving it away.</p>
 <p>Beacon never sees your fingerprint or face — those stay on your device.</p>
 
 <h2>Signing in</h2>
 <ol>
-  <li>Open the <a href="/login">sign-in page</a> and enter your email address.</li>
+  <li>Open the <a class="link" href="/login">sign-in page</a> and enter your email address.</li>
   <li>Choose <strong>Sign in with passkey</strong>.</li>
   <li>Your device asks you to confirm with your fingerprint, face, or screen lock. That is all.</li>
 </ol>
@@ -40,5 +42,6 @@
 <h2>Changing your email address</h2>
 <p>Ask an RHC admin. Your passkeys keep working after the change; your device may still show the old email next to the passkey.</p>
 
-<p class="actions"><a class="btn secondary" href="{{if .User}}/account{{else}}/login{{end}}">{{if .User}}Back to account{{else}}Back to sign in{{end}}</a></p>
+<p class="actions"><a class="btn btn-outline" href="{{if .User}}/account{{else}}/login{{end}}">{{if .User}}Back to account{{else}}Back to sign in{{end}}</a></p>
+</div>
 {{template "layout_end" .}}

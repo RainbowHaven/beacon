@@ -11,3 +11,4 @@ deploy/.env
 identity.priv.b64
 /bin/
 /tmp/
+.superdesign/tmp/

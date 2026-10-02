@@ -2,6 +2,8 @@
 
 Safe house operations for Rainbow Haven — occupancy, expenses, and RHC reporting. Beacon does **not** collect resident legal names or government IDs.
 
+UI source of truth: [docs/ui.md](./docs/ui.md) (daisyUI + named layout classes, no Tailwind in HTML).
+
 ## Requirements
 
 - Go 1.27+ (`GOTOOLCHAIN=auto` fetches it if needed)

@@ -1,13 +1,13 @@
 {{template "layout_start" .}}
 <h1>Log in</h1>
-<p class="muted">Use the passkey enrolled from your invite link. No passwords. <a href="/help/passkeys">New to passkeys or lost your phone?</a></p>
-{{if .Error}}<div class="flash error">{{.Error}}</div>{{end}}
-<form id="login-form" class="stack" style="max-width:24rem">
+<p class="muted">Use the passkey enrolled from your invite link. No passwords. <a class="link" href="/help/passkeys">New to passkeys or lost your phone?</a></p>
+{{if .Error}}<div class="alert alert-error" role="alert">{{.Error}}</div>{{end}}
+<form id="login-form" class="stack">
   <label>Email
-    <input type="email" name="email" id="email" required autocomplete="username webauthn">
+    <input class="input" type="email" name="email" id="email" required autocomplete="username webauthn">
   </label>
-  <button type="submit">Sign in with passkey</button>
-  <p id="login-error" class="flash error" hidden></p>
+  <button class="btn btn-primary" type="submit">Sign in with passkey</button>
+  <p id="login-error" class="alert alert-error" hidden></p>
 </form>
 <script type="module">
   import { loginWithPasskey } from '{{static "js/webauthn.js"}}';
