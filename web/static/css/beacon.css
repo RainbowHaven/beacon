@@ -28,6 +28,8 @@
   --color-base-200: #ececec;
   --color-base-300: #d4d4d4;
   --color-base-content: #1a1a1a;
+  --color-table-content: #111111;
+  --color-brand-chip: #ffffff;
   --color-primary: #0f5f5a;
   --color-primary-content: #ffffff;
   --color-neutral: #2a2a2a;
@@ -47,6 +49,8 @@
   --color-base-200: #1f1f1f;
   --color-base-300: #333333;
   --color-base-content: #f3f3f3;
+  --color-table-content: #fafafa;
+  --color-brand-chip: #ffffff;
   --color-primary: #4aa79f;
   --color-primary-content: #0a0a0a;
   --color-neutral: #2a2a2a;
@@ -79,6 +83,15 @@ h1, h2, h3, strong, b, .btn, .fieldset-legend, .stat-value {
   font-weight: 500;
 }
 
+.btn,
+.input,
+.select,
+.textarea,
+.file-input,
+.field {
+  font-family: var(--default-font-family);
+}
+
 h1 { font-size: 1.75rem; line-height: 1.25; margin: 0; }
 h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
 h3 { font-size: 1.05rem; line-height: 1.25; margin: 0 0 0.5rem; }
@@ -100,27 +113,59 @@ h3 { font-size: 1.05rem; line-height: 1.25; margin: 0 0 0.5rem; }
   color: var(--color-base-content);
 }
 
-.table :where(thead, tfoot) {
-  color: var(--color-base-content);
-  font-weight: 500;
+.table {
+  color: var(--color-table-content);
+  font-family: "Ioskeley Mono", ui-monospace, "Cascadia Code", monospace;
+  font-variant-numeric: tabular-nums;
+  font-variant-ligatures: none;
+  font-feature-settings: "zero" 1;
+  font-size: 1rem;
+  font-weight: 400;
 }
-
-.table :where(th, td) {
-  padding-block: 0.35rem;
+.table thead,
+.table tfoot,
+.table th,
+.table td {
+  color: var(--color-table-content) !important;
+  -webkit-text-fill-color: var(--color-table-content);
+  font-family: "Ioskeley Mono", ui-monospace, "Cascadia Code", monospace;
+  font-size: 1rem !important;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  font-variant-ligatures: none;
+  font-feature-settings: "zero" 1;
+  opacity: 1 !important;
+  background-color: transparent;
+}
+.table thead,
+.table tfoot,
+.table thead th,
+.table tfoot th {
+  font-weight: 500 !important;
+}
+.table th,
+.table td {
+  padding-block: 0.25rem;
   padding-inline: 0.75rem;
 }
+.table .muted {
+  color: color-mix(in oklab, var(--color-table-content) 78%, transparent) !important;
+  -webkit-text-fill-color: unset;
+}
 
-.table .cluster { gap: 0.375rem; flex-wrap: nowrap; }
+.table .cluster { gap: 0.5rem; flex-wrap: nowrap; }
 
 .stat-title { font-size: 1rem; }
 .stat-value { font-size: 1.5rem; }
 .page > .stats { margin-bottom: 1.5rem; }
+.page > section { margin-top: 1.5rem; }
 
 .page {
   width: 100%;
   max-width: 64rem;
   margin-inline: 0;
-  padding: 1.25rem;
+  padding-block: 1.5rem;
+  padding-inline: 0 1.5rem;
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
 .stack { display: flex; flex-direction: column; gap: 1rem; }
@@ -144,19 +189,20 @@ h3 { font-size: 1.05rem; line-height: 1.25; margin: 0 0 0.5rem; }
 }
 .table-scroll { overflow-x: auto; width: 100%; max-width: 100%; }
 .muted { color: color-mix(in oklab, var(--color-base-content) 78%, transparent); }
+.page p { overflow-wrap: break-word; }
 
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem 1.25rem;
+  gap: 1rem 1.5rem;
   align-items: flex-end;
-  margin: 1.25rem 0;
-  padding-block: 0.35rem 0.5rem;
+  margin: 1.5rem 0;
+  padding-block: 0.25rem 0.5rem;
 }
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.5rem;
   font-size: 1rem;
   font-weight: 500;
 }
@@ -165,10 +211,20 @@ h3 { font-size: 1.05rem; line-height: 1.25; margin: 0 0 0.5rem; }
   font-weight: 400;
 }
 .filter-bar .input,
-.filter-bar .select {
+.filter-bar .select,
+.cluster .field .input,
+.cluster .field .select {
   width: auto;
   min-width: 12rem;
   max-width: 100%;
+}
+.cluster .field .input-narrow {
+  min-width: 8rem;
+  width: 8rem;
+}
+.cluster .field .input-places {
+  min-width: 7rem;
+  width: 7rem;
 }
 .field-month .input,
 .field-month .select { min-width: 16.5rem; }
@@ -177,7 +233,7 @@ form select:not(.select),
 form textarea {
   font: inherit;
   font-size: 1rem;
-  padding: 0.55rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--color-base-300);
   background: var(--color-base-100);
   color: inherit;
@@ -190,7 +246,7 @@ form input.input-places { width: 7rem; }
 form button:not(.btn):not(.theme-item) {
   font: inherit;
   font-size: 1rem;
-  padding: 0.55rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--color-primary);
   background: var(--color-primary);
   color: var(--color-primary-content);
@@ -205,26 +261,38 @@ form button.secondary {
 form button.danger {
   background: var(--color-error);
   border-color: var(--color-error);
-  color: var(--color-error-content, #fff);
+  color: var(--color-error-content);
 }
 
-.table,
+.table .btn,
+.table .input,
+.table .select,
+.table .textarea,
+.table .field,
+.table label,
+.table .report-status,
+.table .review-status {
+  font-family: var(--default-font-family);
+  font-variant-numeric: normal;
+  font-variant-ligatures: normal;
+  font-feature-settings: normal;
+  -webkit-text-fill-color: unset;
+  font-size: inherit;
+  font-weight: 500;
+}
+.table th {
+  white-space: nowrap;
+}
+.table td {
+  overflow-wrap: break-word;
+}
+.table-scroll .table {
+  width: max-content;
+  min-width: 100%;
+}
+
 .report-doc {
-  font-family: "Ioskeley Mono", ui-monospace, "Cascadia Code", monospace;
-  font-variant-numeric: tabular-nums;
-  font-variant-ligatures: none;
-  font-feature-settings: "zero" 1;
-  font-size: 1rem;
-  font-weight: 400;
-}
-
-.report-doc,
-.report-doc .table :where(th, td) {
-  color: #111111;
-}
-[data-theme="dark"] .report-doc,
-[data-theme="dark"] .report-doc .table :where(th, td) {
-  color: #fafafa;
+  color: var(--color-table-content);
 }
 .report-doc h1,
 .report-doc h2,
@@ -234,6 +302,7 @@ form button.danger {
 .report-doc .stat-value {
   font-weight: 700;
   line-height: 1.15;
+  font-variant-numeric: tabular-nums;
 }
 
 .report-doc .stats {
@@ -250,7 +319,7 @@ form button.danger {
   grid-row: span 3;
   width: auto;
   padding-block: 0.25rem;
-  padding-inline: 1.25rem 1.5rem;
+  padding-inline: 1.5rem;
   align-items: baseline;
 }
 .report-doc .stat:first-child { padding-inline-start: 0; }
@@ -261,9 +330,9 @@ form button.danger {
 .brand-mark {
   display: inline-flex;
   align-items: center;
-  background: #fff;
+  background: var(--color-brand-chip);
   border-radius: 0.5rem;
-  padding: 0.35rem 0.5rem;
+  padding: 0.25rem 0.5rem;
   line-height: 0;
 }
 .brand-mark .brand-lockup { height: 48px; width: auto; display: block; }
@@ -284,20 +353,45 @@ form button.danger {
   height: 100dvh;
   overflow-y: auto;
 }
-.sidebar .menu { width: 100%; gap: 0.25rem; }
-.sidebar-foot { margin-top: auto; }
+.sidebar .menu {
+  width: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  gap: 0.25rem;
+  padding: 0;
+  margin: 0;
+  font-size: 1rem;
+  background: transparent;
+}
+.sidebar > .menu:not(.sidebar-foot) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.sidebar-foot {
+  margin-top: auto;
+  flex: 0 0 auto;
+}
+.sidebar .menu li {
+  display: flex;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
 .sidebar .menu li > a,
-.sidebar .menu li > .theme-item {
+.sidebar .menu .theme-item {
   display: grid;
   grid-template-columns: 1.25rem 1fr;
+  grid-auto-flow: row;
   justify-content: start;
   align-items: center;
   gap: 0.5rem;
-  padding-block: 0.625rem;
+  padding-block: 0.5rem;
   padding-inline: 0.75rem;
   min-height: 2.5rem;
   width: 100%;
   box-sizing: border-box;
+  font-size: inherit;
 }
 .sidebar .logout-form { display: contents; }
 .theme-item {
@@ -308,14 +402,12 @@ form button.danger {
   font: inherit;
   text-align: start;
   display: grid;
-  grid-auto-flow: column;
   justify-content: start;
   align-items: center;
   gap: 0.5rem;
   padding-inline: 0.75rem;
   border-radius: var(--radius-field);
   cursor: pointer;
-  font-size: 0.875rem;
   width: auto;
 }
 .sidebar .theme-item { width: 100%; }
@@ -397,7 +489,7 @@ form button.danger {
   min-width: 12rem;
   display: flex;
   flex-direction: column;
-  padding: 0.35rem;
+  padding: 0.25rem;
   background: var(--color-base-200);
   border: 1px solid var(--color-base-300);
   border-radius: var(--radius-box);
@@ -407,7 +499,7 @@ form button.danger {
   display: flex;
   align-items: center;
   min-height: 44px;
-  padding: 0.45rem 0.65rem;
+  padding: 0.5rem 0.75rem;
   color: inherit;
   text-decoration: none;
   border-radius: var(--radius-field);
@@ -431,10 +523,10 @@ form button.danger {
   background: var(--color-base-100);
   border: 1px solid var(--color-base-300);
   border-inline-start: 4px solid var(--color-primary);
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1.25rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
 }
-.modal-box.stack { gap: 0.85rem; }
+.modal-box.stack { gap: 0.75rem; }
 .modal-box h2,
 .modal-box p { margin: 0; }
 .notice h2 { margin: 0; }
@@ -446,7 +538,7 @@ form button.danger {
   width: auto;
   max-width: 100%;
   margin-inline-start: 0.25rem;
-  padding: 0.2rem 0.45rem;
+  padding: 0.25rem 0.5rem;
   font-family: "Ioskeley Mono", ui-monospace, monospace;
   font-size: 1rem;
   border: 1px dashed var(--color-error);
@@ -485,12 +577,12 @@ form.logout-form { margin: 0; }
   background: var(--color-base-100);
   border: 1px solid var(--color-base-300);
   border-radius: var(--radius-box);
-  padding: 0.9rem 1rem;
+  padding: 1rem;
   display: grid;
   gap: 0.75rem;
 }
 .record-title { font-weight: 500; word-break: break-word; }
-.record-meta { font-size: 0.875rem; margin-top: 0.2rem; }
+.record-meta { font-size: 0.875rem; margin-top: 0.25rem; }
 .record-text {
   margin: 0.5rem 0 0;
   white-space: pre-line;
@@ -516,8 +608,8 @@ form.logout-form { margin: 0; }
 .review-status,
 .report-status {
   display: inline-block;
-  margin-inline-start: 0.35rem;
-  padding: 0.1rem 0.5rem;
+  margin-inline-start: 0.25rem;
+  padding: 0.25rem 0.5rem;
   border: 1px solid var(--color-primary);
   border-radius: 999px;
   color: var(--color-primary);
@@ -534,10 +626,12 @@ form.logout-form { margin: 0; }
 td > .report-status { margin-inline-start: 0; }
 
 .report-section { margin-bottom: 1.5rem; }
+.report-doc .table-scroll,
+.report-section .table-scroll { margin-top: 1rem; }
 .report-facts {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 0.3rem 1.25rem;
+  gap: 0.25rem 1.5rem;
   margin: 0 0 0.75rem;
 }
 .report-facts dt { opacity: 0.8; }
@@ -577,8 +671,8 @@ td > .report-status { margin-inline-start: 0; }
   .dock { display: none !important; }
   .main-col { padding-inline-start: 2.5rem; }
   .page {
-    padding-bottom: 1.75rem;
-    padding-inline: 1.75rem;
+    padding-bottom: 2rem;
+    padding-inline: 0 2rem;
   }
   .topbar { padding-inline: 1.5rem; }
   .topbar .brand-mark { display: none; }
@@ -596,7 +690,7 @@ td > .report-status { margin-inline-start: 0; }
   }
   html[data-sidebar="collapsed"] .brand-mark .brand-lockup { display: none; }
   html[data-sidebar="collapsed"] .brand-mark .brand-icon { display: block; }
-  html[data-sidebar="collapsed"] .brand-mark { padding: 0.35rem; }
+  html[data-sidebar="collapsed"] .brand-mark { padding: 0.25rem; }
   html[data-sidebar="collapsed"] .menu-label {
     position: absolute;
     width: 1px;

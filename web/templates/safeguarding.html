@@ -8,13 +8,14 @@
 </div>
 {{if .Flash}}<p class="alert">{{.Flash}}</p>{{end}}
 
+<div class="stack">
 <p class="muted">Safeguarding is for concerns about the safety or wellbeing of people. Building, utilities, supplies, staffing and similar operational problems belong in Operations, not here.</p>
-
 <p class="cluster">
   {{range .Filters}}
   <a class="btn{{if .Current}} btn-primary{{else}} btn-outline{{end}}"{{if .Current}} aria-current="page"{{end}} href="{{.URL}}">{{.Label}}</a>
   {{end}}
 </p>
+</div>
 
 {{if .ShowHouseFilter}}
 <form class="filter-bar" method="get" action="/safeguarding">

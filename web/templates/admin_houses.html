@@ -1,42 +1,41 @@
 {{template "layout_start" .}}
-<h1>Houses</h1>
+<div class="page-header">
+  <h1>Houses</h1>
+</div>
 <p class="muted">RHLs and safe houses. Inactive houses are hidden from day-to-day pickers.</p>
 {{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
 {{if .Flash}}<div class="alert">{{.Flash}}</div>{{end}}
 
 <section class="stack">
   <h2>RHLs</h2>
-  <table class="table table-zebra">
-    <thead><tr><th>Name</th><th>Code</th><th>Status</th><th></th></tr></thead>
-    <tbody>
-    {{range .RHLs}}
-      {{$rhl := .}}
-      <tr>
-        <td colspan="4">
-          <form method="post" action="/admin/rhls/{{$rhl.ID}}" class="stack stack-tight">
-            <div class="cluster cluster-end">
-              <label>Name <input type="text" name="name" value="{{$rhl.Name}}" required></label>
-              <label>Code <input type="text" name="code" value="{{$rhl.Code}}" maxlength="12" autocapitalize="characters" placeholder="e.g. TOR" class="input-narrow"></label>
-              <label>Status
-                <select name="active">
-                  <option value="true" {{if $rhl.Active}}selected{{end}}>Active</option>
-                  <option value="false" {{if not $rhl.Active}}selected{{end}}>Inactive</option>
-                </select>
-              </label>
-              <button type="submit" class="btn btn-outline">Save</button>
-            </div>
-          </form>
-        </td>
-      </tr>
-    {{else}}
-      <tr><td colspan="4" class="muted">No RHLs yet.</td></tr>
-    {{end}}
-    </tbody>
-  </table>
+  {{range .RHLs}}
+  {{$rhl := .}}
+  <form method="post" action="/admin/rhls/{{$rhl.ID}}" class="cluster cluster-end">
+    <label class="field">Name
+      <input class="input" type="text" name="name" value="{{$rhl.Name}}" required>
+    </label>
+    <label class="field">Code
+      <input class="input input-narrow" type="text" name="code" value="{{$rhl.Code}}" maxlength="12" autocapitalize="characters" placeholder="e.g. TOR">
+    </label>
+    <label class="field">Status
+      <select class="select" name="active">
+        <option value="true" {{if $rhl.Active}}selected{{end}}>Active</option>
+        <option value="false" {{if not $rhl.Active}}selected{{end}}>Inactive</option>
+      </select>
+    </label>
+    <button type="submit" class="btn btn-outline">Save</button>
+  </form>
+  {{else}}
+  <p class="muted">No RHLs yet.</p>
+  {{end}}
   <p class="muted">The RHL code is 2–12 letters, digits or hyphens. It appears in the monthly report and in incident IDs.</p>
   <form method="post" action="/admin/rhls" class="cluster cluster-end">
-    <label>New RHL <input type="text" name="name" required placeholder="Region name"></label>
-    <label>Code <input type="text" name="code" maxlength="12" autocapitalize="characters" placeholder="e.g. TOR" class="input-narrow"></label>
+    <label class="field">New RHL
+      <input class="input" type="text" name="name" required placeholder="Region name">
+    </label>
+    <label class="field">Code
+      <input class="input input-narrow" type="text" name="code" maxlength="12" autocapitalize="characters" placeholder="e.g. TOR">
+    </label>
     <input type="hidden" name="active" value="true">
     <button class="btn btn-primary" type="submit">Add RHL</button>
   </form>
@@ -44,63 +43,60 @@
 
 <section class="stack">
   <h2>Safe houses</h2>
-  <table class="table table-zebra">
-    <thead><tr><th colspan="5">Existing houses</th></tr></thead>
-    <tbody>
-    {{range .Houses}}
-      {{$house := .}}
-      <tr>
-        <td colspan="5">
-          <form method="post" action="/admin/safe-houses/{{$house.ID}}" class="stack stack-tight">
-            <div class="cluster cluster-end">
-              <label>Name <input type="text" name="name" value="{{$house.Name}}" required></label>
-              <label>RHL
-                <select name="rhl_id" required>
-                  {{range $.RHLs}}
-                  <option value="{{.ID}}" {{if eq .ID $house.RHLID}}selected{{end}}>{{.Label}}</option>
-                  {{end}}
-                </select>
-              </label>
-              <label>Currency
-                <select name="default_currency">
-                  {{range $.Currencies}}
-                  <option value="{{.}}" {{if eq . $house.DefaultCurrency}}selected{{end}}>{{.}}</option>
-                  {{end}}
-                </select>
-              </label>
-              <label>Sleeping places <input type="number" name="approved_sleeping_places" value="{{with $house.ApprovedSleepingPlaces}}{{.}}{{end}}" min="1" max="100" step="1" placeholder="Not set" class="input-places"></label>
-              <label>Status
-                <select name="active">
-                  <option value="true" {{if $house.Active}}selected{{end}}>Active</option>
-                  <option value="false" {{if not $house.Active}}selected{{end}}>Inactive</option>
-                </select>
-              </label>
-              <button type="submit" class="btn btn-outline">Save</button>
-            </div>
-          </form>
-        </td>
-      </tr>
-    {{else}}
-      <tr><td colspan="5" class="muted">No safe houses yet.</td></tr>
-    {{end}}
-    </tbody>
-  </table>
+  {{range .Houses}}
+  {{$house := .}}
+  <form method="post" action="/admin/safe-houses/{{$house.ID}}" class="cluster cluster-end">
+    <label class="field">Name
+      <input class="input" type="text" name="name" value="{{$house.Name}}" required>
+    </label>
+    <label class="field">RHL
+      <select class="select" name="rhl_id" required>
+        {{range $.RHLs}}
+        <option value="{{.ID}}" {{if eq .ID $house.RHLID}}selected{{end}}>{{.Label}}</option>
+        {{end}}
+      </select>
+    </label>
+    <label class="field">Currency
+      <select class="select" name="default_currency">
+        {{range $.Currencies}}
+        <option value="{{.}}" {{if eq . $house.DefaultCurrency}}selected{{end}}>{{.}}</option>
+        {{end}}
+      </select>
+    </label>
+    <label class="field">Sleeping places
+      <input class="input input-places" type="number" name="approved_sleeping_places" value="{{with $house.ApprovedSleepingPlaces}}{{.}}{{end}}" min="1" max="100" step="1" placeholder="Not set">
+    </label>
+    <label class="field">Status
+      <select class="select" name="active">
+        <option value="true" {{if $house.Active}}selected{{end}}>Active</option>
+        <option value="false" {{if not $house.Active}}selected{{end}}>Inactive</option>
+      </select>
+    </label>
+    <button type="submit" class="btn btn-outline">Save</button>
+  </form>
+  {{else}}
+  <p class="muted">No safe houses yet.</p>
+  {{end}}
 
   <form method="post" action="/admin/safe-houses" class="stack stack-narrow">
     <h3>Add safe house</h3>
-    <label>Name <input type="text" name="name" required></label>
-    <label>RHL
-      <select name="rhl_id" required>
+    <label class="field">Name
+      <input class="input" type="text" name="name" required>
+    </label>
+    <label class="field">RHL
+      <select class="select" name="rhl_id" required>
         <option value="">—</option>
         {{range .RHLs}}{{if .Active}}<option value="{{.ID}}">{{.Label}}</option>{{end}}{{end}}
       </select>
     </label>
-    <label>Default currency
-      <select name="default_currency">
+    <label class="field">Default currency
+      <select class="select" name="default_currency">
         {{range .Currencies}}<option value="{{.}}" {{if eq . "CAD"}}selected{{end}}>{{.}}</option>{{end}}
       </select>
     </label>
-    <label>Approved sleeping places <input type="number" name="approved_sleeping_places" min="1" max="100" step="1" placeholder="Optional"></label>
+    <label class="field">Approved sleeping places
+      <input class="input" type="number" name="approved_sleeping_places" min="1" max="100" step="1" placeholder="Optional">
+    </label>
     <input type="hidden" name="active" value="true">
     <button class="btn btn-primary" type="submit">Add safe house</button>
   </form>

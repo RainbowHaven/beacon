@@ -79,7 +79,9 @@
 {{else if .Status}}
 <p class="muted">No expenses with this review status.</p>
 {{else}}
+<div class="stack">
 <p class="muted">No expenses logged yet.</p>
 <p><a class="btn btn-primary" href="/expenses/new">Log expense</a></p>
+</div>
 {{end}}
 {{template "layout_end" .}}

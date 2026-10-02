@@ -2,9 +2,7 @@
 
 Source of truth for visual design and HTML in this repo. Agents and humans follow this file, not the official daisyUI “use Tailwind utilities in HTML” default.
 
-Stack stays [AGENTS.md](../AGENTS.md): server-rendered Go templates, no React, no HTMX, minimal vanilla JS.
-
-**Mockups:** [web/mockups/README.md](../web/mockups/README.md) (`make mockups`). Production templates follow this document.
+Stack stays [AGENTS.md](../AGENTS.md): server-rendered Go templates, no React, no HTMX, minimal vanilla JS. Production templates follow this document.
 
 ## Brand
 
@@ -33,7 +31,7 @@ Rainbow Haven is the NGO. Beacon is the product.
 
 **Dark mode**
 
-The teal wordmark (`#012A2C`) disappears on a dark background. Sit the SVG on a light chip (`.brand-mark`, `base-100` fill, short radius). Do not `filter: invert` — that would wreck the rainbow.
+The teal wordmark (`#012A2C`) disappears on a dark background. Sit the SVG on a light chip (`.brand-mark`, `brand-chip` `#FFFFFF` in both themes, short radius). Do not `filter: invert` — that would wreck the rainbow. Do not use `base-100`: in dark mode that is `#161616`.
 
 ```html
 <a class="brand-mark" href="/">
@@ -75,10 +73,10 @@ The official daisyUI skill says “if daisyUI cannot do it, use Tailwind utiliti
 
 ## Tokens
 
-**Type:** Fira Sans (Google Fonts) for UI. [Ioskeley Mono](https://github.com/ahatem/IoskeleyMono) v2.1.0 (OFL, Iosevka build inspired by Berkeley Mono) for tables and reports — Regular/Medium/Bold WOFF2 under [web/static/fonts/ioskeley/](../web/static/fonts/ioskeley/). Not an official Berkeley Mono.
+**Type:** Fira Sans (Google Fonts) for UI, including buttons even when they sit inside a table. [Ioskeley Mono](https://github.com/ahatem/IoskeleyMono) v2.1.0 (OFL, Iosevka build inspired by Berkeley Mono) for **table cells only** — Regular/Medium/Bold WOFF2 under [web/static/fonts/ioskeley/](../web/static/fonts/ioskeley/). Not an official Berkeley Mono. Report prose, headings, facts and stats stay Fira Sans.
 
 ` "Fira Sans", system-ui, sans-serif`
-` "Ioskeley Mono", ui-monospace, monospace` — tables, report body (`tabular-nums`, ligatures off, slashed zero)
+` "Ioskeley Mono", ui-monospace, monospace` — `.table` cells (`tabular-nums`, ligatures off, slashed zero). Not inputs, labels, or `.btn`.
 
 ### Type
 
@@ -116,7 +114,9 @@ Do not put these hexes in HTML. They belong in the theme CSS.
 | `base-100` | `#F5F5F5` | Page (neutral grey, no teal wash) |
 | `base-200` | `#ECECEC` | Sidebar, chips |
 | `base-300` | `#D4D4D4` | Borders |
-| `base-content` | `#1A1A1A` | Text |
+| `base-content` | `#1A1A1A` | UI text |
+| `table-content` | `#111111` | `th`/`td` and report prose. Darker than `base-content` so tables match the report. |
+| `brand-chip` | `#FFFFFF` | Always-light plate behind the Rainbow Haven lockup |
 | `primary` | `#0F5F5A` | One accent; primary button **and** selected menu |
 | `primary-content` | `#FFFFFF` | On primary |
 | `neutral` | `#2A2A2A` | Unused for nav highlight |
@@ -124,7 +124,7 @@ Do not put these hexes in HTML. They belong in the theme CSS.
 
 No cream, no radial warm gradient. Override daisyUI `.menu { --menu-active-bg: var(--color-primary) }` — daisyUI’s default `menu-active` uses `neutral`, which is a different colour from `btn-primary`. That mismatch is not intentional.
 
-daisyUI `.label` is 60% opacity; Beacon labels use full `base-content`. Table headers use ~88% so they stay slightly secondary to cell text.
+daisyUI `.label` is 60% opacity; Beacon labels use full `base-content`. Tables and `.report-doc` use `table-content`. DaisyUI’s `thead` uses `color-mix(… 60%, transparent)` at 0.875rem/600 — Beacon overrides `color`, size and weight on `.table th` / `.table td` with `!important` so dashboard and reports match.
 
 **Dark (`data-theme="dark"`)**
 
@@ -134,6 +134,8 @@ daisyUI `.label` is 60% opacity; Beacon labels use full `base-content`. Table he
 | `base-200` | `#1F1F1F` |
 | `base-300` | `#333333` |
 | `base-content` | `#F3F3F3` |
+| `table-content` | `#FAFAFA` |
+| `brand-chip` | `#FFFFFF` |
 | `primary` | `#4AA79F` |
 | `primary-content` | `#0A0A0A` |
 
@@ -147,16 +149,16 @@ Implement these in Beacon CSS (not as Tailwind in HTML):
 
 | Class | Job |
 |---|---|
-| `.page` | Main column: **width 100%**, max ~64rem, left of the main column (not shrink-wrapped/centered). Horizontal padding `1.25rem` (desktop `1.75rem`), safe-area aware |
+| `.page` | Main column: **width 100%**, max ~64rem, left of the main column (not shrink-wrapped/centered). No extra left padding — title lines up with the topbar rule. End padding `1.5rem` (desktop `2rem`), safe-area aware |
 | `.stack` | Vertical rhythm, gap `1rem`. Forms: max-width `28rem` unless the page is a wide table |
 | `.cluster` | Horizontal group, wrap, gap `0.75rem` (page actions, filters) |
 | `.filter-bar` | Filter row: labeled fields, `align-items: flex-end`. Submit on change (no Filter/Show button; `<noscript>` fallback) |
 | `.field` | Caption above control in a filter bar. Body size (1rem), not a tiny caption |
 | `.menu-icon` / `.menu-label` | Sidebar icon + text; label hides when the sidebar is collapsed |
 | `.sidebar-toggle` | Collapse/expand the desktop sidebar (`data-sidebar="collapsed"` on `<html>`) |
-| `.table-scroll` | Horizontal scroll wrapper for tables (replaces `overflow-x-auto`) |
+| `.table-scroll` | Horizontal scroll wrapper for tables (replaces `overflow-x-auto`). Space above the table in a report section is `1rem`. |
 | `.brand-mark` | Light chip behind the logo (required in dark mode, optional in light) |
-| `.report-doc` | Report body: Ioskeley Mono, tabular figures |
+| `.report-doc` | Report body: Fira Sans. Nested `.table` uses Ioskeley Mono |
 | `.theme-item` | Theme control: moon/sun icons; label is the opposite of the current mode |
 
 ## Component catalogue
@@ -165,7 +167,7 @@ Read the matching file under `.agents/skills/daisyui/components/` before using a
 
 | Beacon pattern | daisyUI | Notes |
 |---|---|---|
-| Primary / secondary / danger button | `btn btn-primary` / `btn btn-outline` / `btn btn-error` | Default size. Avoid `btn-xs`. |
+| Primary / secondary / danger button | `btn btn-primary` / `btn btn-outline` / `btn btn-error` | Default size. Avoid `btn-xs`. Always Fira Sans, including table actions. |
 | Flash / form error | `alert` + `alert-success` / `alert-error` / `alert-info`, `role="alert"` | One slot in the layout, not copy-paste per page |
 | Text / email / date | `input` | 16px effective size |
 | Select | `select` | Keep `class="select"` so the chevron shows. Do not set `background` on `.select` in Beacon CSS. |
@@ -180,7 +182,7 @@ Read the matching file under `.agents/skills/daisyui/components/` before using a
 | Signed-in desktop | `drawer` + `lg:drawer-open` + `menu` with icons | Logo at top of sidebar. Collapse to icons; persist. |
 | Signed-in mobile | `navbar` (logo + account) + `dock` | Occupants, Expenses, Reports, More. Min 44px targets, `viewport-fit=cover` |
 | Account / more | `dropdown` with `<details>` | No extra JS |
-| Theme toggle | `.theme-item` button (moon/sun icons) | Desktop: sidebar above Account. Mobile: topbar. No checkbox. Cookie persist. Visible label and `title` are the **next** mode (Dark mode in light, Light mode in dark) |
+| Theme toggle | `.theme-item` button (moon/sun icons) | Desktop: sidebar **footer**, above Account. The footer (Dark mode, Account, Log out) sits at the bottom of the sidebar. Mobile: topbar. No checkbox. Cookie persist. Visible label and `title` are the **next** mode (Dark mode in light, Light mode in dark) |
 | Destructive confirm | native `confirm()` for now, or `modal` if we add one | Document 37 uses `dialog.modal` |
 
 Unused daisyUI (hero, chat, rating, carousel, mockups, aura, …): do not add.
@@ -197,7 +199,13 @@ Centered `.stack` (max 28rem). Full logo above the heading. One `btn-primary`. E
 `.stack` of `fieldset`s. Labels always visible (no placeholder-only). One `btn-primary` submit. Cancel is `btn btn-outline`, in a `.cluster` with Save.
 
 **Report**  
-Screen: `.filter-bar` (named month `<select>`, house `<select class="select">` so the chevron is visible) plus toolbar `.no-print` (print, CSV), then a blank daisyUI `divider`, then `.report-doc`. Do not use `<input type="month">` — native month fields show `YYYY-MM` without a clear picker. Summary `stats` in one horizontal row (`width: fit-content`). Paper: `@media print` — hide chrome and dock, title **Monthly report · Beacon**, no Rainbow Haven lockup. Report body uses `.report-doc` (Ioskeley Mono 400 body, 500 headings, 700 stat values). daisyUI does not replace print CSS.
+Screen: `.filter-bar` (named month `<select>`, house `<select class="select">` so the chevron is visible) plus toolbar `.no-print` (print, CSV), then a blank daisyUI `divider`, then `.report-doc`. Do not use `<input type="month">` — native month fields show `YYYY-MM` without a clear picker. Summary `stats` in one horizontal row (`width: fit-content`). Paper: `@media print` — hide chrome and dock, title **Monthly report · Beacon**, no Rainbow Haven lockup. Report prose is Fira Sans; only `.table` is Ioskeley Mono. daisyUI does not replace print CSS.
+
+**Dashboard** (RHC / RHL admin)  
+First item in the sidebar (and first in the phone More panel). Confirmation status for the last month that has ended — one row per safe house. `.page-header` plus a short stack of wrapping copy, then `.table-scroll`. Headers do not wrap mid-word; the table scrolls horizontally.
+
+**Admin houses**  
+`.page-header`. Edit rows are `.cluster.cluster-end` of `.field` + daisyUI `input`/`select` (Fira Sans, bottoms aligned). Do not wrap those forms in `.table` or `.filter-bar` (filter bars autosubmit on change).
 
 **Safeguarding**  
 `.page-header` with Record concern + Download Document 37. Explanations live in a `dialog.modal`; the page does not show the long copy. House filter uses the same `.filter-bar` / `.field` / `select` as Reports.

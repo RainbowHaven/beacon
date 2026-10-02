@@ -1,5 +1,10 @@
 {{template "layout_start" .}}
-<h1>Users</h1>
+<div class="page-header">
+  <h1>Users</h1>
+  <p class="cluster">
+    <a class="btn btn-primary" href="/admin/users/invite">Invite user</a>
+  </p>
+</div>
 {{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
 {{if .Flash}}<div class="alert">{{.Flash}}</div>{{end}}
 {{if .InviteURL}}
@@ -58,10 +63,6 @@
   })();
 </script>
 {{end}}
-
-<p class="cluster">
-  <a class="btn btn-primary" href="/admin/users/invite">Invite user</a>
-</p>
 
 {{if .Users}}
 <ul class="record-list">

@@ -1,10 +1,14 @@
 {{template "layout_start" .}}
-<h1>Account</h1>
+<div class="page-header">
+  <h1>Account</h1>
+</div>
+<div class="stack">
 {{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
 {{if .Flash}}<div class="alert">{{.Flash}}</div>{{end}}
 <p><strong>{{.User.Email}}</strong> · {{.User.Role}}</p>
 <p class="muted">Only an RHC admin can change your email address.</p>
 
+<section class="stack">
 <h2>Passkeys</h2>
 <p class="muted">A passkey is how you sign in to Beacon — there is no password. Add a second passkey on another device (for example your laptop or a spare phone) so you can still sign in if you lose one. <a href="/help/passkeys">How passkeys work</a></p>
 
@@ -27,13 +31,17 @@
   </li>
 {{end}}
 </ul>
+</section>
 
+<section class="stack">
 <h3>Add another passkey</h3>
 <p class="muted">Do this on the device you want to add. Your browser or phone will ask you to confirm with your fingerprint, face, or screen lock. Beacon names the passkey after the device and the app that stores it.</p>
 <form id="add-passkey" class="invite-row">
   <button class="btn btn-primary" type="submit">Add passkey</button>
 </form>
 <p id="add-passkey-error" class="alert alert-error" hidden></p>
+</section>
+</div>
 <script type="module">
   import { addPasskey } from '{{static "js/webauthn.js"}}';
   const form = document.getElementById('add-passkey');

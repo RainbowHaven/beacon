@@ -119,6 +119,11 @@ func TestLayoutNavRenders(t *testing.T) {
 	if p := panel(html); !strings.Contains(p, `href="/operations"`) || !strings.Contains(p, `href="/safeguarding"`) || !strings.Contains(p, `href="/dashboard"`) || !strings.Contains(p, `href="/admin/users" aria-current="page"`) {
 		t.Fatalf("admin More panel %s", p)
 	}
+	nav := chrome(html)
+	dash, occ := strings.Index(nav, `href="/dashboard"`), strings.Index(nav, `href="/occupants"`)
+	if dash < 0 || occ < 0 || dash > occ {
+		t.Fatal("Dashboard should be first in the sidebar")
+	}
 
 	buf.Reset()
 	data = map[string]any{

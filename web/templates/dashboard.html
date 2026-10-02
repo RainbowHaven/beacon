@@ -1,8 +1,12 @@
 {{template "layout_start" .}}
-<h1>Dashboard</h1>
-<p class="muted">Reporting status for {{.Month}}, the most recent month that has ended. Monthly data are due by the end of the seventh day after the month ({{.DueDate.Format "2006-01-02"}}, UTC). A month that changed after confirmation must be confirmed again.</p>
-
+<div class="page-header">
+  <h1>Dashboard</h1>
+</div>
+<div class="stack">
+<p>Confirmation status for {{.Month}} — the last month that has ended. Each row is a safe house: whether that month’s report is confirmed, still due, or overdue.</p>
+<p class="muted">Monthly data are due by the end of the seventh day after the month ({{.DueDate.Format "2006-01-02"}}, UTC). A month that changed after confirmation must be confirmed again.</p>
 {{if .Rows}}
+<div class="report-doc">
 <div class="table-scroll">
 <table class="table table-zebra">
   <thead>
@@ -35,13 +39,15 @@
       {{end}}
       <td><span class="report-status reporting-{{.Status.State}}">{{.Status.State.Label}}</span></td>
       <td>{{if .Status.Overdue}}{{.Status.DaysOverdue}}{{else}}—{{end}}</td>
-      <td><a href="/reports?month={{.Status.MonthKey}}&amp;house={{.House.ID}}">Report</a> · <a href="/reports/{{.House.ID}}/history">History</a></td>
+      <td class="cluster"><a class="btn btn-outline btn-sm" href="/reports?month={{.Status.MonthKey}}&amp;house={{.House.ID}}">Report</a> <a class="btn btn-outline btn-sm" href="/reports/{{.House.ID}}/history">History</a></td>
     </tr>
   {{end}}
   </tbody>
 </table>
 </div>
+</div>
 {{else}}
 <p class="muted">No active safe houses in scope.</p>
 {{end}}
+</div>
 {{template "layout_end" .}}
