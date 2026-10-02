@@ -27,7 +27,7 @@ Fira Sans and Lekton load from Google Fonts. Without a network they fall back to
 ## What to check
 
 - Light / Dark toggle (persists in this browser)
-- Desktop ≥ 1024px: sidebar + table
+- Desktop ≥ 1024px: sidebar + table; collapse the sidebar to icons
 - Mobile: bottom dock + occupant cards
 - Login: large Rainbow Haven lockup
 - Print on the report page (hide chrome)

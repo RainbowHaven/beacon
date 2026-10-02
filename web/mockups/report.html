@@ -7,22 +7,33 @@
   <link rel="icon" href="../static/img/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Lekton:ital,wght@0,400;0,700;1,400&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Lekton:ital,wght@0,400;0,700;1,400&display=swap">
   <link rel="stylesheet" href="css/daisyui.css">
   <link rel="stylesheet" href="css/beacon.css">
 </head>
 <body>
 <div class="app-frame">
-  <aside class="sidebar no-print">
-    <a class="brand-mark" href="index.html">
-      <img src="../static/img/rainbow-haven.svg" alt="Rainbow Haven" width="160" height="144">
-    </a>
+  <aside class="sidebar no-print" id="app-sidebar">
+    <div class="sidebar-head">
+      <a class="brand-mark" href="index.html">
+        <img class="brand-lockup" src="../static/img/rainbow-haven.svg" alt="Rainbow Haven" width="160" height="144">
+        <img class="brand-icon" src="../static/img/rainbow-haven-mark.svg" alt="" width="40" height="40">
+      </a>
+      <button type="button" class="btn btn-ghost btn-square sidebar-toggle" data-sidebar-toggle aria-controls="app-sidebar" aria-expanded="true" title="Collapse sidebar" aria-label="Collapse sidebar">
+        <svg class="menu-icon icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        <svg class="menu-icon icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
     <ul class="menu">
-      <li><a href="occupants.html">Occupants</a></li>
-      <li><a href="expense.html">Expenses</a></li>
-      <li><a href="#">Operations</a></li>
-      <li><a href="#">Safeguarding</a></li>
-      <li><a class="menu-active" href="report.html">Reports</a></li>
+      <li><a href="occupants.html" title="Occupants"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="menu-label">Occupants</span></a></li>
+      <li><a href="expense.html" title="Expenses"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg><span class="menu-label">Expenses</span></a></li>
+      <li><a href="#" title="Operations"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span class="menu-label">Operations</span></a></li>
+      <li><a href="#" title="Safeguarding"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg><span class="menu-label">Safeguarding</span></a></li>
+      <li><a class="menu-active" href="report.html" title="Reports"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 18v-2"/><path d="M12 18v-4"/><path d="M16 18v-6"/></svg><span class="menu-label">Reports</span></a></li>
+    </ul>
+    <ul class="menu sidebar-foot">
+      <li><a href="#" title="Account"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg><span class="menu-label">Account</span></a></li>
+      <li><a href="login.html" title="Log out"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg><span class="menu-label">Log out</span></a></li>
     </ul>
   </aside>
   <div class="main-col">
@@ -31,7 +42,7 @@
         <img src="../static/img/rainbow-haven.svg" alt="Rainbow Haven" width="160" height="144">
       </a>
       <div class="mockup-tools">
-        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem">
+        <label class="theme-toggle">
           <input type="checkbox" class="toggle" data-theme-toggle>
           Dark
         </label>
@@ -52,11 +63,11 @@
         </p>
       </div>
       <p class="muted no-print">Built from resident records and expenses as they are right now. No private key required. Residents by nickname only.</p>
-      <form class="cluster no-print" style="margin:1rem 0 1.5rem">
-        <label>Month
+      <form class="filter-bar no-print">
+        <label class="field">Month
           <input class="input" type="month" value="2026-09">
         </label>
-        <label>Safe house
+        <label class="field">Safe house
           <select class="select">
             <option>House A</option>
             <option>All houses</option>
@@ -67,7 +78,7 @@
       <section class="stack report-doc">
         <h1 class="print-only">Monthly report · Beacon</h1>
         <h2>Summary</h2>
-        <div class="stats stats-vertical">
+        <div class="stats">
           <div class="stat">
             <div class="stat-title">Bed nights</div>
             <div class="stat-value">118</div>

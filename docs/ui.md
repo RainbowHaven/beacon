@@ -86,8 +86,8 @@ The official daisyUI skill says “if daisyUI cannot do it, use Tailwind utiliti
 |---|---|---|
 | Body | `1rem` (16px) | Default |
 | Small / chrome | `0.875rem` (14px) | Minimum. Never smaller. |
-| H1 | `1.75rem` | Page title |
-| H2 | `1.25rem` | Section |
+| H1 | `1.75rem` | Page title. Weight 500 (Fira Sans Medium — 700 is too heavy) |
+| H2 | `1.25rem` | Section. Weight 500 |
 | Numeric | `tabular-nums` | Money, dates, headcount |
 
 Line height 1.5 for body, 1.25 for headings.
@@ -150,7 +150,10 @@ Implement these in Beacon CSS (not as Tailwind in HTML):
 | `.page` | Main column: max width ~64rem, horizontal padding `1rem`, safe-area aware |
 | `.stack` | Vertical rhythm, gap `1rem`. Forms: max-width `28rem` unless the page is a wide table |
 | `.cluster` | Horizontal group, wrap, gap `0.75rem` (page actions, filters) |
-| `.page-header` | Title row: heading + `.cluster` of actions |
+| `.filter-bar` | Filter row: labeled fields + action, `align-items: flex-end` |
+| `.field` | Caption above control in a filter bar |
+| `.menu-icon` / `.menu-label` | Sidebar icon + text; label hides when the sidebar is collapsed |
+| `.sidebar-toggle` | Collapse/expand the desktop sidebar (`data-sidebar="collapsed"` on `<html>`) |
 | `.table-scroll` | Horizontal scroll wrapper for tables (replaces `overflow-x-auto`) |
 | `.brand-mark` | Light chip behind the logo (required in dark mode, optional in light) |
 | `.report-doc` | Report body: Lekton, tabular figures |
@@ -174,7 +177,7 @@ Read the matching file under `.agents/skills/daisyui/components/` before using a
 | Headcount | `stats` | Home and occupants |
 | Status (review, current) | `badge` | `badge-outline` or semantic colour |
 | Guest header | `navbar` | Logo start, Log in end |
-| Signed-in desktop | `drawer` + `lg:drawer-open` + `menu` | Logo at top of sidebar |
+| Signed-in desktop | `drawer` + `lg:drawer-open` + `menu` with icons | Logo at top of sidebar. Collapse to icons; persist. |
 | Signed-in mobile | `navbar` (logo + account) + `dock` | Occupants, Expenses, Reports, More. Min 44px targets, `viewport-fit=cover` |
 | Account / more | `dropdown` with `<details>` | No extra JS |
 | Theme toggle | `theme-controller` + `swap` or a labeled checkbox | Cookie persist |
@@ -191,10 +194,10 @@ Centered `.stack` (max 28rem). Full logo above the heading. One `btn-primary`. E
 `.page-header` with title + primary action. Optional filters in `.cluster`. Desktop: table. Narrow: `list` / `card`. Empty: muted sentence + the same primary action.
 
 **Form (occupant, expense, operations)**  
-`.stack` of `fieldset`s. Labels always visible (no placeholder-only). One `btn-primary` submit. Cancel is a link or `btn-ghost`.
+`.stack` of `fieldset`s. Labels always visible (no placeholder-only). One `btn-primary` submit. Cancel is `btn btn-outline`, in a `.cluster` with Save.
 
 **Report**  
-Screen: toolbar `.no-print` (month picker, print, CSV). Paper: `@media print` — hide chrome and dock, title **Monthly report · Beacon**, no Rainbow Haven lockup. Report body uses `.report-doc` (Lekton). daisyUI does not replace print CSS.
+Screen: `.filter-bar` (month, house, Show) plus toolbar `.no-print` (print, CSV). Summary `stats` in one horizontal row. Paper: `@media print` — hide chrome and dock, title **Monthly report · Beacon**, no Rainbow Haven lockup. Report body uses `.report-doc` (Lekton). daisyUI does not replace print CSS.
 
 **Admin**  
 Same list/form recipes. Role-gated nav stays server-side.
