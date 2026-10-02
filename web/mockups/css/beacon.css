@@ -87,7 +87,7 @@ h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
 }
 
 .table :where(thead, tfoot) {
-  color: color-mix(in oklab, var(--color-base-content) 88%, transparent);
+  color: var(--color-base-content);
   font-weight: 500;
 }
 
@@ -161,6 +161,14 @@ h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
   font-weight: 400;
 }
 
+.report-doc,
+.report-doc .table :where(th, td) {
+  color: #111111;
+}
+[data-theme="dark"] .report-doc,
+[data-theme="dark"] .report-doc .table :where(th, td) {
+  color: #fafafa;
+}
 .report-doc h1,
 .report-doc h2,
 .report-doc .stat-title {
@@ -168,14 +176,31 @@ h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
 }
 .report-doc .stat-value {
   font-weight: 700;
+  line-height: 1.15;
 }
 
-.stats {
+.report-doc .stats {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: auto auto auto;
   width: fit-content;
   max-width: 100%;
+  column-gap: 0;
 }
-.stats .stat {
+.report-doc .stat {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 3;
   width: auto;
+  padding-block: 0.25rem;
+  padding-inline: 1.25rem 1.5rem;
+  align-items: baseline;
+}
+.report-doc .stat:first-child {
+  padding-inline-start: 0;
+}
+.report-doc .stat:not(:first-child) {
+  border-inline-start: 1px dashed color-mix(in oklab, currentColor 18%, transparent);
 }
 
 .brand-mark {
@@ -186,9 +211,9 @@ h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
   padding: 0.35rem 0.5rem;
   line-height: 0;
 }
-.brand-mark img { height: 48px; width: auto; display: block; }
-.brand-mark-lg img { height: 96px; }
-.brand-icon { display: none; height: 32px; width: auto; }
+.brand-mark .brand-lockup { height: 48px; width: auto; display: block; }
+.brand-mark-lg .brand-lockup { height: 96px; }
+.brand-mark .brand-icon { display: none; height: 32px; width: auto; }
 
 .app-frame { min-height: 100dvh; display: flex; }
 .sidebar {
@@ -210,16 +235,17 @@ h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
 .theme-item {
   display: grid;
   grid-auto-flow: column;
+  justify-content: start;
   align-items: center;
   gap: 0.5rem;
   padding-inline: 0.75rem;
   border-radius: var(--radius-field);
   cursor: pointer;
   font-size: 0.875rem;
+  width: 100%;
 }
-.theme-item .toggle {
-  justify-self: end;
-  margin-inline-start: auto;
+.theme-item .menu-icon {
+  pointer-events: none;
 }
 .icon-sun { display: none; }
 [data-theme="dark"] .icon-moon { display: none; }
@@ -299,8 +325,8 @@ h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
     flex-direction: column;
     align-items: center;
   }
-  html[data-sidebar="collapsed"] .brand-lockup { display: none; }
-  html[data-sidebar="collapsed"] .brand-icon { display: block; }
+  html[data-sidebar="collapsed"] .brand-mark .brand-lockup { display: none; }
+  html[data-sidebar="collapsed"] .brand-mark .brand-icon { display: block; }
   html[data-sidebar="collapsed"] .brand-mark { padding: 0.35rem; }
   html[data-sidebar="collapsed"] .menu-label {
     position: absolute;
@@ -314,9 +340,6 @@ h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
     justify-content: center;
     padding-inline: 0.5rem;
     width: 2.75rem;
-  }
-  html[data-sidebar="collapsed"] .theme-item .toggle {
-    display: none;
   }
   html[data-sidebar="collapsed"] .icon-collapse { display: none; }
   html[data-sidebar="collapsed"] .icon-expand { display: block; }
