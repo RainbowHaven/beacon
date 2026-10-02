@@ -150,7 +150,7 @@ Implement these in Beacon CSS (not as Tailwind in HTML):
 | Class | Job |
 |---|---|
 | `.page` | Main column: **width 100%**, max ~64rem, left of the main column (not shrink-wrapped/centered). No extra left padding — title lines up with the topbar rule. End padding `1.5rem` (desktop `2rem`), safe-area aware |
-| `.stack` | Vertical rhythm, gap `1rem`. Forms: max-width `28rem` unless the page is a wide table |
+| `.stack` | Vertical rhythm, gap `1rem`. Forms: max-width `28rem` unless the page is a wide table. Overrides daisyUI’s overlapping `.stack` (that component fades child 2+ to 70% opacity — Beacon does not use it). |
 | `.cluster` | Horizontal group, wrap, gap `0.75rem` (page actions, filters) |
 | `.filter-bar` | Filter row: labeled fields, `align-items: flex-end`. Submit on change (no Filter/Show button; `<noscript>` fallback) |
 | `.field` | Caption above control in a filter bar. Body size (1rem), not a tiny caption |
