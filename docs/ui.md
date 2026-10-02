@@ -147,7 +147,7 @@ Implement these in Beacon CSS (not as Tailwind in HTML):
 
 | Class | Job |
 |---|---|
-| `.page` | Main column: max width ~64rem, horizontal padding `1rem`, safe-area aware |
+| `.page` | Main column: **width 100%**, max ~64rem, left of the main column (not shrink-wrapped/centered). Horizontal padding `1rem`, safe-area aware |
 | `.stack` | Vertical rhythm, gap `1rem`. Forms: max-width `28rem` unless the page is a wide table |
 | `.cluster` | Horizontal group, wrap, gap `0.75rem` (page actions, filters) |
 | `.filter-bar` | Filter row: labeled fields + action, `align-items: flex-end` |
@@ -180,7 +180,7 @@ Read the matching file under `.agents/skills/daisyui/components/` before using a
 | Signed-in desktop | `drawer` + `lg:drawer-open` + `menu` with icons | Logo at top of sidebar. Collapse to icons; persist. |
 | Signed-in mobile | `navbar` (logo + account) + `dock` | Occupants, Expenses, Reports, More. Min 44px targets, `viewport-fit=cover` |
 | Account / more | `dropdown` with `<details>` | No extra JS |
-| Theme toggle | `theme-controller` + `swap` or a labeled checkbox | Cookie persist |
+| Theme toggle | `theme-controller` + labeled checkbox | Desktop: in the sidebar above Account, with an icon. Mobile: topbar. Cookie persist |
 | Destructive confirm | native `confirm()` for now, or `modal` if we add one | |
 
 Unused daisyUI (hero, chat, rating, carousel, mockups, aura, …): do not add.
@@ -197,7 +197,7 @@ Centered `.stack` (max 28rem). Full logo above the heading. One `btn-primary`. E
 `.stack` of `fieldset`s. Labels always visible (no placeholder-only). One `btn-primary` submit. Cancel is `btn btn-outline`, in a `.cluster` with Save.
 
 **Report**  
-Screen: `.filter-bar` (month, house, Show) plus toolbar `.no-print` (print, CSV). Summary `stats` in one horizontal row. Paper: `@media print` — hide chrome and dock, title **Monthly report · Beacon**, no Rainbow Haven lockup. Report body uses `.report-doc` (Lekton). daisyUI does not replace print CSS.
+Screen: `.filter-bar` (month, house, Show) plus toolbar `.no-print` (print, CSV), then a blank daisyUI `divider`, then `.report-doc`. Summary `stats` in one horizontal row (`width: fit-content`). Paper: `@media print` — hide chrome and dock, title **Monthly report · Beacon**, no Rainbow Haven lockup. Report body uses `.report-doc` (Lekton 400 body, 700 headings — Lekton has no 500). daisyUI does not replace print CSS.
 
 **Admin**  
 Same list/form recipes. Role-gated nav stays server-side.

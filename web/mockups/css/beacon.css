@@ -87,8 +87,9 @@ h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
 .page > .stats { margin-bottom: 1.5rem; }
 
 .page {
+  width: 100%;
   max-width: 64rem;
-  margin-inline: auto;
+  margin-inline: 0;
   padding: 1rem;
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
@@ -111,13 +112,21 @@ h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
   flex-wrap: wrap;
   gap: 0.75rem 1rem;
   align-items: flex-end;
-  margin: 1rem 0 1.5rem;
+  margin: 1rem 0 0;
 }
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.875rem;
+  font-weight: 500;
+}
+.field .input,
+.field .select {
+  font-weight: 400;
+}
+.field-month .input {
+  min-width: 16.5rem;
 }
 
 .table,
@@ -125,6 +134,23 @@ h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
   font-family: Lekton, ui-monospace, "Cascadia Code", monospace;
   font-variant-numeric: tabular-nums;
   font-size: 1.05rem;
+  font-weight: 400;
+}
+
+/* Lekton has 400 and 700 only — 500 falls back to regular and looks too light. */
+.report-doc h1,
+.report-doc h2,
+.report-doc .stat-title,
+.report-doc .stat-value {
+  font-weight: 700;
+}
+
+.stats {
+  width: fit-content;
+  max-width: 100%;
+}
+.stats .stat {
+  width: auto;
 }
 
 .brand-mark {
@@ -151,10 +177,28 @@ h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
 }
 .sidebar .menu { width: 100%; gap: 0.25rem; }
 .sidebar-foot { margin-top: auto; }
-.sidebar .menu li > a {
+.sidebar .menu li > a,
+.sidebar .theme-item {
   padding-block: 0.625rem;
   min-height: 2.5rem;
 }
+.theme-item {
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding-inline: 0.75rem;
+  border-radius: var(--radius-field);
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.theme-item .toggle {
+  justify-self: end;
+  margin-inline-start: auto;
+}
+.icon-sun { display: none; }
+[data-theme="dark"] .icon-moon { display: none; }
+[data-theme="dark"] .icon-sun { display: block; }
 .menu-icon {
   width: 1.25rem;
   height: 1.25rem;
@@ -183,6 +227,7 @@ h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
   top: 0;
   z-index: 20;
 }
+.mockup-tools { margin-inline-start: auto; display: flex; align-items: center; gap: 0.75rem; }
 .theme-toggle {
   display: flex;
   align-items: center;
@@ -239,21 +284,28 @@ h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
     overflow: hidden;
     clip: rect(0 0 0 0);
   }
-  html[data-sidebar="collapsed"] .sidebar .menu a {
+  html[data-sidebar="collapsed"] .sidebar .menu a,
+  html[data-sidebar="collapsed"] .sidebar .theme-item {
     justify-content: center;
     padding-inline: 0.5rem;
     width: 2.75rem;
   }
+  html[data-sidebar="collapsed"] .theme-item .toggle {
+    display: none;
+  }
   html[data-sidebar="collapsed"] .icon-collapse { display: none; }
   html[data-sidebar="collapsed"] .icon-expand { display: block; }
+  .topbar .theme-toggle { display: none; }
 }
 
 [hidden] {
   display: none !important;
 }
 
+.print-only { display: none !important; }
+
 @media print {
   .no-print { display: none !important; }
-  .print-only { display: block; }
+  .print-only { display: block !important; }
   .page { padding: 0; max-width: none; }
 }

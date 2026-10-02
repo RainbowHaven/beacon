@@ -4,7 +4,14 @@
   const root = document.documentElement;
   const saved = localStorage.getItem(themeKey);
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  root.setAttribute("data-theme", saved || (prefersDark ? "dark" : "light"));
+
+  function applyTheme(theme) {
+    root.setAttribute("data-theme", theme);
+    localStorage.setItem(themeKey, theme);
+    document.querySelectorAll("[data-theme-toggle]").forEach(function (el) {
+      el.checked = theme === "dark";
+    });
+  }
 
   function applySidebar(collapsed) {
     if (collapsed) {
@@ -20,14 +27,12 @@
     });
   }
 
+  applyTheme(saved || (prefersDark ? "dark" : "light"));
   applySidebar(localStorage.getItem(sidebarKey) === "collapsed");
 
   document.querySelectorAll("[data-theme-toggle]").forEach(function (el) {
-    el.checked = root.getAttribute("data-theme") === "dark";
     el.addEventListener("change", function () {
-      const theme = el.checked ? "dark" : "light";
-      root.setAttribute("data-theme", theme);
-      localStorage.setItem(themeKey, theme);
+      applyTheme(el.checked ? "dark" : "light");
     });
   });
 

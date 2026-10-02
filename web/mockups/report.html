@@ -32,6 +32,14 @@
       <li><a class="menu-active" href="report.html" title="Reports"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 18v-2"/><path d="M12 18v-4"/><path d="M16 18v-6"/></svg><span class="menu-label">Reports</span></a></li>
     </ul>
     <ul class="menu sidebar-foot">
+      <li>
+        <label class="theme-item" title="Dark mode">
+          <svg class="menu-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          <svg class="menu-icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <span class="menu-label">Dark mode</span>
+          <input type="checkbox" class="toggle toggle-sm" data-theme-toggle>
+        </label>
+      </li>
       <li><a href="#" title="Account"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg><span class="menu-label">Account</span></a></li>
       <li><a href="login.html" title="Log out"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg><span class="menu-label">Log out</span></a></li>
     </ul>
@@ -64,7 +72,7 @@
       </div>
       <p class="muted no-print">Built from resident records and expenses as they are right now. No private key required. Residents by nickname only.</p>
       <form class="filter-bar no-print">
-        <label class="field">Month
+        <label class="field field-month">Month
           <input class="input" type="month" value="2026-09">
         </label>
         <label class="field">Safe house
@@ -75,6 +83,7 @@
         </label>
         <button class="btn btn-outline" type="submit">Show</button>
       </form>
+      <div class="divider no-print"></div>
       <section class="stack report-doc">
         <h1 class="print-only">Monthly report · Beacon</h1>
         <h2>Summary</h2>
