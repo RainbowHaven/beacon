@@ -177,6 +177,12 @@ func TestLayoutNavRenders(t *testing.T) {
 	if !strings.Contains(login, `auth-shell`) {
 		t.Fatal("login page missing auth shell")
 	}
+	if !strings.Contains(login, `class="auth-product"`) || !strings.Contains(login, ">Beacon<") {
+		t.Fatal("login page should show the product name Beacon")
+	}
+	if !strings.Contains(login, `class="link"`) {
+		t.Fatal("login passkey help should look like a link")
+	}
 }
 
 func TestListFilterTemplatesRender(t *testing.T) {

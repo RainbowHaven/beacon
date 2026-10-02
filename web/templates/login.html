@@ -1,6 +1,6 @@
 {{template "layout_start" .}}
 <h1>Log in</h1>
-<p class="muted">Use the passkey enrolled from your invite link. No passwords. <a href="/help/passkeys">New to passkeys or lost your phone?</a></p>
+<p class="muted">Use the passkey enrolled from your invite link. No passwords. <a class="link" href="/help/passkeys">New to passkeys or lost your phone?</a></p>
 {{if .Error}}<div class="alert alert-error" role="alert">{{.Error}}</div>{{end}}
 <form id="login-form" class="stack">
   <label>Email

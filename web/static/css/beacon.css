@@ -165,15 +165,25 @@ h3 { font-size: 1.05rem; line-height: 1.25; margin: 0 0 0.5rem; }
   max-width: 64rem;
   margin-inline: 0;
   padding-block: 1.5rem;
-  padding-inline: 0 1.5rem;
+  padding-inline: 1.5rem;
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
-.stack { display: flex; flex-direction: column; gap: 1rem; }
-.stack > :nth-child(n) {
+.app-frame .page { padding-inline: 0 1.5rem; }
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  grid-template-rows: none;
+  grid-template-columns: none;
+}
+.stack > * {
   width: auto;
-  height: auto;
-  opacity: 1;
-  z-index: auto;
+  max-width: none;
+  height: auto !important;
+  opacity: 1 !important;
+  z-index: auto !important;
+  transform: none !important;
+  grid-area: auto !important;
 }
 .stack-narrow { max-width: 28rem; width: 100%; }
 .stack-tight { gap: 0.5rem; }
@@ -195,6 +205,13 @@ h3 { font-size: 1.05rem; line-height: 1.25; margin: 0 0 0.5rem; }
 }
 .table-scroll { overflow-x: auto; width: 100%; max-width: 100%; }
 .muted { color: color-mix(in oklab, var(--color-base-content) 78%, transparent); }
+.muted a:not(.btn),
+p a:not(.btn),
+li a:not(.btn) {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
 .page p { overflow-wrap: break-word; }
 
 .filter-bar {
@@ -461,6 +478,15 @@ form button.danger {
   justify-content: center;
   padding: 1.5rem;
 }
+.auth-shell .brand-mark,
+.auth-shell .auth-product { align-self: center; }
+.auth-product {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
 .auth-shell .page { padding-bottom: 1rem; }
 .guest-bar {
   display: flex;
@@ -678,8 +704,9 @@ td > .report-status { margin-inline-start: 0; }
   .main-col { padding-inline-start: 2.5rem; }
   .page {
     padding-bottom: 2rem;
-    padding-inline: 0 2rem;
+    padding-inline: 2rem;
   }
+  .app-frame .page { padding-inline: 0 2rem; }
   .topbar { padding-inline: 1.5rem; }
   .topbar .brand-mark { display: none; }
   .record-mobile { display: none; }
