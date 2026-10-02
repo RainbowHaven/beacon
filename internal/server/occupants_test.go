@@ -214,11 +214,10 @@ func TestOccupantCreateScoped(t *testing.T) {
 	defer res4.Body.Close()
 	body, _ := io.ReadAll(res4.Body)
 	html := string(body)
-	if !strings.Contains(html, `class="app-nav"`) ||
+	if !strings.Contains(html, `class="sidebar"`) ||
 		!strings.Contains(html, `href="/occupants"`) ||
 		!strings.Contains(html, `href="/expenses"`) ||
 		!strings.Contains(html, `href="/reports"`) ||
-		!strings.Contains(html, `class="profile-menu"`) ||
 		!strings.Contains(html, `action="/logout"`) {
 		t.Fatalf("home missing profile logout: %s", html[:min(500, len(html))])
 	}

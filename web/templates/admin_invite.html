@@ -1,9 +1,9 @@
 {{template "layout_start" .}}
 <h1>Invite user</h1>
 <p class="muted"><a href="/admin/users">← Users</a></p>
-{{if .Error}}<div class="flash error">{{.Error}}</div>{{end}}
+{{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
 
-<form method="post" action="/admin/users/invite" class="stack" style="max-width:28rem">
+<form method="post" action="/admin/users/invite" class="stack stack-narrow">
   <label>Email <input type="email" name="email" required autofocus></label>
   <label>Display name <input type="text" name="display_name"></label>
   <label>Role
@@ -26,8 +26,8 @@
     </select>
   </label>
   <p class="actions">
-    <button type="submit">Create invite</button>
-    <a class="btn secondary" href="/admin/users">Cancel</a>
+    <button class="btn btn-primary" type="submit">Create invite</button>
+    <a class="btn btn-outline" href="/admin/users">Cancel</a>
   </p>
 </form>
 {{template "layout_end" .}}

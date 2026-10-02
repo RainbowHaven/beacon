@@ -1,7 +1,9 @@
 {{template "layout_start" .}}
-<h1>Edit occupant</h1>
+<div class="page-header">
+  <h1>Edit occupant</h1>
+</div>
 {{if .Error}}
-<p class="flash error" role="alert">
+<p class="alert alert-error" role="alert">
   {{.Error}}
   {{if .Suggestion}}
   Try
@@ -9,40 +11,40 @@
   {{end}}
 </p>
 {{end}}
-{{if .DemoError}}<p class="flash error" role="alert">{{.DemoError}}</p>{{end}}
+{{if .DemoError}}<p class="alert alert-error" role="alert">{{.DemoError}}</p>{{end}}
 <p class="muted">{{.House.Name}} · internal id stays the same when the nickname or demographics change. Previous nickname spellings are not kept; folded keys stay reserved.</p>
 
-<section class="stack" style="max-width:28rem;margin-bottom:2rem">
-  <h2 style="margin:0;font-size:1.1rem">Nickname</h2>
+<section class="stack stack-narrow">
+  <h2>Nickname</h2>
   <form class="stack" method="post" action="/occupants/{{.Occupant.ID}}/rename">
     <label>Nickname
-      <input name="nickname" required maxlength="80" autocomplete="off" autocapitalize="words" value="{{.Nickname}}">
+      <input class="input" name="nickname" required maxlength="80" autocomplete="off" autocapitalize="words" value="{{.Nickname}}">
     </label>
-    <button type="submit">Save nickname</button>
+    <button class="btn btn-primary" type="submit">Save nickname</button>
   </form>
 </section>
 
-<section class="stack" style="max-width:28rem">
-  <h2 style="margin:0;font-size:1.1rem">Demographics</h2>
+<section class="stack stack-narrow">
+  <h2>Demographics</h2>
   <form class="stack" method="post" action="/occupants/{{.Occupant.ID}}/demographics">
     <label>Country of origin
-      <select name="country_of_origin" required>
+      <select class="select" name="country_of_origin" required>
         {{range .Countries}}
         <option value="{{.Code}}"{{if eq .Code $.Country}} selected{{end}}>{{.Name}}</option>
         {{end}}
       </select>
     </label>
     <label>Gender
-      <select name="gender" required>
+      <select class="select" name="gender" required>
         {{range .Genders}}
         <option value="{{.Code}}"{{if eq .Code $.Gender}} selected{{end}}>{{.Name}}</option>
         {{end}}
       </select>
     </label>
     <label>Year of birth
-      <input type="number" name="birth_year" min="1900" max="2100" inputmode="numeric" placeholder="Not reported" value="{{.BirthYear}}">
+      <input class="input" type="number" name="birth_year" min="1900" max="2100" inputmode="numeric" placeholder="Not reported" value="{{.BirthYear}}">
     </label>
-    <button type="submit">Save demographics</button>
+    <button class="btn btn-primary" type="submit">Save demographics</button>
   </form>
 </section>
 

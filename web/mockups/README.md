@@ -32,4 +32,4 @@ Fira Sans loads from Google Fonts. Ioskeley Mono is self-hosted under `web/mocku
 - Login: large Rainbow Haven lockup
 - Print on the report page (hide chrome)
 
-These screens follow [docs/ui.md](../../docs/ui.md). Production templates still use the old CSS until a later change.
+These screens follow [docs/ui.md](../../docs/ui.md). Production templates use the same daisyUI + named-layout contract (`web/static/css/beacon.css`).

@@ -1,22 +1,22 @@
 {{template "layout_start" .}}
 <h1>Safeguarding</h1>
-{{if .Flash}}<p class="flash">{{.Flash}}</p>{{end}}
+{{if .Flash}}<p class="alert">{{.Flash}}</p>{{end}}
 
 <section class="notice stack">
   <h2>Reporting a Safeguarding Concern</h2>
   <p>Complete Document 37 when a safeguarding concern or incident occurs or is reported. Download the blank form using the button below.</p>
   <p>Submit the completed form to your RHL Safeguarding Contact within 24 hours, or as soon as safely and reasonably possible. Use WhatsApp or the safest locally available method.</p>
   <p>Record only the incident identifier and basic tracking information in Beacon. Do not enter detailed information about the incident in Beacon, and do not upload the completed Document 37 to Beacon.</p>
-  <p class="actions"><a class="btn" href="/safeguarding/document-37" download>Download Document 37</a></p>
+  <p class="actions"><a class="btn btn-primary" href="/safeguarding/document-37" download>Download Document 37</a></p>
   <p class="muted">Document 37 version: {{.DocVersion}}</p>
 </section>
 
 <p class="muted">Safeguarding is for concerns about the safety or wellbeing of people. Building, utilities, supplies, staffing and similar operational problems belong in Operations, not here.</p>
 
 <p class="actions">
-  {{if .Houses}}<a class="btn" href="/safeguarding/new">Record concern</a>{{end}}
+  {{if .Houses}}<a class="btn btn-primary" href="/safeguarding/new">Record concern</a>{{end}}
   {{range .Filters}}
-  <a class="btn secondary"{{if .Current}} aria-current="page"{{end}} href="{{.URL}}">{{.Label}}</a>
+  <a class="btn btn-outline"{{if .Current}} aria-current="page"{{end}} href="{{.URL}}">{{.Label}}</a>
   {{end}}
 </p>
 
@@ -31,13 +31,13 @@
       {{end}}
     </select>
   </label>
-  <button class="secondary" type="submit">Show</button>
+  <button class="btn btn-outline" type="submit">Show</button>
 </form>
 {{end}}
 
 {{if .Rows}}
 <div class="table-scroll">
-<table>
+<table class="table table-zebra">
   <thead>
     <tr>
       <th>Incident identifier</th>
@@ -58,7 +58,7 @@
       <td>{{.Reported}}</td>
       <td>{{.StatusLabel}}</td>
       <td>{{if .Closed}}{{.Closed}}{{else}}—{{end}}</td>
-      <td class="actions"><a class="btn secondary" href="/safeguarding/{{.ID}}/edit">Edit</a></td>
+      <td class="actions"><a class="btn btn-outline" href="/safeguarding/{{.ID}}/edit">Edit</a></td>
     </tr>
   {{end}}
   </tbody>

@@ -35,6 +35,9 @@ func TestFormatCents(t *testing.T) {
 	if formatCents(-5) != "-0.05" {
 		t.Fatalf("got %q", formatCents(-5))
 	}
+	if formatCents(214000) != "2,140.00" {
+		t.Fatalf("got %q", formatCents(214000))
+	}
 }
 
 func TestParseUSDate(t *testing.T) {

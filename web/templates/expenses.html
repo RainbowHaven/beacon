@@ -1,28 +1,29 @@
 {{template "layout_start" .}}
-<h1>Expenses</h1>
-{{if .Flash}}<p class="flash">{{.Flash}}</p>{{end}}
-{{if .Error}}<p class="flash error">{{.Error}}</p>{{end}}
+<div class="page-header">
+  <h1>Expenses</h1>
+  <p class="cluster">
+    <a class="btn btn-primary" href="/expenses/new">Log expense</a>
+    <a class="btn btn-outline" href="/reports">Monthly report</a>
+  </p>
+</div>
+{{if .Flash}}<p class="alert" role="status">{{.Flash}}</p>{{end}}
+{{if .Error}}<p class="alert alert-error" role="alert">{{.Error}}</p>{{end}}
 
-<p class="actions">
-  <a class="btn" href="/expenses/new">Log expense</a>
-  <a class="btn secondary" href="/reports">Monthly report</a>
-</p>
-
-<form class="actions" method="get" action="/expenses" style="margin-bottom:1rem">
-  <label>Review status
-    <select name="status">
+<form class="filter-bar" method="get" action="/expenses">
+  <label class="field">Review status
+    <select class="select" name="status">
       <option value=""{{if not .Status}} selected{{end}}>All</option>
       {{range .Statuses}}
       <option value="{{.}}"{{if eq (print .) $.Status}} selected{{end}}>{{.Label}}</option>
       {{end}}
     </select>
   </label>
-  <button class="secondary" type="submit">Filter</button>
+  <button class="btn btn-outline" type="submit">Filter</button>
 </form>
 
 {{if .Rows}}
-<div class="table-scroll">
-<table>
+<div class="record-desktop table-scroll">
+<table class="table table-zebra">
   <thead>
     <tr>
       <th>Date</th>
@@ -51,11 +52,11 @@
         {{else}}<span class="muted" title="{{.NoReceiptReason}}">None</span>{{end}}
       </td>
       <td><span class="review-status review-{{.ReviewStatus}}">{{.ReviewStatus.Label}}</span></td>
-      <td class="actions">
-        <a class="btn secondary" href="/expenses/{{.ID}}/edit">{{if $.CanReview}}Review{{else}}Edit{{end}}</a>
+      <td class="cluster">
+        <a class="btn btn-outline btn-sm" href="/expenses/{{.ID}}/edit">{{if $.CanReview}}Review{{else}}Edit{{end}}</a>
         {{if .Deletable}}
         <form class="inline" method="post" action="/expenses/{{.ID}}/delete" onsubmit="return confirm('Delete this expense?')">
-          <button class="secondary" type="submit">Delete</button>
+          <button class="btn btn-outline btn-sm" type="submit">Delete</button>
         </form>
         {{end}}
       </td>
@@ -64,9 +65,21 @@
   </tbody>
 </table>
 </div>
+<ul class="record-mobile list">
+  {{range .Rows}}
+  <li class="list-row">
+    <div>
+      <div><strong>{{.Amount}} {{.Currency}}</strong> · {{.HouseName}}</div>
+      <div class="muted">{{.SpentOnUS}} · {{.CategoryLabel}}</div>
+    </div>
+    <a class="btn btn-outline btn-sm" href="/expenses/{{.ID}}/edit">{{if $.CanReview}}Review{{else}}Edit{{end}}</a>
+  </li>
+  {{end}}
+</ul>
 {{else if .Status}}
 <p class="muted">No expenses with this review status.</p>
 {{else}}
 <p class="muted">No expenses logged yet.</p>
+<p><a class="btn btn-primary" href="/expenses/new">Log expense</a></p>
 {{end}}
 {{template "layout_end" .}}

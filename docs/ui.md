@@ -4,7 +4,7 @@ Source of truth for visual design and HTML in this repo. Agents and humans follo
 
 Stack stays [AGENTS.md](../AGENTS.md): server-rendered Go templates, no React, no HTMX, minimal vanilla JS.
 
-**Mockups (this phase):** open [web/mockups/README.md](../web/mockups/README.md). From the repo root run `make mockups` and visit http://127.0.0.1:8765/web/mockups/. Production templates are unchanged except the favicon.
+**Mockups:** [web/mockups/README.md](../web/mockups/README.md) (`make mockups`). Production templates follow this document.
 
 ## Brand
 
@@ -75,7 +75,7 @@ The official daisyUI skill says “if daisyUI cannot do it, use Tailwind utiliti
 
 ## Tokens
 
-**Mockup trial:** Fira Sans (Google Fonts) for UI. [Ioskeley Mono](https://github.com/ahatem/IoskeleyMono) v2.1.0 (OFL, Iosevka build inspired by Berkeley Mono) for tables and reports — Regular/Medium/Bold WOFF2 under [web/mockups/fonts/ioskeley/](../web/mockups/fonts/ioskeley/). Not an official Berkeley Mono. Production may keep a subset or switch.
+**Type:** Fira Sans (Google Fonts) for UI. [Ioskeley Mono](https://github.com/ahatem/IoskeleyMono) v2.1.0 (OFL, Iosevka build inspired by Berkeley Mono) for tables and reports — Regular/Medium/Bold WOFF2 under [web/static/fonts/ioskeley/](../web/static/fonts/ioskeley/). Not an official Berkeley Mono.
 
 ` "Fira Sans", system-ui, sans-serif`
 ` "Ioskeley Mono", ui-monospace, monospace` — tables, report body (`tabular-nums`, ligatures off, slashed zero)
@@ -157,7 +157,7 @@ Implement these in Beacon CSS (not as Tailwind in HTML):
 | `.table-scroll` | Horizontal scroll wrapper for tables (replaces `overflow-x-auto`) |
 | `.brand-mark` | Light chip behind the logo (required in dark mode, optional in light) |
 | `.report-doc` | Report body: Ioskeley Mono, tabular figures |
-| `.no-print` / `.print-only` | Report toolbar vs paper |
+| `.theme-item` | Dark-mode control: button with moon/sun icons, no checkbox |
 
 ## Component catalogue
 
@@ -204,9 +204,7 @@ Same list/form recipes. Role-gated nav stays server-side.
 
 ## CSS delivery
 
-Today: [web/static/css/app.css](../web/static/css/app.css) embedded, hashed query via `{{static}}`, `Cache-Control: immutable` when `v=` is set. HTML is `no-store`. **Keep that model.**
-
-Next implementation phase (not this document’s job to ship): vendor daisyUI CSS into `web/static/css/`, add Beacon theme + named layout in the same or a companion file. No CDN. Optional later Tailwind CLI purge if the vendored file is too large for first load.
+Vendored daisyUI is [web/static/css/daisyui.css](../web/static/css/daisyui.css). Beacon theme and named layout live in [web/static/css/beacon.css](../web/static/css/beacon.css). Both are hashed via `{{static}}`, with `Cache-Control: immutable` when `v=` is set. HTML is `no-store`. **Keep that model.** No CSS CDN for daisyUI.
 
 ## New pattern
 

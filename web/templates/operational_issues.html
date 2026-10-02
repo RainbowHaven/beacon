@@ -4,17 +4,17 @@
 
 {{template "layout_start" .}}
 <h1>Operations</h1>
-{{if .Flash}}<p class="flash">{{.Flash}}</p>{{end}}
-{{if .Error}}<p class="flash error">{{.Error}}</p>{{end}}
+{{if .Flash}}<p class="alert">{{.Flash}}</p>{{end}}
+{{if .Error}}<p class="alert alert-error">{{.Error}}</p>{{end}}
 {{template "operational_issue_note" .}}
 
 <p class="actions">
-  <a class="btn" href="/operations/new{{if .HouseID}}?house={{.HouseID}}{{end}}">Record issue</a>
+  <a class="btn btn-primary" href="/operations/new{{if .HouseID}}?house={{.HouseID}}{{end}}">Record issue</a>
 </p>
 
 <nav class="actions filter-bar" aria-label="Status filter">
   {{range .Filters}}
-  <a class="btn{{if not .Current}} secondary{{end}}" href="{{.Href}}"{{if .Current}} aria-current="true"{{end}}>{{.Label}}</a>
+  <a class="btn{{if .Current}} btn-primary{{else}} btn-outline{{end}}" href="{{.Href}}"{{if .Current}} aria-current="true"{{end}}>{{.Label}}</a>
   {{end}}
 </nav>
 
@@ -29,7 +29,7 @@
       {{end}}
     </select>
   </label>
-  <button class="secondary" type="submit">Filter</button>
+  <button class="btn btn-outline" type="submit">Filter</button>
 </form>
 {{end}}
 
@@ -45,7 +45,7 @@
       <p class="record-text">{{.Description}}</p>
     </div>
     <div class="actions record-actions">
-      <a class="btn secondary" href="/operations/{{.ID}}/edit">Edit</a>
+      <a class="btn btn-outline" href="/operations/{{.ID}}/edit">Edit</a>
     </div>
   </li>
   {{end}}
