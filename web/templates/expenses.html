@@ -48,7 +48,7 @@
       <td>{{.Note}}</td>
       <td>
         {{if .HasReceipt}}
-        <a href="/expenses/{{.ID}}/receipt">View</a>
+        <a href="/expenses/{{.ID}}/receipt" data-open-modal="receipt-modal" data-receipt="/expenses/{{.ID}}/receipt" data-receipt-type="{{if .ReceiptContentType}}{{.ReceiptContentType}}{{end}}">View</a>
         {{else}}<span class="muted" title="{{.NoReceiptReason}}">None</span>{{end}}
       </td>
       <td><span class="review-status review-{{.ReviewStatus}}">{{.ReviewStatus.Label}}</span></td>
@@ -84,4 +84,5 @@
 <p><a class="btn btn-primary" href="/expenses/new">Log expense</a></p>
 </div>
 {{end}}
+{{if .Rows}}{{template "receipt-modal"}}{{end}}
 {{template "layout_end" .}}

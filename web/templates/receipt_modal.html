@@ -1,0 +1,13 @@
+{{define "receipt-modal"}}
+<dialog id="receipt-modal" class="modal">
+  <div class="modal-box receipt-box stack">
+    <h2>Receipt</h2>
+    <img class="receipt-preview" data-receipt-image alt="Receipt" hidden>
+    <iframe class="receipt-frame" data-receipt-frame title="Receipt" hidden></iframe>
+    <div class="modal-action">
+      <form method="dialog"><button class="btn btn-outline">Close</button></form>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+{{end}}
