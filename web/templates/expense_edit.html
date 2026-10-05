@@ -35,15 +35,17 @@
   {{if .Error}}<p class="alert alert-error" role="alert">{{.Error}}</p>{{end}}
   {{if ne (print .Expense.ReviewStatus) "submitted"}}<p class="muted">Saving changes sends this expense back for review.</p>{{end}}
   <form id="expense-form" class="stack" method="post" action="/expenses/{{.Expense.ID}}" enctype="multipart/form-data">
-    {{template "expense_fields" .}}
-    <label class="label">{{if .Expense.HasReceipt}}Replace receipt{{else}}Receipt{{end}}</label>
-    <input class="file-input" id="receipt" name="receipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
-    {{if .Expense.HasReceipt}}
-    <p><a href="/expenses/{{.Expense.ID}}/receipt">View current receipt</a></p>
-    {{else}}
-    <label class="label">No receipt? Explain why</label>
-    <textarea class="textarea" name="no_receipt_reason" rows="2" maxlength="500">{{.Form.NoReceiptReason}}</textarea>
-    {{end}}
+    <fieldset class="fieldset">
+      {{template "expense_fields" .}}
+      <label class="label">{{if .Expense.HasReceipt}}Replace receipt{{else}}Receipt{{end}}</label>
+      <input class="file-input" id="receipt" name="receipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
+      {{if .Expense.HasReceipt}}
+      <p><a href="/expenses/{{.Expense.ID}}/receipt">View current receipt</a></p>
+      {{else}}
+      <label class="label">No receipt? Explain why</label>
+      <textarea class="textarea" name="no_receipt_reason" rows="2" maxlength="500">{{.Form.NoReceiptReason}}</textarea>
+      {{end}}
+    </fieldset>
     <p id="expense-error" class="alert alert-error" hidden></p>
     <p class="cluster">
       <button class="btn btn-primary" type="submit">Save changes</button>
