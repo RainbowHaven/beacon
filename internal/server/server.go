@@ -28,6 +28,8 @@ const (
 	challengeCookie   = "beacon_wa_challenge"
 	inviteCookie      = "beacon_invite"
 	inviteFlashCookie = "beacon_invite_flash"
+	themeCookie       = "beacon_theme"
+	sidebarCookie     = "beacon_sidebar"
 	inviteTTL         = 7 * 24 * time.Hour
 	sessionTTL        = 14 * 24 * time.Hour
 	challengeTTL      = 5 * time.Minute
@@ -150,20 +152,70 @@ func navCurrent(path, prefix string) bool {
 	return strings.HasPrefix(path, prefix+"/")
 }
 
-func withNavPath(r *http.Request, data any) any {
-	if r == nil || r.URL == nil {
-		return data
+func userEmailFrom(v any) string {
+	switch u := v.(type) {
+	case *domain.User:
+		if u != nil {
+			return u.Email
+		}
+	case domain.User:
+		return u.Email
+	case map[string]any:
+		if e, ok := u["Email"].(string); ok {
+			return e
+		}
 	}
-	path := r.URL.Path
+	return ""
+}
+
+func withChrome(r *http.Request, data any) any {
+	path := ""
+	theme := "light"
+	collapsed := false
+	if r != nil && r.URL != nil {
+		path = r.URL.Path
+		if c, err := r.Cookie(themeCookie); err == nil && c.Value == "dark" {
+			theme = "dark"
+		}
+		if c, err := r.Cookie(sidebarCookie); err == nil && c.Value == "collapsed" {
+			collapsed = true
+		}
+	}
+
+	loggedIn := false
 	switch d := data.(type) {
 	case map[string]any:
 		if d == nil {
 			d = map[string]any{}
+			data = d
 		}
-		d["Path"] = path
+		loggedIn = userEmailFrom(d["User"]) != ""
+	case occupantFormView:
+		loggedIn = d.User != nil && d.User.Email != ""
+	}
+	authCentered := !loggedIn && (path == "" || path == "/" || path == "/login" || strings.HasPrefix(path, "/invite"))
+
+	switch d := data.(type) {
+	case map[string]any:
+		if path != "" {
+			d["Path"] = path
+		}
+		if _, ok := d["Theme"]; !ok {
+			d["Theme"] = theme
+		}
+		d["SidebarCollapsed"] = collapsed
+		if _, ok := d["AuthCentered"]; !ok {
+			d["AuthCentered"] = authCentered
+		}
 		return d
 	case occupantFormView:
-		d.Path = path
+		if path != "" {
+			d.Path = path
+		}
+		if d.Theme == "" {
+			d.Theme = theme
+		}
+		d.SidebarCollapsed = collapsed
 		return d
 	default:
 		return data
@@ -476,7 +528,7 @@ func (s *Server) loadWAUser(ctx context.Context, u domain.User) (wauser.User, er
 func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, data any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
-	data = withNavPath(r, data)
+	data = withChrome(r, data)
 	if err := s.templates.ExecuteTemplate(w, name, data); err != nil {
 		s.log.Error("template", "name", name, "err", err)
 		http.Error(w, "template error", http.StatusInternalServerError)

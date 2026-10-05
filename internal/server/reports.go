@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -84,6 +85,41 @@ func parseReportMonth(raw string, now time.Time) (time.Time, error) {
 
 func monthEnd(month time.Time) time.Time { return month.AddDate(0, 1, -1) }
 
+const reportMonthWindow = 24
+
+type monthChoice struct {
+	Value string
+	Label string
+}
+
+// reportMonthChoices lists the current month and the previous 23, newest first.
+// selected is included even if it falls outside that window.
+func reportMonthChoices(now time.Time, selected string) []monthChoice {
+	now = now.UTC()
+	cur := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	seen := make(map[string]struct{}, reportMonthWindow+1)
+	out := make([]monthChoice, 0, reportMonthWindow+1)
+	add := func(m time.Time) {
+		if m.After(cur) {
+			return
+		}
+		v := m.Format("2006-01")
+		if _, ok := seen[v]; ok {
+			return
+		}
+		seen[v] = struct{}{}
+		out = append(out, monthChoice{Value: v, Label: m.Format("January 2006")})
+	}
+	if t, err := time.Parse("2006-01", selected); err == nil {
+		add(time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC))
+	}
+	for i := 0; i < reportMonthWindow; i++ {
+		add(cur.AddDate(0, -i, 0))
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Value > out[j].Value })
+	return out
+}
+
 func (s *Server) handleReports(w http.ResponseWriter, r *http.Request) {
 	u, _ := s.currentUser(r)
 	houses, err := s.housesForUser(r, u)
@@ -126,6 +162,7 @@ func (s *Server) handleReports(w http.ResponseWriter, r *http.Request) {
 		"BodyClass":       "report-page",
 		"Month":           month.Format("2006-01"),
 		"MaxMonth":        now.Format("2006-01"),
+		"MonthChoices":    reportMonthChoices(now, month.Format("2006-01")),
 		"Houses":          houses,
 		"SelectedHouseID": int64(0),
 		"Error":           q.Get("error"),

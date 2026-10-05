@@ -54,11 +54,29 @@ func formatCents(cents int64) string {
 	if neg {
 		cents = -cents
 	}
-	s := fmt.Sprintf("%d.%02d", cents/100, cents%100)
+	s := formatIntComma(cents/100) + fmt.Sprintf(".%02d", cents%100)
 	if neg {
 		return "-" + s
 	}
 	return s
+}
+
+func formatIntComma(n int64) string {
+	s := strconv.FormatInt(n, 10)
+	if len(s) <= 3 {
+		return s
+	}
+	var b strings.Builder
+	pre := len(s) % 3
+	if pre == 0 {
+		pre = 3
+	}
+	b.WriteString(s[:pre])
+	for i := pre; i < len(s); i += 3 {
+		b.WriteByte(',')
+		b.WriteString(s[i : i+3])
+	}
+	return b.String()
 }
 
 // parseUSDate accepts MM/DD/YYYY (also tolerates ISO YYYY-MM-DD).

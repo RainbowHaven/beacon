@@ -1,6 +1,6 @@
 {{template "layout_start" .}}
 <h1>{{.Title}}</h1>
-{{if .Error}}<p class="flash error" role="alert">{{.Error}}</p>{{end}}
+{{if .Error}}<p class="alert alert-error" role="alert">{{.Error}}</p>{{end}}
 <p class="muted">Record only the incident identifier and basic tracking information. Do not enter details about the incident, and do not upload the completed Document 37.</p>
 <form class="stack" method="post" action="{{.Action}}">
   {{if .New}}
@@ -47,8 +47,8 @@
     <span class="muted field-hint">Required when the status is Resolved or Closed.</span>
   </label>
   <p class="actions">
-    <button type="submit">Save</button>
-    {{if .New}}<button class="secondary" type="submit" formaction="/safeguarding/new" formmethod="get" formnovalidate name="suggest" value="1">Suggest identifier</button>{{end}}
+    <button class="btn btn-primary" type="submit">Save</button>
+    {{if .New}}<button class="btn btn-outline" type="submit" formaction="/safeguarding/new" formmethod="get" formnovalidate name="suggest" value="1">Suggest identifier</button>{{end}}
   </p>
 </form>
 <p><a href="/safeguarding">Back</a></p>
