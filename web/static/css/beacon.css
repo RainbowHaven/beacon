@@ -91,6 +91,7 @@ h1, h2, h3, strong, b, .btn, .fieldset-legend, .stat-value {
 .field {
   font-family: var(--default-font-family);
 }
+.file-input { min-height: calc(var(--size-field) * 10); }
 
 h1 { font-size: 1.75rem; line-height: 1.25; margin: 0; }
 h2 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.75rem; }
@@ -111,6 +112,10 @@ h3 { font-size: 1.05rem; line-height: 1.25; margin: 0 0 0.5rem; }
 .stat-title,
 .stat-desc {
   color: var(--color-base-content);
+  text-align: start;
+  justify-content: flex-start;
+  align-items: flex-start;
+  white-space: normal;
 }
 
 .table {
@@ -179,17 +184,20 @@ h3 { font-size: 1.05rem; line-height: 1.25; margin: 0 0 0.5rem; }
 .stack > * {
   width: auto;
   max-width: none;
-  height: auto !important;
   opacity: 1 !important;
   z-index: auto !important;
   transform: none !important;
   grid-area: auto !important;
+}
+.stack > :not(.btn):not(.input):not(.select):not(.textarea):not(.file-input) {
+  height: auto !important;
 }
 .stack-narrow { max-width: 28rem; width: 100%; }
 .stack-tight { gap: 0.5rem; }
 .stack > label {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 0.25rem;
 }
 .stack > .btn { align-self: start; }
@@ -590,6 +598,10 @@ form button.danger {
 .invite-row .invite-url { flex: 1; min-width: 0; }
 .invite-row .btn { flex-shrink: 0; width: auto; }
 form.inline { display: inline; }
+.cluster > form.inline,
+.actions > form.inline {
+  display: contents;
+}
 form.logout-form { margin: 0; }
 
 .record-list {

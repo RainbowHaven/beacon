@@ -15,17 +15,17 @@
   {{if .CanReview}}
   {{if .ReviewErr}}<p class="alert alert-error" role="alert">{{.ReviewErr}}</p>{{end}}
   <form class="stack" method="post" action="/expenses/{{.Expense.ID}}/review">
-    <label>Review status
-      <select name="review_status" required>
-        {{range .Statuses}}
-        <option value="{{.}}"{{if eq . $.Expense.ReviewStatus}} selected{{end}}>{{.Label}}</option>
-        {{end}}
-      </select>
-    </label>
-    <label>Note for the safe house (required for “Needs correction”)
-      <textarea name="review_note" rows="2" maxlength="500">{{.ReviewNote}}</textarea>
-    </label>
-    <button class="btn btn-primary" type="submit">Save review</button>
+    <label class="label">Review status</label>
+    <select class="select" name="review_status" required>
+      {{range .Statuses}}
+      <option value="{{.}}"{{if eq . $.Expense.ReviewStatus}} selected{{end}}>{{.Label}}</option>
+      {{end}}
+    </select>
+    <label class="label">Note for the safe house (required for “Needs correction”)</label>
+    <textarea class="textarea" name="review_note" rows="2" maxlength="500">{{.ReviewNote}}</textarea>
+    <p class="cluster">
+      <button class="btn btn-primary" type="submit">Save review</button>
+    </p>
   </form>
   {{end}}
 </section>
@@ -36,18 +36,18 @@
   {{if ne (print .Expense.ReviewStatus) "submitted"}}<p class="muted">Saving changes sends this expense back for review.</p>{{end}}
   <form id="expense-form" class="stack" method="post" action="/expenses/{{.Expense.ID}}" enctype="multipart/form-data">
     {{template "expense_fields" .}}
-    <label>{{if .Expense.HasReceipt}}Replace receipt{{else}}Receipt{{end}}
-      <input id="receipt" name="receipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
-    </label>
+    <label class="label">{{if .Expense.HasReceipt}}Replace receipt{{else}}Receipt{{end}}</label>
+    <input class="file-input" id="receipt" name="receipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
     {{if .Expense.HasReceipt}}
     <p><a href="/expenses/{{.Expense.ID}}/receipt">View current receipt</a></p>
     {{else}}
-    <label>No receipt? Explain why
-      <textarea name="no_receipt_reason" rows="2" maxlength="500">{{.Form.NoReceiptReason}}</textarea>
-    </label>
+    <label class="label">No receipt? Explain why</label>
+    <textarea class="textarea" name="no_receipt_reason" rows="2" maxlength="500">{{.Form.NoReceiptReason}}</textarea>
     {{end}}
     <p id="expense-error" class="alert alert-error" hidden></p>
-    <button class="btn btn-primary" type="submit">Save changes</button>
+    <p class="cluster">
+      <button class="btn btn-primary" type="submit">Save changes</button>
+    </p>
   </form>
 </section>
 
@@ -72,15 +72,14 @@
   {{else}}
   <p class="muted">No history recorded.</p>
   {{end}}
+  <div class="cluster">
+    <a class="btn btn-outline" href="/expenses">Back</a>
+    {{if .Expense.Deletable}}
+    <form class="inline" method="post" action="/expenses/{{.Expense.ID}}/delete" onsubmit="return confirm('Delete this expense?')">
+      <button class="btn btn-outline" type="submit">Delete</button>
+    </form>
+    {{end}}
+  </div>
 </section>
-
-<p class="cluster">
-  <a class="btn btn-outline" href="/expenses">Back</a>
-  {{if .Expense.Deletable}}
-  <form class="inline" method="post" action="/expenses/{{.Expense.ID}}/delete" onsubmit="return confirm('Delete this expense?')">
-    <button class="btn btn-outline" type="submit">Delete</button>
-  </form>
-  {{end}}
-</p>
 <script type="module" src="{{static "js/receipt-resize.js"}}"></script>
 {{template "layout_end" .}}

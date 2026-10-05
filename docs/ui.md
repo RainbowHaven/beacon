@@ -197,7 +197,7 @@ Centered `.stack` (max 28rem). Full logo **centered** above the product name **B
 `.page-header` with title + primary action. Optional filters in `.filter-bar` (labeled `.field` + daisyUI `select`; change submits). Desktop: table. Narrow: `list` / `card`. Empty: muted sentence + the same primary action.
 
 **Form (occupant, expense, operations)**  
-`.stack` of `fieldset`s. Labels always visible (no placeholder-only). One `btn-primary` submit. Cancel is `btn btn-outline`, in a `.cluster` with Save.
+`.stack` of `fieldset`s. Labels always visible (no placeholder-only), start-aligned. One `btn-primary` submit. Cancel is `btn btn-outline`, in a `.cluster` with Save. Receipts use daisyUI `file-input`. `.stack` must not set `height` on `.btn` / `.input` / `.select` / `.file-input`.
 
 **Report**  
 Screen: `.filter-bar` (named month `<select>`, house `<select class="select">` so the chevron is visible) plus toolbar `.no-print` (print, CSV), then a blank daisyUI `divider`, then `.report-doc`. Do not use `<input type="month">` — native month fields show `YYYY-MM` without a clear picker. Summary `stats` in one horizontal row (`width: fit-content`). Paper: `@media print` — hide chrome and dock, title **Monthly report · Beacon**, no Rainbow Haven lockup. Report prose is Fira Sans; only `.table` is Ioskeley Mono. daisyUI does not replace print CSS.
