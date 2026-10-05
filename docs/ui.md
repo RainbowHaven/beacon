@@ -136,7 +136,7 @@ daisyUI `.label` is 60% opacity; Beacon labels use full `base-content`. Tables a
 | `base-content` | `#F3F3F3` |
 | `table-content` | `#FAFAFA` |
 | `brand-chip` | `#FFFFFF` |
-| `primary` | `#4AA79F` |
+| `primary` | `#4A9BA7` |
 | `primary-content` | `#0A0A0A` |
 
 Dark surfaces are true greys. Do not mix green into `base-*`.
