@@ -150,7 +150,7 @@ Implement these in Beacon CSS (not as Tailwind in HTML):
 | Class | Job |
 |---|---|
 | `.page` | Main column: **width 100%**, max ~64rem, left of the main column (not shrink-wrapped/centered). Signed-in: no extra left padding — title lines up with the topbar rule. Guest pages (no sidebar): `1.5rem` inline padding both sides (desktop `2rem`). End padding `1.5rem` (desktop `2rem`), safe-area aware |
-| `.stack` | Vertical rhythm, gap `1rem`. Forms: max-width `28rem` unless the page is a wide table. Overrides daisyUI’s overlapping `.stack` (that component fades child 2+ to 70% opacity and stacks them as avatars — Beacon does not use it; reset with `!important`). |
+| `.stack` | Vertical rhythm, gap `1rem`. Forms: max-width `28rem` unless the page is a wide table. Fields stretch; `.btn` keeps daisyUI’s default width (not `btn-block`). Overrides daisyUI’s overlapping `.stack` (that component fades child 2+ to 70% opacity and stacks them as avatars — Beacon does not use it; reset with `!important`). |
 | `.auth-product` | Product name under the auth logo. |
 | `.cluster` | Horizontal group, wrap, gap `0.75rem` (page actions, filters) |
 | `.filter-bar` | Filter row: labeled fields, `align-items: flex-end`. Submit on change (no Filter/Show button; `<noscript>` fallback) |
@@ -169,7 +169,6 @@ Read the matching file under `.agents/skills/daisyui/components/` before using a
 | Beacon pattern | daisyUI | Notes |
 |---|---|---|
 | Primary / secondary / danger button | `btn btn-primary` / `btn btn-outline` / `btn btn-error` | Default size. Avoid `btn-xs`. Always Fira Sans, including table actions. |
-| Inline help / prose link | `link` | Underline. Do not leave muted body copy as the only cue. |
 | Flash / form error | `alert` + `alert-success` / `alert-error` / `alert-info`, `role="alert"` | One slot in the layout, not copy-paste per page |
 | Text / email / date | `input` | 16px effective size |
 | Select | `select` | Keep `class="select"` so the chevron shows. Do not set `background` on `.select` in Beacon CSS. |
@@ -192,7 +191,7 @@ Unused daisyUI (hero, chat, rating, carousel, mockups, aura, …): do not add.
 ## Page recipes
 
 **Auth (login, invite)**  
-Centered `.stack` (max 28rem). Full logo **centered** above the product name **Beacon**, then the heading. One `btn-primary`. Errors as `alert-error`. Help links in muted copy use daisyUI `link` (underline, not inherited grey).
+Centered `.stack` (max 28rem). Full logo **centered** above the product name **Beacon**, then the heading. One `btn-primary`. Errors as `alert-error`. Only the login passkey help uses daisyUI `link link-primary` — do not restyle nav or other `li a`.
 
 **List (occupants, expenses, admin users)**  
 `.page-header` with title + primary action. Optional filters in `.filter-bar` (labeled `.field` + daisyUI `select`; change submits). Desktop: table. Narrow: `list` / `card`. Empty: muted sentence + the same primary action.

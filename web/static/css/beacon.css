@@ -192,6 +192,7 @@ h3 { font-size: 1.05rem; line-height: 1.25; margin: 0 0 0.5rem; }
   flex-direction: column;
   gap: 0.25rem;
 }
+.stack > .btn { align-self: start; }
 .cluster { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
 .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
 .cluster-end { align-items: flex-end; }
@@ -205,13 +206,6 @@ h3 { font-size: 1.05rem; line-height: 1.25; margin: 0 0 0.5rem; }
 }
 .table-scroll { overflow-x: auto; width: 100%; max-width: 100%; }
 .muted { color: color-mix(in oklab, var(--color-base-content) 78%, transparent); }
-.muted a:not(.btn),
-p a:not(.btn),
-li a:not(.btn) {
-  color: var(--color-primary);
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
-}
 .page p { overflow-wrap: break-word; }
 
 .filter-bar {

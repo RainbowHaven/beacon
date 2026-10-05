@@ -1,12 +1,14 @@
 {{template "layout_start" .}}
 <h1>Log in</h1>
-<p class="muted">Use the passkey enrolled from your invite link. No passwords. <a class="link" href="/help/passkeys">New to passkeys or lost your phone?</a></p>
+<p class="muted">Use the passkey enrolled from your invite link. No passwords. <a class="link link-primary" href="/help/passkeys">New to passkeys or lost your phone?</a></p>
 {{if .Error}}<div class="alert alert-error" role="alert">{{.Error}}</div>{{end}}
 <form id="login-form" class="stack">
   <label>Email
     <input class="input" type="email" name="email" id="email" required autocomplete="username webauthn">
   </label>
-  <button class="btn btn-primary" type="submit">Sign in with passkey</button>
+  <p class="cluster">
+    <button class="btn btn-primary" type="submit">Sign in with passkey</button>
+  </p>
   <p id="login-error" class="alert alert-error" hidden></p>
 </form>
 <script type="module">
