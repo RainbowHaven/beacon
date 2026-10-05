@@ -247,8 +247,7 @@ func TestExpenseReviewAndCorrectionFlow(t *testing.T) {
 
 	code, body = env.get(manager, idPath+"/edit")
 	if code != http.StatusOK || !strings.Contains(body, "Amount: 20.00 → 25.00") || !strings.Contains(body, "Receipt added") ||
-		!strings.Contains(body, "Review: Needs correction") || !strings.Contains(body, `id="receipt-modal"`) ||
-		!strings.Contains(body, `data-open-modal="receipt-modal"`) {
+		!strings.Contains(body, "Review: Needs correction") {
 		t.Fatalf("edit page status=%d body=%s", code, body)
 	}
 

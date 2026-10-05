@@ -77,58 +77,12 @@
   });
 
   document.querySelectorAll("[data-open-modal]").forEach(function (el) {
-    el.addEventListener("click", function (ev) {
+    el.addEventListener("click", function () {
       const id = el.getAttribute("data-open-modal");
       const dialog = id ? document.getElementById(id) : null;
-      if (!dialog || typeof dialog.showModal !== "function") {
-        return;
-      }
-      ev.preventDefault();
-      const src = el.getAttribute("data-receipt");
-      if (src) {
-        const isImage = (el.getAttribute("data-receipt-type") || "").indexOf("image/") === 0;
-        const img = dialog.querySelector("[data-receipt-image]");
-        const frame = dialog.querySelector("[data-receipt-frame]");
-        if (img && frame) {
-          img.hidden = !isImage;
-          frame.hidden = isImage;
-          if (isImage) {
-            img.src = src;
-            frame.removeAttribute("src");
-          } else {
-            frame.src = src;
-            img.removeAttribute("src");
-          }
-        }
-      }
-      dialog.showModal();
-    });
-  });
-
-  document.querySelectorAll("dialog.modal").forEach(function (dialog) {
-    dialog.addEventListener("close", function () {
-      const img = dialog.querySelector("[data-receipt-image]");
-      const frame = dialog.querySelector("[data-receipt-frame]");
-      if (img) {
-        img.removeAttribute("src");
-        img.hidden = true;
-      }
-      if (frame) {
-        frame.removeAttribute("src");
-        frame.hidden = true;
+      if (dialog && typeof dialog.showModal === "function") {
+        dialog.showModal();
       }
     });
-  });
-
-  document.addEventListener("keydown", function (ev) {
-    if (ev.key !== "Escape") {
-      return;
-    }
-    const open = document.querySelector("dialog.modal[open]");
-    if (!open) {
-      return;
-    }
-    ev.preventDefault();
-    open.close();
   });
 })();

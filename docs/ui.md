@@ -161,9 +161,9 @@ Implement these in Beacon CSS (not as Tailwind in HTML):
 | `.brand-mark` | Light chip behind the logo (required in dark mode, optional in light) |
 | `.report-doc` | Report body: Fira Sans. Nested `.table` uses Ioskeley Mono |
 | `.theme-item` | Theme control: moon/sun icons; label is the opposite of the current mode |
-| `.receipt-box` | Wider `modal-box` for a receipt image or PDF |
-| `.receipt-preview` | Receipt `<img>`: contain, max height `70dvh` |
-| `.receipt-frame` | Receipt PDF `<iframe>`: same max height |
+| `.receipt-view` | Full-page receipt: toolbar + image or PDF, no app chrome |
+| `.receipt-bar` | Close row on the receipt page |
+| `.receipt-full` | Receipt `<img>` or `<iframe>` filling the rest of the viewport |
 
 ## Component catalogue
 
@@ -188,7 +188,7 @@ Read the matching file under `.agents/skills/daisyui/components/` before using a
 | Account / more | `dropdown` with `<details>` | No extra JS |
 | Theme toggle | `.theme-item` button (moon/sun icons) | Desktop: sidebar **footer**, above Account. The footer (Dark mode, Account, Log out) sits at the bottom of the sidebar. Mobile: topbar. No checkbox. Cookie persist. Visible label and `title` are the **next** mode (Dark mode in light, Light mode in dark) |
 | Destructive confirm | native `confirm()` for now, or `modal` if we add one | Document 37 uses `dialog.modal` |
-| Receipt viewer | `dialog.modal` | Expense review and the expenses list. Native ESC and backdrop close. The `/receipt` URL stays the image or PDF (no-JS fallback). |
+| Receipt viewer | Full page, no sidebar | Browser navigation to `/expenses/{id}/receipt` shows Close (history.back) and the file. ESC clicks Close. Image/PDF fetches of the same URL stay the raw bytes. |
 
 Unused daisyUI (hero, chat, rating, carousel, mockups, aura, …): do not add.
 

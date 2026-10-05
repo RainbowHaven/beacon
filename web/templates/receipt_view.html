@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{if .Theme}}{{.Theme}}{{else}}light{{end}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Receipt · Beacon</title>
+  <link rel="icon" href="{{static "img/favicon.svg"}}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+  <link rel="stylesheet" href="{{static "css/daisyui.css"}}">
+  <link rel="stylesheet" href="{{static "css/beacon.css"}}">
+</head>
+<body class="receipt-view">
+  <header class="receipt-bar">
+    <a class="btn btn-outline" href="{{.Back}}" data-receipt-back>Close</a>
+  </header>
+  {{if .IsImage}}
+  <img class="receipt-full" src="/expenses/{{.ExpenseID}}/receipt" alt="Receipt">
+  {{else}}
+  <iframe class="receipt-full" src="/expenses/{{.ExpenseID}}/receipt" title="Receipt"></iframe>
+  {{end}}
+  <script src="{{static "js/receipt-view.js"}}"></script>
+</body>
+</html>

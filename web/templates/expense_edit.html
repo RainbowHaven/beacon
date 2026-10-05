@@ -40,7 +40,7 @@
       <label class="label">{{if .Expense.HasReceipt}}Replace receipt{{else}}Receipt{{end}}</label>
       <input class="file-input" id="receipt" name="receipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
       {{if .Expense.HasReceipt}}
-      <p><a href="/expenses/{{.Expense.ID}}/receipt" data-open-modal="receipt-modal" data-receipt="/expenses/{{.Expense.ID}}/receipt" data-receipt-type="{{if .Expense.ReceiptContentType}}{{.Expense.ReceiptContentType}}{{end}}">View current receipt</a></p>
+      <p><a href="/expenses/{{.Expense.ID}}/receipt">View current receipt</a></p>
       {{else}}
       <label class="label">No receipt? Explain why</label>
       <textarea class="textarea" name="no_receipt_reason" rows="2" maxlength="500">{{.Form.NoReceiptReason}}</textarea>
@@ -83,6 +83,5 @@
     {{end}}
   </div>
 </section>
-{{if .Expense.HasReceipt}}{{template "receipt-modal"}}{{end}}
 <script type="module" src="{{static "js/receipt-resize.js"}}"></script>
 {{template "layout_end" .}}
