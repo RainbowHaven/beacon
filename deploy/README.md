@@ -71,7 +71,7 @@ make publish-staging SUFFIX=menu.1
 # tag: v1.2.3-staging-menu.1  →  Railway environment staging
 ```
 
-Smoke-test staging (passkeys are host-bound to the staging hostname). Staging is **shared**: the latest publish wins. Staging wipes on **each deploy** (Railway pre-deploy), not on crash restarts of a running container.
+Smoke-test staging (passkeys are host-bound to the staging hostname). Staging is **shared**: the latest publish wins. A publish does not delete the staging database.
 
 Production bumps the highest exact `vMAJOR.MINOR.PATCH` tag and deploys that commit to environment `production`:
 
