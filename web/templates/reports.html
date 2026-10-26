@@ -2,14 +2,14 @@
 <div class="page-header">
   <h1>Monthly report</h1>
   <p class="cluster no-print">
-    {{if .Report}}<a class="btn btn-outline" href="/reports/{{.Report.House.ID}}/{{.Report.Monthly.MonthKey}}.csv">Download CSV</a>{{end}}
+    {{if and .Report .ExpenseReady}}<a class="btn btn-outline" href="/reports/{{.Report.House.ID}}/{{.Report.Monthly.MonthKey}}.csv?expense_from={{.ExpenseFrom}}&amp;expense_to={{.ExpenseTo}}">Download CSV</a>{{end}}
     <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
   </p>
 </div>
 <h1 class="print-only">Monthly report · Beacon</h1>
 {{if .Flash}}<p class="alert no-print" role="status">{{.Flash}}</p>{{end}}
 {{if .Error}}<p class="alert alert-error no-print" role="alert">{{.Error}}</p>{{end}}
-<p class="muted no-print">Built from resident records, expenses, safeguarding tracking records and operational problems as they are right now. No private key required. Residents are listed by nickname only.</p>
+<p class="muted no-print">Built from resident records, expenses, safeguarding tracking records and operational problems as they are right now. Expense totals and lines use the start and end dates. Occupancy, demographics, safeguarding, operational problems and month confirmation stay on the selected month. No private key required. Residents are listed by nickname only.</p>
 
 <form method="get" action="/reports" class="filter-bar no-print">
   <label class="field field-month">Month
@@ -29,6 +29,12 @@
     </select>
   </label>
   {{end}}
+  <label class="field">Expenses from
+    <input class="input" type="text" name="expense_from" value="{{.ExpenseFrom}}" placeholder="MM/DD/YYYY" inputmode="numeric" autocomplete="off" pattern="(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/[0-9]{4}" title="MM/DD/YYYY">
+  </label>
+  <label class="field">Expenses to
+    <input class="input" type="text" name="expense_to" value="{{.ExpenseTo}}" placeholder="MM/DD/YYYY" inputmode="numeric" autocomplete="off" pattern="(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/[0-9]{4}" title="MM/DD/YYYY">
+  </label>
   <noscript><button class="btn btn-outline" type="submit">Show</button></noscript>
 </form>
 

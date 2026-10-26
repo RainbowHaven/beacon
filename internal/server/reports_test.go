@@ -171,9 +171,10 @@ func TestMonthlyReport(t *testing.T) {
 	}
 	houseID := strconv.FormatInt(house.ID, 10)
 	otherID := strconv.FormatInt(other.ID, 10)
+	febExpenses := url.Values{"expense_from": {"02/01/2024"}, "expense_to": {"02/29/2024"}}.Encode()
 
 	t.Run("manager sees own house", func(t *testing.T) {
-		code, _, body := get(manager, "/reports?month=2024-02")
+		code, _, body := get(manager, "/reports?month=2024-02&"+febExpenses)
 		if code != http.StatusOK {
 			t.Fatalf("status %d", code)
 		}
@@ -186,6 +187,11 @@ func TestMonthlyReport(t *testing.T) {
 			"53.4%",
 			"Kestrel", "Plover", "Uganda", "Kenya", "1999",
 			"12.50 USD",
+			"February 1, 2024 through February 29, 2024",
+			"2024-02-14",
+			"Other",
+			`name="expense_from" value="02/01/2024"`,
+			`name="expense_to" value="02/29/2024"`,
 			"/reports/" + houseID + "/2024-02.csv",
 			"<dt>Concerns reported this month</dt><dd>1</dd>",
 			"Incident-TOR-2024-1", "Incident-TOR-2024-2",
@@ -258,7 +264,7 @@ func TestMonthlyReport(t *testing.T) {
 	})
 
 	t.Run("CSV export", func(t *testing.T) {
-		code, header, body := get(manager, "/reports/"+houseID+"/2024-02.csv")
+		code, header, body := get(manager, "/reports/"+houseID+"/2024-02.csv?"+febExpenses)
 		if code != http.StatusOK {
 			t.Fatalf("status %d", code)
 		}
@@ -276,7 +282,7 @@ func TestMonthlyReport(t *testing.T) {
 		table := ""
 		for _, rec := range records {
 			switch {
-			case rec[0] == "Nickname" || rec[0] == "Incident identifier" || rec[0] == "Date identified":
+			case rec[0] == "Nickname" || rec[0] == "Incident identifier" || rec[0] == "Date identified" || rec[0] == "Expense date":
 				table = rec[0]
 			case table != "":
 				tables[table] = append(tables[table], rec)
@@ -298,6 +304,8 @@ func TestMonthlyReport(t *testing.T) {
 			"Average occupancy":        "53.4%",
 			"Gender: M":                "1",
 			"Country of origin: Kenya": "1",
+			"Expense period start":     "2024-02-01",
+			"Expense period end":       "2024-02-29",
 			"Expense total USD":        "12.50",
 
 			"Safeguarding concerns reported": "1",
@@ -331,6 +339,9 @@ func TestMonthlyReport(t *testing.T) {
 				{"2024-02-15", "Utilities", "Water outage", "Effect of Water outage", "Closed", "2024-03-04", "Fixing Water outage", "Help with Water outage"},
 				{"2024-02-20", "Staffing or Agent change", "New agent", "Effect of New agent", "Open", "", "Fixing New agent", "Help with New agent"},
 			},
+			"Expense date": {
+				{"2024-02-14", "Other", "", "", "12.50", "USD", "No"},
+			},
 		} {
 			got := tables[name]
 			if len(got) != len(want) {
@@ -349,6 +360,228 @@ func TestMonthlyReport(t *testing.T) {
 		code, header, _ := get(manager, "/reports?month="+url.QueryEscape(next))
 		if code != http.StatusSeeOther || !strings.Contains(header.Get("Location"), "error=") {
 			t.Fatalf("status %d location %q", code, header.Get("Location"))
+		}
+	})
+}
+
+func TestExpenseReportDates(t *testing.T) {
+	db := testDB(t)
+	resetSchema(t, db)
+	ctx := context.Background()
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	srv, err := server.New(logger, db, server.Config{
+		BaseURL:           "http://localhost",
+		WebAuthnRPID:      "localhost",
+		WebAuthnRPName:    "Beacon",
+		WebAuthnRPOrigins: []string{"http://localhost"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := srv.Store()
+	_, house, err := st.EnsureDemoTenancy(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manager, _, err := st.CreateUserWithInvite(ctx, store.CreateUserInput{
+		Email: "mgr-dates@example.com", DisplayName: "Manager", Role: domain.RoleSafeHouseManager,
+		RHLID: &house.RHLID, SafeHouseID: &house.ID,
+	}, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.ActivateUser(ctx, manager.ID); err != nil {
+		t.Fatal(err)
+	}
+	occupant, err := st.CreateOccupant(ctx, store.CreateOccupantInput{
+		SafeHouseID: house.ID, Nickname: "Kestrel", ArrivedAt: time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+		CountryOfOrigin: "UG", Gender: "M",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.MarkOccupantDeparted(ctx, occupant.ID, time.Date(2024, 2, 2, 0, 0, 0, 0, time.UTC)); err != nil {
+		t.Fatal(err)
+	}
+
+	now := time.Now().UTC()
+	firstThis := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	start := firstThis.AddDate(0, -1, 0)
+	end := firstThis.AddDate(0, 0, -1)
+	before := start.AddDate(0, 0, -1)
+	after := end.AddDate(0, 0, 1)
+	us := func(d time.Time) string { return d.Format("01/02/2006") }
+	add := func(when time.Time, cents int64, merchant string) {
+		t.Helper()
+		if _, err := st.CreateExpense(ctx, store.CreateExpenseInput{
+			SafeHouseID: house.ID, AmountCents: cents, Currency: "USD", SpentOn: when,
+			Merchant: merchant, NoReceiptReason: "market stall",
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	add(start, 1111, "Edge start")
+	add(end, 2222, "Edge end")
+	add(before, 4444, "Day before")
+	add(after, 5555, "Day after")
+
+	ts := httptest.NewServer(srv.Handler())
+	t.Cleanup(ts.Close)
+	get := func(path string) (int, string) {
+		t.Helper()
+		session, err := st.CreateSession(ctx, manager.ID, time.Hour)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req, err := http.NewRequest(http.MethodGet, ts.URL+path, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.AddCookie(&http.Cookie{Name: "beacon_session", Value: session})
+		client := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+		res, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		b, _ := io.ReadAll(res.Body)
+		return res.StatusCode, string(b)
+	}
+	csvFields := func(body string) (map[string]string, map[string][][]string) {
+		t.Helper()
+		r := csv.NewReader(strings.NewReader(body))
+		r.FieldsPerRecord = -1
+		records, err := r.ReadAll()
+		if err != nil {
+			t.Fatal(err)
+		}
+		fields := map[string]string{}
+		tables := map[string][][]string{}
+		table := ""
+		for _, rec := range records {
+			if len(rec) == 0 {
+				continue
+			}
+			switch {
+			case rec[0] == "Nickname" || rec[0] == "Expense date":
+				table = rec[0]
+			case table != "":
+				tables[table] = append(tables[table], rec)
+			case len(rec) == 2:
+				fields[rec[0]] = rec[1]
+			}
+		}
+		return fields, tables
+	}
+	monthPath := "/reports?month=2024-02"
+	occupancy := []string{"<dt>Bed-nights</dt><dd>1</dd>", "<dt>Residents served</dt><dd>1</dd>", "Kestrel", "February 2024"}
+
+	t.Run("default previous month", func(t *testing.T) {
+		code, body := get(monthPath)
+		if code != http.StatusOK {
+			t.Fatalf("status %d", code)
+		}
+		period := start.Format("January 2, 2006") + " through " + end.Format("January 2, 2006")
+		for _, want := range append(occupancy,
+			period,
+			`name="expense_from" value="`+us(start)+`"`,
+			`name="expense_to" value="`+us(end)+`"`,
+			"Edge start", "Edge end", "11.11", "22.22", "33.33",
+			start.Format("2006-01-02"), end.Format("2006-01-02"),
+		) {
+			if !strings.Contains(body, want) {
+				t.Fatalf("missing %q", want)
+			}
+		}
+		for _, notWant := range []string{"Day before", "Day after", "44.44", "55.55", before.Format("2006-01-02"), after.Format("2006-01-02")} {
+			if strings.Contains(body, notWant) {
+				t.Fatalf("unexpected %q", notWant)
+			}
+		}
+		code, csvBody := get("/reports/" + strconv.FormatInt(house.ID, 10) + "/2024-02.csv")
+		if code != http.StatusOK {
+			t.Fatalf("csv status %d", code)
+		}
+		fields, tables := csvFields(csvBody)
+		if fields["Expense period start"] != start.Format("2006-01-02") || fields["Expense period end"] != end.Format("2006-01-02") {
+			t.Fatalf("period %q .. %q", fields["Expense period start"], fields["Expense period end"])
+		}
+		if fields["Expense total USD"] != "33.33" || fields["Expenses"] != "2" || fields["Bed-nights"] != "1" {
+			t.Fatalf("fields %v", fields)
+		}
+		got := tables["Expense date"]
+		want := [][]string{
+			{start.Format("2006-01-02"), "Other", "Edge start", "", "11.11", "USD", "No"},
+			{end.Format("2006-01-02"), "Other", "Edge end", "", "22.22", "USD", "No"},
+		}
+		if len(got) != len(want) {
+			t.Fatalf("lines %v", got)
+		}
+		for i := range want {
+			if strings.Join(got[i], "|") != strings.Join(want[i], "|") {
+				t.Fatalf("line %d = %v, want %v", i, got[i], want[i])
+			}
+		}
+	})
+
+	t.Run("custom range", func(t *testing.T) {
+		q := url.Values{"month": {"2024-02"}, "expense_from": {us(before)}, "expense_to": {us(before)}}
+		code, body := get("/reports?" + q.Encode())
+		if code != http.StatusOK {
+			t.Fatalf("status %d", code)
+		}
+		for _, want := range append(occupancy, "Day before", "44.44", `value="`+us(before)+`"`) {
+			if !strings.Contains(body, want) {
+				t.Fatalf("missing %q", want)
+			}
+		}
+		for _, notWant := range []string{"Edge start", "Edge end", "Day after", "11.11", "22.22", "55.55"} {
+			if strings.Contains(body, notWant) {
+				t.Fatalf("unexpected %q", notWant)
+			}
+		}
+		code, csvBody := get("/reports/" + strconv.FormatInt(house.ID, 10) + "/2024-02.csv?expense_from=" + url.QueryEscape(us(before)) + "&expense_to=" + url.QueryEscape(us(before)))
+		if code != http.StatusOK {
+			t.Fatalf("csv status %d", code)
+		}
+		fields, tables := csvFields(csvBody)
+		if fields["Expense period start"] != before.Format("2006-01-02") || fields["Expense period end"] != before.Format("2006-01-02") {
+			t.Fatalf("period %v", fields)
+		}
+		if fields["Expense total USD"] != "44.44" || fields["Bed-nights"] != "1" || fields["Residents served"] != "1" {
+			t.Fatalf("fields %v", fields)
+		}
+		got := tables["Expense date"]
+		if len(got) != 1 || got[0][0] != before.Format("2006-01-02") || got[0][2] != "Day before" || got[0][4] != "44.44" {
+			t.Fatalf("lines %v", got)
+		}
+	})
+
+	t.Run("end before start", func(t *testing.T) {
+		q := url.Values{"month": {"2024-02"}, "expense_from": {"03/15/2026"}, "expense_to": {"03/01/2026"}}
+		code, body := get("/reports?" + q.Encode())
+		if code != http.StatusOK {
+			t.Fatalf("status %d body %s", code, body)
+		}
+		for _, want := range append(occupancy,
+			"The end date is before the start date.",
+			`name="expense_from" value="03/15/2026"`,
+			`name="expense_to" value="03/01/2026"`,
+			"Enter a start date and an end date on or after it to list expenses.",
+		) {
+			if !strings.Contains(body, want) {
+				t.Fatalf("missing %q", want)
+			}
+		}
+		for _, notWant := range []string{"11.11", "22.22", "44.44", "55.55", "Edge start", "Download CSV"} {
+			if strings.Contains(body, notWant) {
+				t.Fatalf("unexpected %q", notWant)
+			}
+		}
+		code, csvBody := get("/reports/" + strconv.FormatInt(house.ID, 10) + "/2024-02.csv?expense_from=03%2F15%2F2026&expense_to=03%2F01%2F2026")
+		if code != http.StatusBadRequest || !strings.Contains(csvBody, "The end date is before the start date.") {
+			t.Fatalf("csv status %d body %q", code, csvBody)
 		}
 	})
 }

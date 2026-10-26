@@ -45,7 +45,7 @@
     <div class="stat">
       <div class="stat-title">Expenses</div>
       <div class="stat-value">{{.Amount}} {{.Currency}}</div>
-      <div class="stat-desc">{{.ReceiptCount}} receipts</div>
+      <div class="stat-desc">{{.ReceiptCount}} receipts, {{$.Expenses.FromUS}} to {{$.Expenses.ToUS}}</div>
     </div>
     {{end}}
   </div>
@@ -133,6 +133,9 @@
 {{define "report_expenses"}}
 <section class="report-section">
   <h2>Expenses</h2>
+  {{if .Expenses.OK}}
+  <p>{{if eq .Expenses.FromUS .Expenses.ToUS}}Spent on {{.Expenses.PeriodLabel}}.{{else}}From {{.Expenses.PeriodLabel}}, including both dates.{{end}}</p>
+  <p class="muted">Occupancy, demographics, safeguarding, operational problems and month confirmation stay on {{.Monthly.MonthLabel}}.</p>
   {{if .Expenses.Currencies}}
   <div class="table-scroll">
   <table class="table table-zebra">
@@ -160,7 +163,38 @@
   </table>
   </div>
   {{else}}
-  <p class="muted">No expenses this month.</p>
+  <p class="muted">No expenses in this period.</p>
+  {{end}}
+  {{if .Expenses.Lines}}
+  <div class="table-scroll">
+  <table class="table table-zebra">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Category</th>
+        <th>Merchant</th>
+        <th>Description</th>
+        <th>Amount</th>
+        <th>Receipt</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .Expenses.Lines}}
+      <tr>
+        <td>{{.SpentOn.Format "2006-01-02"}}</td>
+        <td>{{.CategoryLabel}}</td>
+        <td>{{.Merchant}}</td>
+        <td>{{.Note}}</td>
+        <td>{{.Amount}} {{.Currency}}</td>
+        <td>{{if .HasReceipt}}Yes{{else}}No{{end}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{end}}
+  {{else}}
+  <p class="muted">Enter a start date and an end date on or after it to list expenses.</p>
   {{end}}
 </section>
 {{end}}
@@ -262,7 +296,7 @@
     <tbody>
     {{range .Overview}}
       <tr>
-        <td><a href="/reports?month={{.Monthly.MonthKey}}&amp;house={{.House.ID}}">{{.House.Name}}</a></td>
+        <td><a href="/reports?month={{.Monthly.MonthKey}}&amp;house={{.House.ID}}&amp;expense_from={{$.ExpenseFrom}}&amp;expense_to={{$.ExpenseTo}}">{{.House.Name}}</a></td>
         <td>{{.RHL.Label}}</td>
         <td>{{.Monthly.ResidentsServed}}</td>
         <td>{{.Monthly.BedNights}}</td>

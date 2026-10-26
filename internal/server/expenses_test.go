@@ -162,7 +162,8 @@ func TestExpenseCreateAndMonthlyTotals(t *testing.T) {
 		t.Fatalf("totals=%+v", totals)
 	}
 
-	rep, err := client.Get(ts.URL + "/reports?month=" + month)
+	spent := time.Now().UTC().Format("01/02/2006")
+	rep, err := client.Get(ts.URL + "/reports?month=" + month + "&expense_from=" + url.QueryEscape(spent) + "&expense_to=" + url.QueryEscape(spent))
 	if err != nil {
 		t.Fatal(err)
 	}
