@@ -33,7 +33,7 @@ A suffix matches `menu.1`: letters and digits, with optional `.`, `_`, or `-` be
    Run only the line for the environment you are about to publish. Do not print the token, the command substitution, or `-w` output. If the check fails, show the matching `security add-generic-password` line from [deploy/README.md](../../../deploy/README.md) and stop. Do not run `make publish-*`.
 5. Do not wipe a database. Do not set `BEACON_ALLOW_SCHEMA_WIPE` or a wipe pre-deploy on production. Do not run `scripts/wipe-postgres-schema.sh` or `make verify-phaseN` against Railway.
 
-Say the environment, the tag shape, and the exact command, then run it. Say before a staging publish that staging wipes its database on each deploy. The token check in step 4 must already have passed.
+Say the environment, the tag shape, and the exact command, then run it. The token check in step 4 must already have passed. A staging publish does not delete the database. Existing rows and passkeys stay, and the server migrates on start.
 
 ## Commands
 

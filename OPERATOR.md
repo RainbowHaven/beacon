@@ -161,7 +161,7 @@ Full staging + promote workflow: [deploy/README.md](./deploy/README.md).
 |--|---------|------------|
 | Purpose | Try a commit before prod | Live `beacon.magiconair.net` |
 | Deploy | `make publish-staging SUFFIX=…` | `make publish-patch` / `minor` / `major` |
-| DB | Separate staging Postgres; wiped via Railway pre-deploy on each deploy | Separate production Postgres |
+| DB | Separate staging Postgres. A publish does not delete it. | Separate production Postgres |
 | Host | `beacon-staging.magiconair.net` or Railway `*.up.railway.app` | `beacon.magiconair.net` |
 | Env template | [deploy/.env.staging.example](./deploy/.env.staging.example) | [deploy/.env.example](./deploy/.env.example) |
 
