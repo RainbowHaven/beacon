@@ -179,6 +179,11 @@ func (s *Server) handleRegisterFinish(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
+	// Enrollment performs the credential; record it so Last used is not "never" until a later login.
+	if err := s.store.MarkCredentialUsed(r.Context(), u.ID, cred.ID); err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
 	if err := s.store.MarkInviteUsed(r.Context(), token); err != nil {
 		http.Error(w, "invite invalid", http.StatusBadRequest)
 		return

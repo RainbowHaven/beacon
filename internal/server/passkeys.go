@@ -103,6 +103,11 @@ func (s *Server) handleAddPasskeyFinish(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
+	// Adding a passkey performs that credential, same as a login.
+	if err := s.store.MarkCredentialUsed(r.Context(), u.ID, cred.ID); err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
 	s.clearCookie(w, challengeCookie)
 	key := base64.RawURLEncoding.EncodeToString(cred.ID)
 	_ = s.store.Audit(r.Context(), &u.ID, "auth.passkey.add", "user", idString(u.ID), map[string]any{
