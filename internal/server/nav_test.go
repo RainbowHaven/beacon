@@ -6,7 +6,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/RainbowHaven/beacon/internal/domain"
 	"github.com/RainbowHaven/beacon/internal/version"
 	"github.com/RainbowHaven/beacon/web"
 )
@@ -226,5 +228,99 @@ func TestListFilterTemplatesRender(t *testing.T) {
 	}
 	if !strings.Contains(sg.String(), `data-open-modal="doc37-modal"`) || !strings.Contains(sg.String(), `id="doc37-modal"`) {
 		t.Fatal("Document 37 modal missing")
+	}
+}
+
+func TestAdminUserEditTemplateRenders(t *testing.T) {
+	tmpl := parseLayout(t)
+	created := time.Date(2026, 1, 2, 8, 0, 0, 0, time.UTC)
+	used := time.Date(2026, 3, 4, 15, 0, 0, 0, time.UTC)
+	phone := domain.Passkey{ID: []byte{1, 2, 3}, Label: "iPhone", CreatedAt: created, LastUsedAt: &used}
+	laptop := domain.Passkey{ID: []byte{4}, Label: "Laptop", CreatedAt: created}
+	target := domain.User{
+		ID:          2,
+		Email:       "mgr@example.com",
+		DisplayName: "House lead",
+		Status:      domain.UserActive,
+		Role:        domain.RoleSafeHouseManager,
+	}
+	data := map[string]any{
+		"Title":         "Edit user",
+		"Path":          "/admin/users/2/edit",
+		"User":          domain.User{Email: "rhc@example.com", Role: domain.RoleRHCAdmin},
+		"Target":        target,
+		"SelectedRHL":   int64(3),
+		"SelectedHouse": int64(7),
+		"RHLs":          []domain.RHL{{ID: 3, Name: "North", Code: "N"}},
+		"SafeHouses":    []domain.SafeHouse{{ID: 7, Name: "Haven House"}},
+		"Passkeys":      []domain.Passkey{phone, laptop},
+		"Error":         "safe house required",
+		"Flash":         "Email updated",
+	}
+
+	var buf strings.Builder
+	if err := tmpl.ExecuteTemplate(&buf, "admin_user_edit.html", data); err != nil {
+		t.Fatal(err)
+	}
+	html := buf.String()
+	for _, want := range []string{
+		`<div class="page-header">`,
+		`<h1>Edit user</h1>`,
+		`<div class="stack">`,
+		`<section class="stack stack-narrow">`,
+		`<form method="post" action="/admin/users/2" class="stack">`,
+		`<input class="input" type="text" name="display_name" value="House lead">`,
+		`<select class="select" name="role" id="role" required>`,
+		`value="safe_house_manager" selected`,
+		`<select class="select" name="rhl_id">`,
+		`value="3" selected>North (N)`,
+		`<select class="select" name="safe_house_id">`,
+		`value="7" selected>Haven House`,
+		`class="btn btn-primary"`,
+		`>Save</button>`,
+		`class="btn btn-outline" href="/admin/users">Cancel</a>`,
+		`class="alert alert-error" role="alert">safe house required`,
+		`role="status">Email updated`,
+		`does <strong>not</strong> require a new invite`,
+		`<section class="stack stack-narrow">`,
+		`<h2>Email</h2>`,
+		`action="/admin/users/2/email" class="invite-row"`,
+		`<input class="input" type="email" name="email" value="mgr@example.com" required aria-label="New email">`,
+		`>Change email</button>`,
+		`<section class="stack">`,
+		`<h2>Passkeys</h2>`,
+		`<ul class="record-list">`,
+		`<li class="record-card">`,
+		`Added Jan 2, 2026 · Last used Mar 4, 2026`,
+		`Added Jan 2, 2026 · Last used never`,
+		`action="/admin/users/2/passkeys/` + phone.Key() + `/delete"`,
+		`action="/admin/users/2/passkeys/` + laptop.Key() + `/delete"`,
+		`class="btn btn-error"`,
+		`>Remove</button>`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("missing %q", want)
+		}
+	}
+	if strings.Contains(html, "No passkeys") {
+		t.Fatal("passkey list should render the credentials")
+	}
+	if strings.Contains(html, `style="`) || strings.Contains(html, `class="flex`) {
+		t.Fatal("edit user page should use named layout classes only")
+	}
+
+	buf.Reset()
+	data["Passkeys"] = []domain.Passkey{}
+	data["Error"] = ""
+	data["Flash"] = ""
+	if err := tmpl.ExecuteTemplate(&buf, "admin_user_edit.html", data); err != nil {
+		t.Fatal(err)
+	}
+	empty := buf.String()
+	if !strings.Contains(empty, "No passkeys. They need a new invite to sign in.") {
+		t.Fatal("missing empty passkey state")
+	}
+	if strings.Contains(empty, "safe house required") || strings.Contains(empty, "Email updated") {
+		t.Fatal("empty error and flash should not render")
 	}
 }

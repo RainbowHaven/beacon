@@ -1,68 +1,80 @@
 {{template "layout_start" .}}
-<h1>Edit user</h1>
-<p class="muted"><a href="/admin/users">← Users</a></p>
-{{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
-{{if .Flash}}<div class="alert">{{.Flash}}</div>{{end}}
-<p class="alert">Changing role or house scope does <strong>not</strong> require a new invite. Existing passkeys keep working. Sessions are revoked so the change applies on next login.</p>
+<div class="page-header">
+  <h1>Edit user</h1>
+</div>
+<div class="stack">
+  <p class="muted"><a href="/admin/users">← Users</a></p>
+  {{if .Error}}<div class="alert alert-error" role="alert">{{.Error}}</div>{{end}}
+  {{if .Flash}}<div class="alert" role="status">{{.Flash}}</div>{{end}}
+  <p class="alert" role="status"><span>Changing role or house scope does <strong>not</strong> require a new invite. Existing passkeys keep working. Sessions are revoked so the change applies on next login.</span></p>
 
-<form method="post" action="/admin/users/{{.Target.ID}}" class="stack stack-narrow">
-  <p><strong>{{.Target.Email}}</strong> · status {{.Target.Status}}</p>
-  <label>Display name <input type="text" name="display_name" value="{{.Target.DisplayName}}"></label>
-  <label>Role
-    <select name="role" id="role" required>
-      <option value="rhc_admin" {{if eq .Target.Role "rhc_admin"}}selected{{end}}>RHC admin</option>
-      <option value="rhl_admin" {{if eq .Target.Role "rhl_admin"}}selected{{end}}>RHL admin</option>
-      <option value="safe_house_manager" {{if eq .Target.Role "safe_house_manager"}}selected{{end}}>Safe house manager</option>
-    </select>
-  </label>
-  <label>RHL (for RHL admin)
-    <select name="rhl_id">
-      <option value="">—</option>
-      {{range .RHLs}}
-      <option value="{{.ID}}" {{if eq .ID $.SelectedRHL}}selected{{end}}>{{.Label}}</option>
+  <section class="stack stack-narrow">
+    <form method="post" action="/admin/users/{{.Target.ID}}" class="stack">
+      <p><strong>{{.Target.Email}}</strong> · status {{.Target.Status}}</p>
+      <label>Display name
+        <input class="input" type="text" name="display_name" value="{{.Target.DisplayName}}">
+      </label>
+      <label>Role
+        <select class="select" name="role" id="role" required>
+          <option value="rhc_admin" {{if eq .Target.Role "rhc_admin"}}selected{{end}}>RHC admin</option>
+          <option value="rhl_admin" {{if eq .Target.Role "rhl_admin"}}selected{{end}}>RHL admin</option>
+          <option value="safe_house_manager" {{if eq .Target.Role "safe_house_manager"}}selected{{end}}>Safe house manager</option>
+        </select>
+      </label>
+      <label>RHL (for RHL admin)
+        <select class="select" name="rhl_id">
+          <option value="">—</option>
+          {{range .RHLs}}
+          <option value="{{.ID}}" {{if eq .ID $.SelectedRHL}}selected{{end}}>{{.Label}}</option>
+          {{end}}
+        </select>
+      </label>
+      <label>Safe house (for manager)
+        <select class="select" name="safe_house_id">
+          <option value="">—</option>
+          {{range .SafeHouses}}
+          <option value="{{.ID}}" {{if eq .ID $.SelectedHouse}}selected{{end}}>{{.Name}}</option>
+          {{end}}
+        </select>
+      </label>
+      <p class="actions">
+        <button class="btn btn-primary" type="submit" onclick="return confirm('Update role/scope for {{.Target.Email}}? Their sessions will end immediately.')">Save</button>
+        <a class="btn btn-outline" href="/admin/users">Cancel</a>
+      </p>
+    </form>
+  </section>
+
+  <section class="stack stack-narrow">
+    <h2>Email</h2>
+    <p class="muted">The email is what they type to sign in. Their passkeys keep working after the change; tell them the new address.</p>
+    <form method="post" action="/admin/users/{{.Target.ID}}/email" class="invite-row" onsubmit="return confirm('Change the sign-in email for {{.Target.Email}}?')">
+      <input class="input" type="email" name="email" value="{{.Target.Email}}" required aria-label="New email">
+      <button class="btn btn-outline" type="submit">Change email</button>
+    </form>
+  </section>
+
+  <section class="stack">
+    <h2>Passkeys</h2>
+    <p class="muted">Remove a passkey when a device is lost, stolen, or no longer used. Removing a passkey signs the user out everywhere. If you remove their only passkey, send them a <strong>New invite</strong> from the Users page so they can set up a new one.</p>
+    {{if .Passkeys}}
+    <ul class="record-list">
+      {{range .Passkeys}}
+      <li class="record-card">
+        <div class="record-main">
+          <div class="record-title">{{.Label}}</div>
+          <div class="record-meta muted">Added {{.CreatedAt.UTC.Format "Jan 2, 2006"}} · Last used {{with .LastUsedAt}}{{.UTC.Format "Jan 2, 2006"}}{{else}}never{{end}}</div>
+        </div>
+        <div class="actions record-actions">
+          <form class="inline" method="post" action="/admin/users/{{$.Target.ID}}/passkeys/{{.Key}}/delete" onsubmit="return confirm('Remove this passkey for {{$.Target.Email}}? They will be signed out on every device.')">
+            <button class="btn btn-error" type="submit">Remove</button>
+          </form>
+        </div>
+      </li>
       {{end}}
-    </select>
-  </label>
-  <label>Safe house (for manager)
-    <select name="safe_house_id">
-      <option value="">—</option>
-      {{range .SafeHouses}}
-      <option value="{{.ID}}" {{if eq .ID $.SelectedHouse}}selected{{end}}>{{.Name}}</option>
-      {{end}}
-    </select>
-  </label>
-  <p class="actions">
-    <button class="btn btn-primary" type="submit" onclick="return confirm('Update role/scope for {{.Target.Email}}? Their sessions will end immediately.')">Save</button>
-    <a class="btn btn-outline" href="/admin/users">Cancel</a>
-  </p>
-</form>
-
-<h2>Email</h2>
-<p class="muted">The email is what they type to sign in. Their passkeys keep working after the change; tell them the new address.</p>
-<form method="post" action="/admin/users/{{.Target.ID}}/email" class="invite-row" onsubmit="return confirm('Change the sign-in email for {{.Target.Email}}?')">
-  <input type="email" name="email" value="{{.Target.Email}}" required aria-label="New email">
-  <button class="btn btn-outline" type="submit">Change email</button>
-</form>
-
-<h2>Passkeys</h2>
-<p class="muted">Remove a passkey when a device is lost, stolen, or no longer used. Removing a passkey signs the user out everywhere. If you remove their only passkey, send them a <strong>New invite</strong> from the Users page so they can set up a new one.</p>
-{{if .Passkeys}}
-<ul class="record-list">
-{{range .Passkeys}}
-  <li class="record-card">
-    <div class="record-main">
-      <div class="record-title">{{.Label}}</div>
-      <div class="record-meta muted">Added {{.CreatedAt.UTC.Format "Jan 2, 2006"}} · Last used {{with .LastUsedAt}}{{.UTC.Format "Jan 2, 2006"}}{{else}}never{{end}}</div>
-    </div>
-    <div class="actions record-actions">
-      <form class="inline" method="post" action="/admin/users/{{$.Target.ID}}/passkeys/{{.Key}}/delete" onsubmit="return confirm('Remove this passkey for {{$.Target.Email}}? They will be signed out on every device.')">
-        <button class="btn btn-error" type="submit">Remove</button>
-      </form>
-    </div>
-  </li>
-{{end}}
-</ul>
-{{else}}
-<p class="muted">No passkeys. They need a new invite to sign in.</p>
-{{end}}
+    </ul>
+    {{else}}
+    <p class="muted">No passkeys. They need a new invite to sign in.</p>
+    {{end}}
+  </section>
+</div>
 {{template "layout_end" .}}
