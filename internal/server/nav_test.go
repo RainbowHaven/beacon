@@ -30,19 +30,20 @@ func TestCacheFingerprinted(t *testing.T) {
 	h := cacheFingerprinted(next)
 
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/css/app.css?v=abc", nil))
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/css/beacon.css?v=abc", nil))
 	if got := rec.Header().Get("Cache-Control"); got != "public, max-age=31536000, immutable" {
 		t.Fatalf("cache header %q", got)
 	}
 
 	rec = httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/css/app.css", nil))
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/css/beacon.css", nil))
 	if got := rec.Header().Get("Cache-Control"); got != "" {
 		t.Fatalf("unversioned cache header %q", got)
 	}
 }
 
-func TestLayoutNavRenders(t *testing.T) {
+func parseLayout(t *testing.T) *template.Template {
+	t.Helper()
 	tmpl := template.New("").Funcs(template.FuncMap{
 		"static":     func(path string) string { return "/static/" + path },
 		"appVersion": version.Line,
@@ -51,6 +52,11 @@ func TestLayoutNavRenders(t *testing.T) {
 	if _, err := tmpl.ParseFS(web.Templates, "templates/*.html"); err != nil {
 		t.Fatal(err)
 	}
+	return tmpl
+}
+
+func TestLayoutNavRenders(t *testing.T) {
+	tmpl := parseLayout(t)
 
 	var buf strings.Builder
 	data := map[string]any{
@@ -63,10 +69,10 @@ func TestLayoutNavRenders(t *testing.T) {
 	}
 	html := buf.String()
 	for _, want := range []string{
-		`class="app-shell"`,
-		`class="app-nav"`,
-		`class="nav-desktop-only"`,
-		`class="nav-more"`,
+		`class="app-frame"`,
+		`class="sidebar"`,
+		`class="dock dock-md no-print"`,
+		`class="dock-more"`,
 		`href="/occupants"`,
 		`href="/expenses"`,
 		`href="/operations"`,
@@ -74,39 +80,49 @@ func TestLayoutNavRenders(t *testing.T) {
 		`href="/reports"`,
 		`href="/admin/users" aria-current="page"`,
 		`class="app-footer`,
-		`<hr>`,
 		`class="app-version"`,
-		`class="profile-menu"`,
 		`action="/logout"`,
+		`data-theme-toggle`,
 	} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("missing %q", want)
 		}
 	}
 
-	// The phone bar keeps Occupants, Expenses, Reports and More; the rest is
-	// sidebar-only and repeated in the More panel.
-	for _, path := range []string{"/operations", "/safeguarding", "/dashboard", "/admin/users", "/admin/houses", "/admin/audit"} {
-		if !strings.Contains(html, `<a class="nav-desktop-only" href="`+path+`"`) {
-			t.Fatalf("%s should be sidebar-only in the bar", path)
-		}
-	}
 	for _, path := range []string{"/occupants", "/expenses", "/reports"} {
-		if !strings.Contains(html, `<a href="`+path+`"`) || strings.Contains(html, `<a class="nav-desktop-only" href="`+path+`"`) {
-			t.Fatalf("%s should stay in the phone bar", path)
+		if !strings.Contains(html, `<a href="`+path+`"`) && !strings.Contains(html, `href="`+path+`"`) {
+			t.Fatalf("%s should stay in the phone dock", path)
 		}
 	}
 
 	panel := func(html string) string {
-		_, after, ok := strings.Cut(html, `class="nav-more-panel"`)
+		_, after, ok := strings.Cut(html, `class="dock-more-panel"`)
 		if !ok {
 			t.Fatal("missing More panel")
 		}
 		before, _, _ := strings.Cut(after, "</details>")
 		return before
 	}
+	chrome := func(html string) string {
+		_, rest, ok := strings.Cut(html, `id="app-sidebar"`)
+		if !ok {
+			t.Fatal("missing sidebar")
+		}
+		aside, after, _ := strings.Cut(rest, "</aside>")
+		_, dock, ok := strings.Cut(after, `class="dock`)
+		if !ok {
+			return aside
+		}
+		dockBody, _, _ := strings.Cut(dock, "</nav>")
+		return aside + dockBody
+	}
 	if p := panel(html); !strings.Contains(p, `href="/operations"`) || !strings.Contains(p, `href="/safeguarding"`) || !strings.Contains(p, `href="/dashboard"`) || !strings.Contains(p, `href="/admin/users" aria-current="page"`) {
 		t.Fatalf("admin More panel %s", p)
+	}
+	nav := chrome(html)
+	dash, occ := strings.Index(nav, `href="/dashboard"`), strings.Index(nav, `href="/occupants"`)
+	if dash < 0 || occ < 0 || dash > occ {
+		t.Fatal("Dashboard should be first in the sidebar")
 	}
 
 	buf.Reset()
@@ -119,13 +135,13 @@ func TestLayoutNavRenders(t *testing.T) {
 		t.Fatal(err)
 	}
 	rhl := buf.String()
-	if !strings.Contains(rhl, `<a class="nav-desktop-only" href="/dashboard" aria-current="page">Dashboard</a>`) {
+	if !strings.Contains(rhl, `href="/dashboard" aria-current="page"`) {
 		t.Fatal("RHL admin should see Dashboard in the sidebar")
 	}
-	if !strings.Contains(rhl, `<summary aria-current="page">More</summary>`) || !strings.Contains(panel(rhl), `href="/dashboard" aria-current="page"`) {
+	if !strings.Contains(rhl, `aria-current="page"`) || !strings.Contains(panel(rhl), `href="/dashboard" aria-current="page"`) {
 		t.Fatalf("RHL admin More panel %s", panel(rhl))
 	}
-	if nav, _, _ := strings.Cut(rhl, "</nav>"); strings.Contains(nav, "/admin/") {
+	if strings.Contains(chrome(rhl), `href="/admin/users"`) || strings.Contains(chrome(rhl), `href="/admin/houses"`) || strings.Contains(chrome(rhl), `href="/admin/audit"`) {
 		t.Fatal("RHL admin nav should not link to admin pages")
 	}
 
@@ -139,26 +155,76 @@ func TestLayoutNavRenders(t *testing.T) {
 		t.Fatal(err)
 	}
 	mgr := buf.String()
-	if !strings.Contains(mgr, `<summary aria-current="page">More</summary>`) {
+	if !strings.Contains(mgr, `<summary class="dock-active" aria-current="page">`) {
 		t.Fatal("More should be current on a page listed in it")
 	}
 	p := panel(mgr)
 	if !strings.Contains(p, `href="/operations"`) || !strings.Contains(p, `href="/safeguarding" aria-current="page"`) {
 		t.Fatalf("manager More panel %s", p)
 	}
-	if nav, _, _ := strings.Cut(mgr, "</nav>"); strings.Contains(nav, "/admin/") || strings.Contains(nav, "/dashboard") {
+	if strings.Contains(chrome(mgr), `href="/admin/`) || strings.Contains(chrome(mgr), `href="/dashboard"`) {
 		t.Fatal("manager nav should not link to admin pages or the dashboard")
 	}
 
 	buf.Reset()
-	if err := tmpl.ExecuteTemplate(&buf, "login.html", map[string]any{"Title": "Log in"}); err != nil {
+	if err := tmpl.ExecuteTemplate(&buf, "login.html", map[string]any{"Title": "Log in", "AuthCentered": true}); err != nil {
 		t.Fatal(err)
 	}
 	login := buf.String()
-	if strings.Contains(login, "app-shell") || strings.Contains(login, "app-nav") {
+	if strings.Contains(login, "app-frame") || strings.Contains(login, `class="sidebar"`) {
 		t.Fatalf("login page should not use app chrome: %s", login[:min(400, len(login))])
 	}
-	if !strings.Contains(login, `href="/login"`) {
-		t.Fatal("login page missing login link")
+	if !strings.Contains(login, `auth-shell`) {
+		t.Fatal("login page missing auth shell")
+	}
+	if !strings.Contains(login, `class="auth-product"`) || !strings.Contains(login, ">Beacon<") {
+		t.Fatal("login page should show the product name Beacon")
+	}
+	if !strings.Contains(login, `class="link"`) {
+		t.Fatal("login passkey help should look like a link")
+	}
+}
+
+func TestListFilterTemplatesRender(t *testing.T) {
+	tmpl := parseLayout(t)
+	data := map[string]any{
+		"Title":        "x",
+		"Path":         "/reports",
+		"User":         map[string]any{"Email": "a@b.c", "Role": "rhc_admin"},
+		"Theme":        "dark",
+		"Month":        "2026-10",
+		"MonthChoices": []monthChoice{{Value: "2026-10", Label: "October 2026"}},
+		"Houses":       []any{},
+		"Filters":      []any{},
+		"DocVersion":   "12 September 2026",
+		"Status":       "open",
+		"StatusFilter": "open",
+	}
+	for _, page := range []string{"reports.html", "expenses.html", "safeguarding.html", "operational_issues.html"} {
+		var buf strings.Builder
+		if err := tmpl.ExecuteTemplate(&buf, page, data); err != nil {
+			t.Fatalf("%s: %v", page, err)
+		}
+		html := buf.String()
+		if !strings.Contains(html, "Light mode") || strings.Contains(html, `type="month"`) {
+			t.Fatalf("%s theme/month markup unexpected", page)
+		}
+		if strings.Contains(html, ">Filter</button>") {
+			t.Fatalf("%s still has a Filter button", page)
+		}
+	}
+	var reports strings.Builder
+	if err := tmpl.ExecuteTemplate(&reports, "reports.html", data); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(reports.String(), "October 2026") || !strings.Contains(reports.String(), `class="select"`) {
+		t.Fatal("report month select missing")
+	}
+	var sg strings.Builder
+	if err := tmpl.ExecuteTemplate(&sg, "safeguarding.html", data); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(sg.String(), `data-open-modal="doc37-modal"`) || !strings.Contains(sg.String(), `id="doc37-modal"`) {
+		t.Fatal("Document 37 modal missing")
 	}
 }

@@ -1,0 +1,32 @@
+---
+description: Beacon HTML uses daisyUI components and named layout classes only — never Tailwind utilities.
+globs: web/templates/**/*.html,web/static/css/**/*.css,docs/ui.md
+alwaysApply: false
+---
+
+# Beacon HTML styling
+
+Full rules: [docs/ui.md](../../docs/ui.md). This overrides the daisyUI skill’s “use Tailwind utilities in HTML” default.
+
+## Allowed
+
+- daisyUI component classes: `btn`, `btn-primary`, `btn-outline`, `alert`, `navbar`, `dock`, `drawer`, `lg:drawer-open`, `menu`, `input`, `select`, `table`, `card`, `badge`, `fieldset`, `dropdown`, `theme-controller`, …
+- Named layout: `page`, `stack`, `cluster`, `page-header`, `table-scroll`, `brand-mark`, `no-print`, `print-only`
+
+## Forbidden
+
+```html
+<!-- BAD -->
+<div class="flex gap-4 p-4 text-sm md:w-1/2">
+<button class="btn" style="max-width:28rem">
+
+<!-- GOOD -->
+<div class="cluster">
+<button class="btn btn-primary">
+```
+
+If daisyUI cannot express it, add a named class in CSS and document it in `docs/ui.md`. Do not invent utilities in the template.
+
+## Brand
+
+Header: Rainbow Haven lockup (`web/static/img/rainbow-haven.svg`), `alt="Rainbow Haven"`. Title/footer: Beacon. Do not use rainbow stripe colours on UI chrome. Dark mode: logo on `.brand-mark` chip, never `filter: invert`.

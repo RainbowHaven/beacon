@@ -5,7 +5,7 @@ import "embed"
 //go:embed templates/*.html
 var Templates embed.FS
 
-//go:embed static/*
+//go:embed static
 var Static embed.FS
 
 // Docs holds forms served only to signed-in users, never under /static/.

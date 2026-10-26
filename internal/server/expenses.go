@@ -675,6 +675,32 @@ func expenseHistory(events []domain.AuditEvent, categories domain.Categories) []
 	return rows
 }
 
+func wantsReceiptHTML(r *http.Request) bool {
+	switch r.Header.Get("Sec-Fetch-Dest") {
+	case "image", "iframe", "embed", "object":
+		return false
+	case "document":
+		return true
+	}
+	return strings.Contains(r.Header.Get("Accept"), "text/html")
+}
+
+func receiptBackURL(r *http.Request, expenseID int64) string {
+	fallback := "/expenses/" + idString(expenseID) + "/edit"
+	ref := r.Referer()
+	if ref == "" {
+		return fallback
+	}
+	u, err := url.Parse(ref)
+	if err != nil || u.Host != r.Host {
+		return fallback
+	}
+	if u.Path == r.URL.Path {
+		return fallback
+	}
+	return u.RequestURI()
+}
+
 func (s *Server) handleExpenseReceipt(w http.ResponseWriter, r *http.Request) {
 	u, _ := s.currentUser(r)
 	e, _, ok := s.loadExpenseInScope(w, r, u)
@@ -683,6 +709,16 @@ func (s *Server) handleExpenseReceipt(w http.ResponseWriter, r *http.Request) {
 	}
 	if !e.HasReceipt() {
 		http.Error(w, "no receipt", http.StatusNotFound)
+		return
+	}
+	if wantsReceiptHTML(r) {
+		isImage := e.ReceiptContentType != nil && strings.HasPrefix(*e.ReceiptContentType, "image/")
+		s.render(w, r, "receipt_view.html", map[string]any{
+			"Title":     "Receipt",
+			"ExpenseID": e.ID,
+			"IsImage":   isImage,
+			"Back":      receiptBackURL(r, e.ID),
+		})
 		return
 	}
 	data, ct, err := s.store.GetExpenseReceipt(r.Context(), e.ID)

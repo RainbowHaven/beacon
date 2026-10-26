@@ -1,6 +1,6 @@
 {{template "layout_start" .}}
 <h1>{{.Title}}</h1>
-{{if .Error}}<p class="flash error" role="alert">{{.Error}}</p>{{end}}
+{{if .Error}}<p class="alert alert-error" role="alert">{{.Error}}</p>{{end}}
 {{template "operational_issue_note" .}}
 
 <form class="stack" method="post" action="{{if .Issue.ID}}/operations/{{.Issue.ID}}{{else}}/operations{{end}}">
@@ -55,7 +55,7 @@
       <textarea name="closure_notes" rows="3" maxlength="4000">{{.Form.ClosureNotes}}</textarea>
     </label>
   </fieldset>
-  <button type="submit">Save</button>
+  <button class="btn btn-primary" type="submit">Save</button>
 </form>
 <p><a href="/operations">Back</a></p>
 {{template "layout_end" .}}

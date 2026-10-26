@@ -1,7 +1,9 @@
 {{template "layout_start" .}}
-<h1>Add occupant</h1>
+<div class="page-header">
+  <h1>Add occupant</h1>
+</div>
 {{if .Error}}
-<p class="flash error" role="alert">
+<p class="alert alert-error" role="alert">
   {{.Error}}
   {{if .Suggestion}}
   Try
@@ -10,38 +12,40 @@
 </p>
 {{end}}
 <p class="muted">Nickname, stay dates, and reporting demographics only. Do not enter legal names or government IDs. Folded nickname keys are permanently reserved per house.</p>
-<form class="stack" method="post" action="/occupants" style="max-width:28rem">
+<form class="stack stack-narrow" method="post" action="/occupants">
   <label>Safe house
-    <select name="safe_house_id" required>
+    <select class="select" name="safe_house_id" required>
       {{range .Houses}}
       <option value="{{.ID}}"{{if eq .ID $.SelectedHouseID}} selected{{end}}>{{.Name}}</option>
       {{end}}
     </select>
   </label>
   <label>Nickname
-    <input name="nickname" required maxlength="80" autocomplete="off" autocapitalize="words" value="{{.Nickname}}">
+    <input class="input" name="nickname" required maxlength="80" autocomplete="off" autocapitalize="words" value="{{.Nickname}}">
   </label>
   <label>Arrival date
-    <input type="date" name="arrived_at" value="{{.ArrivedAt}}" max="{{.MaxArrived}}" required>
+    <input class="input" type="date" name="arrived_at" value="{{.ArrivedAt}}" max="{{.MaxArrived}}" required>
   </label>
   <label>Country of origin
-    <select name="country_of_origin" required>
+    <select class="select" name="country_of_origin" required>
       {{range .Countries}}
       <option value="{{.Code}}"{{if eq .Code $.Country}} selected{{end}}>{{.Name}}</option>
       {{end}}
     </select>
   </label>
   <label>Gender
-    <select name="gender" required>
+    <select class="select" name="gender" required>
       {{range .Genders}}
       <option value="{{.Code}}"{{if eq .Code $.Gender}} selected{{end}}>{{.Name}}</option>
       {{end}}
     </select>
   </label>
   <label>Year of birth
-    <input type="number" name="birth_year" min="1900" max="2100" inputmode="numeric" placeholder="Not reported" value="{{.BirthYear}}">
+    <input class="input" type="number" name="birth_year" min="1900" max="2100" inputmode="numeric" placeholder="Not reported" value="{{.BirthYear}}">
   </label>
-  <button type="submit">Save</button>
+  <p class="cluster">
+    <button class="btn btn-primary" type="submit">Save</button>
+    <a class="btn btn-outline" href="/occupants">Cancel</a>
+  </p>
 </form>
-<p><a href="/occupants">Back</a></p>
 {{template "layout_end" .}}

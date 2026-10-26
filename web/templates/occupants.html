@@ -1,31 +1,33 @@
 {{template "layout_start" .}}
-<h1>Occupants</h1>
-{{if .Flash}}<p class="flash">{{.Flash}}</p>{{end}}
-{{if .Error}}<p class="flash error">{{.Error}}</p>{{end}}
+<div class="page-header">
+  <h1>Occupants</h1>
+  <p class="cluster">
+    <a class="btn btn-primary" href="/occupants/new">Add occupant</a>
+    {{if .CurrentOnly}}
+    <a class="btn btn-outline" href="/occupants?all=1">Show departed</a>
+    {{else}}
+    <a class="btn btn-outline" href="/occupants">Current only</a>
+    {{end}}
+  </p>
+</div>
+{{if .Flash}}<p class="alert" role="status">{{.Flash}}</p>{{end}}
+{{if .Error}}<p class="alert alert-error" role="alert">{{.Error}}</p>{{end}}
 
 {{if .Headcount}}
-<section class="stack" style="margin-bottom:1.5rem">
-  <h2 style="margin:0;font-size:1.1rem">Headcount</h2>
-  <ul>
+<div class="stats stats-vertical">
   {{range .Headcount}}
-    <li><strong>{{.SafeHouseName}}</strong>: {{.Current}} current</li>
+  <div class="stat">
+    <div class="stat-title">{{.SafeHouseName}}</div>
+    <div class="stat-value">{{.Current}}</div>
+    <div class="stat-desc">current</div>
+  </div>
   {{end}}
-  </ul>
-</section>
+</div>
 {{end}}
 
-<p class="actions">
-  <a class="btn" href="/occupants/new">Add occupant</a>
-  {{if .CurrentOnly}}
-  <a class="btn secondary" href="/occupants?all=1">Show departed</a>
-  {{else}}
-  <a class="btn secondary" href="/occupants">Current only</a>
-  {{end}}
-</p>
-
 {{if .Rows}}
-<div class="table-scroll">
-<table>
+<div class="record-desktop table-scroll">
+<table class="table table-zebra">
   <thead>
     <tr>
       <th>Nickname</th>
@@ -48,11 +50,11 @@
       <td>{{if .BirthYear}}{{.BirthYear}}{{else}}—{{end}}</td>
       <td>{{.ArrivedAt.Format "2006-01-02"}}</td>
       <td>{{if .DepartedAt}}{{.DepartedAt.Format "2006-01-02"}}{{else}}—{{end}}</td>
-      <td class="actions">
-        <a class="btn secondary" href="/occupants/{{.ID}}/edit">Edit</a>
+      <td class="cluster">
+        <a class="btn btn-outline btn-sm" href="/occupants/{{.ID}}/edit">Edit</a>
         {{if .Current}}
         <form class="inline" method="post" action="/occupants/{{.ID}}/depart" onsubmit="return confirm('Mark {{.Nickname}} as departed today?')">
-          <button class="secondary" type="submit">Depart</button>
+          <button class="btn btn-outline btn-sm" type="submit">Depart</button>
         </form>
         {{end}}
       </td>
@@ -61,7 +63,19 @@
   </tbody>
 </table>
 </div>
+<ul class="record-mobile list">
+  {{range .Rows}}
+  <li class="list-row">
+    <div>
+      <div><strong>{{.Nickname}}</strong> · {{.HouseName}}</div>
+      <div class="muted">Arrived {{.ArrivedAt.Format "2006-01-02"}}{{if .DepartedAt}} · Departed {{.DepartedAt.Format "2006-01-02"}}{{end}}</div>
+    </div>
+    <a class="btn btn-outline btn-sm" href="/occupants/{{.ID}}/edit">Edit</a>
+  </li>
+  {{end}}
+</ul>
 {{else}}
 <p class="muted">No occupants in scope yet.</p>
+<p><a class="btn btn-primary" href="/occupants/new">Add occupant</a></p>
 {{end}}
 {{template "layout_end" .}}

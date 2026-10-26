@@ -121,13 +121,34 @@ func TestExpenseCreateAndMonthlyTotals(t *testing.T) {
 		t.Fatalf("list=%+v", list)
 	}
 
-	rec, err := client.Get(ts.URL + "/expenses/" + strconv.FormatInt(list[0].ID, 10) + "/receipt")
+	receiptURL := ts.URL + "/expenses/" + strconv.FormatInt(list[0].ID, 10) + "/receipt"
+	rec, err := client.Get(receiptURL)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer rec.Body.Close()
 	if rec.StatusCode != 200 {
 		t.Fatalf("receipt status %d", rec.StatusCode)
+	}
+	raw, _ := io.ReadAll(rec.Body)
+	if !bytes.Equal(raw, png) {
+		t.Fatalf("receipt bytes changed")
+	}
+
+	pageReq, err := http.NewRequest(http.MethodGet, receiptURL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pageReq.Header.Set("Sec-Fetch-Dest", "document")
+	page, err := client.Do(pageReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer page.Body.Close()
+	pageBody, _ := io.ReadAll(page.Body)
+	if page.StatusCode != 200 || !strings.Contains(string(pageBody), `data-receipt-back`) ||
+		!strings.Contains(string(pageBody), "Close") {
+		t.Fatalf("receipt page status=%d body=%s", page.StatusCode, pageBody)
 	}
 
 	month := time.Now().UTC().Format("2006-01")

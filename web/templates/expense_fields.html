@@ -1,29 +1,23 @@
 {{define "expense_fields"}}
-  <label>Currency
-    <select name="currency" id="currency" required>
+    <label class="label">Currency</label>
+    <select class="select" name="currency" id="currency" required>
       {{range .Currencies}}
       <option value="{{.}}"{{if eq . $.Form.Currency}} selected{{end}}>{{.}}</option>
       {{end}}
     </select>
-  </label>
-  <label>Amount
-    <input name="amount" type="text" inputmode="decimal" placeholder="12.50" required autocomplete="off" value="{{.Form.Amount}}">
-  </label>
-  <label>Date spent (MM/DD/YYYY)
-    <input type="text" name="spent_on" value="{{.Form.SpentOn}}" placeholder="MM/DD/YYYY" inputmode="numeric" autocomplete="off" required pattern="(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/[0-9]{4}" title="MM/DD/YYYY">
-  </label>
-  <label>Merchant or payee
-    <input name="merchant" maxlength="120" autocomplete="off" placeholder="Shop, landlord, or person paid" value="{{.Form.Merchant}}">
-  </label>
-  <label>Category
-    <select name="category" required>
+    <label class="label">Amount</label>
+    <input class="input" name="amount" type="text" inputmode="decimal" placeholder="12.50" required autocomplete="off" value="{{.Form.Amount}}">
+    <label class="label">Date spent (MM/DD/YYYY)</label>
+    <input class="input" type="text" name="spent_on" value="{{.Form.SpentOn}}" placeholder="MM/DD/YYYY" inputmode="numeric" autocomplete="off" required pattern="(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/[0-9]{4}" title="MM/DD/YYYY">
+    <label class="label">Merchant or payee</label>
+    <input class="input" name="merchant" maxlength="120" autocomplete="off" placeholder="Shop, landlord, or person paid" value="{{.Form.Merchant}}">
+    <label class="label">Category</label>
+    <select class="select" name="category" required>
       <option value=""{{if not (.Categories.IsOffered .Form.Category)}} selected{{end}} disabled>Choose a category</option>
       {{range .Categories}}
       <option value="{{.Key}}"{{if eq .Key $.Form.Category}} selected{{end}}>{{.Label}}</option>
       {{end}}
     </select>
-  </label>
-  <label>Description
-    <input name="note" maxlength="240" autocomplete="off" placeholder="What was bought and why" value="{{.Form.Note}}">
-  </label>
+    <label class="label">Description</label>
+    <input class="input" name="note" maxlength="240" autocomplete="off" placeholder="What was bought and why" value="{{.Form.Note}}">
 {{end}}

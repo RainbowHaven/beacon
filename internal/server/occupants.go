@@ -98,25 +98,27 @@ func (s *Server) arrivalTooFarAhead(arrived time.Time) bool {
 }
 
 type occupantFormView struct {
-	Title           string
-	BodyClass       string
-	Path            string
-	User            *domain.User
-	Houses          []domain.SafeHouse
-	House           domain.SafeHouse
-	Occupant        domain.Occupant
-	SelectedHouseID int64
-	Nickname        string
-	ArrivedAt       string
-	MaxArrived      string
-	Country         string
-	Gender          string
-	BirthYear       string
-	Countries       []demographics.Country
-	Genders         []struct{ Code, Name string }
-	Error           string
-	Suggestion      string
-	DemoError       string
+	Title            string
+	BodyClass        string
+	Path             string
+	Theme            string
+	SidebarCollapsed bool
+	User             *domain.User
+	Houses           []domain.SafeHouse
+	House            domain.SafeHouse
+	Occupant         domain.Occupant
+	SelectedHouseID  int64
+	Nickname         string
+	ArrivedAt        string
+	MaxArrived       string
+	Country          string
+	Gender           string
+	BirthYear        string
+	Countries        []demographics.Country
+	Genders          []struct{ Code, Name string }
+	Error            string
+	Suggestion       string
+	DemoError        string
 }
 
 func (s *Server) handleOccupants(w http.ResponseWriter, r *http.Request) {

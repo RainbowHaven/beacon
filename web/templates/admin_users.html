@@ -1,19 +1,24 @@
 {{template "layout_start" .}}
-<h1>Users</h1>
-{{if .Error}}<div class="flash error">{{.Error}}</div>{{end}}
-{{if .Flash}}<div class="flash">{{.Flash}}</div>{{end}}
+<div class="page-header">
+  <h1>Users</h1>
+  <p class="cluster">
+    <a class="btn btn-primary" href="/admin/users/invite">Invite user</a>
+  </p>
+</div>
+{{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
+{{if .Flash}}<div class="alert">{{.Flash}}</div>{{end}}
 {{if .InviteURL}}
-<div class="flash">
+<div class="alert">
   <strong>Invite URL (shown once):</strong>
   <p class="muted">Open this on the <strong>same host</strong> the app was started with (tunnel URL if using <code>make run-tunnel</code>). Passkeys are bound to that hostname.</p>
   <div class="invite-row">
     <input class="mono invite-url" id="invite-url" type="text" readonly value="{{.InviteURL}}">
-    <button type="button" class="secondary" id="copy-invite">Copy</button>
+    <button type="button" class="btn btn-outline" id="copy-invite">Copy</button>
   </div>
   {{if .InvitePath}}
-  <p class="muted" style="margin-top:0.75rem">Path only (same server): <a class="mono" href="{{.InvitePath}}">{{.InvitePath}}</a></p>
+  <p class="muted">Path only (same server): <a class="mono" href="{{.InvitePath}}">{{.InvitePath}}</a></p>
   {{end}}
-  <p class="muted" style="margin-top:0.5rem">If Copy does not reach your other Apple devices, select the link text and use the browser’s Copy.</p>
+  <p class="muted">If Copy does not reach your other Apple devices, select the link text and use the browser’s Copy.</p>
   <p class="muted" id="copy-invite-status" hidden>Copied</p>
 </div>
 <script>
@@ -59,10 +64,6 @@
 </script>
 {{end}}
 
-<p class="actions" style="margin-bottom:1.5rem">
-  <a class="btn" href="/admin/users/invite">Invite user</a>
-</p>
-
 {{if .Users}}
 <ul class="record-list">
 {{range .Users}}
@@ -76,14 +77,14 @@
       {{if eq .ID $.User.ID}}
       <span class="muted">Signed in</span>
       {{else}}
-      <a class="btn secondary" href="/admin/users/{{.ID}}/edit">Edit</a>
+      <a class="btn btn-outline" href="/admin/users/{{.ID}}/edit">Edit</a>
       {{if ne .Status "locked"}}
       <form class="inline" method="post" action="/admin/users/{{.ID}}/lock" onsubmit="return confirm('Lock {{.Email}}? Sessions end immediately. Re-invite later to restore access.')">
-        <button class="danger" type="submit">Lock</button>
+        <button class="btn btn-error" type="submit">Lock</button>
       </form>
       {{end}}
       <form class="inline" method="post" action="/admin/users/{{.ID}}/reinvite" onsubmit="return confirm('Issue a new invite for {{.Email}}? Existing passkeys stop working immediately. They must open the new invite link and enroll a passkey again.')">
-        <button class="secondary" type="submit">New invite</button>
+        <button class="btn btn-outline" type="submit">New invite</button>
       </form>
       {{end}}
     </div>

@@ -1,43 +1,55 @@
 {{template "layout_start" .}}
-<h1>Safeguarding</h1>
-{{if .Flash}}<p class="flash">{{.Flash}}</p>{{end}}
+<div class="page-header">
+  <h1>Safeguarding</h1>
+  <p class="cluster">
+    {{if .Houses}}<a class="btn btn-primary" href="/safeguarding/new">Record concern</a>{{end}}
+    <button type="button" class="btn btn-outline" data-open-modal="doc37-modal">Download Document 37</button>
+  </p>
+</div>
+{{if .Flash}}<p class="alert">{{.Flash}}</p>{{end}}
 
-<section class="notice stack">
-  <h2>Reporting a Safeguarding Concern</h2>
-  <p>Complete Document 37 when a safeguarding concern or incident occurs or is reported. Download the blank form using the button below.</p>
-  <p>Submit the completed form to your RHL Safeguarding Contact within 24 hours, or as soon as safely and reasonably possible. Use WhatsApp or the safest locally available method.</p>
-  <p>Record only the incident identifier and basic tracking information in Beacon. Do not enter detailed information about the incident in Beacon, and do not upload the completed Document 37 to Beacon.</p>
-  <p class="actions"><a class="btn" href="/safeguarding/document-37" download>Download Document 37</a></p>
-  <p class="muted">Document 37 version: {{.DocVersion}}</p>
-</section>
-
+<div class="stack">
 <p class="muted">Safeguarding is for concerns about the safety or wellbeing of people. Building, utilities, supplies, staffing and similar operational problems belong in Operations, not here.</p>
-
-<p class="actions">
-  {{if .Houses}}<a class="btn" href="/safeguarding/new">Record concern</a>{{end}}
+<p class="cluster">
   {{range .Filters}}
-  <a class="btn secondary"{{if .Current}} aria-current="page"{{end}} href="{{.URL}}">{{.Label}}</a>
+  <a class="btn{{if .Current}} btn-primary{{else}} btn-outline{{end}}"{{if .Current}} aria-current="page"{{end}} href="{{.URL}}">{{.Label}}</a>
   {{end}}
 </p>
+</div>
 
 {{if .ShowHouseFilter}}
-<form class="actions" method="get" action="/safeguarding">
+<form class="filter-bar" method="get" action="/safeguarding">
   <input type="hidden" name="status" value="{{.StatusFilter}}">
-  <label>Safe house
-    <select name="house">
+  <label class="field">Safe house
+    <select class="select" name="house">
       <option value="">All houses</option>
       {{range .Houses}}
       <option value="{{.ID}}"{{if eq .ID $.HouseFilter}} selected{{end}}>{{.Name}}</option>
       {{end}}
     </select>
   </label>
-  <button class="secondary" type="submit">Show</button>
+  <noscript><button class="btn btn-outline" type="submit">Show</button></noscript>
 </form>
 {{end}}
 
+<dialog id="doc37-modal" class="modal no-print">
+  <div class="modal-box stack">
+    <h2>Reporting a Safeguarding Concern</h2>
+    <p>Complete Document 37 when a safeguarding concern or incident occurs or is reported. Download the blank form using the button below.</p>
+    <p>Submit the completed form to your RHL Safeguarding Contact within 24 hours, or as soon as safely and reasonably possible. Use WhatsApp or the safest locally available method.</p>
+    <p>Record only the incident identifier and basic tracking information in Beacon. Do not enter detailed information about the incident in Beacon, and do not upload the completed Document 37 to Beacon.</p>
+    <p class="muted">Document 37 version: {{.DocVersion}}</p>
+    <div class="modal-action">
+      <form method="dialog"><button class="btn btn-outline">Close</button></form>
+      <a class="btn btn-primary" href="/safeguarding/document-37" download>Download Document 37</a>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
 {{if .Rows}}
 <div class="table-scroll">
-<table>
+<table class="table table-zebra">
   <thead>
     <tr>
       <th>Incident identifier</th>
@@ -58,7 +70,7 @@
       <td>{{.Reported}}</td>
       <td>{{.StatusLabel}}</td>
       <td>{{if .Closed}}{{.Closed}}{{else}}—{{end}}</td>
-      <td class="actions"><a class="btn secondary" href="/safeguarding/{{.ID}}/edit">Edit</a></td>
+      <td class="actions"><a class="btn btn-outline" href="/safeguarding/{{.ID}}/edit">Edit</a></td>
     </tr>
   {{end}}
   </tbody>

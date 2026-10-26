@@ -1,19 +1,23 @@
 {{template "layout_start" .}}
-<h1>Beacon</h1>
 {{if .LoggedIn}}
+<div class="page-header">
+  <h1>Home</h1>
+</div>
 <p>Signed in. Record occupancy, expenses, and generate monthly reports from live data.</p>
 {{if .Headcount}}
-<section class="stack" style="margin:1.25rem 0">
-  <h2 style="margin:0;font-size:1.15rem;color:var(--accent)">Current headcount</h2>
-  <ul>
+<div class="stats stats-vertical">
   {{range .Headcount}}
-    <li><strong>{{.SafeHouseName}}</strong>: {{.Current}}</li>
+  <div class="stat">
+    <div class="stat-title">{{.SafeHouseName}}</div>
+    <div class="stat-value">{{.Current}}</div>
+    <div class="stat-desc">current</div>
+  </div>
   {{end}}
-  </ul>
-</section>
+</div>
 {{end}}
 {{else}}
+<h1>Beacon</h1>
 <p>Safe house operations for Rainbow Haven.</p>
-<p><a class="btn" href="/login">Log in with passkey</a></p>
+<p><a class="btn btn-primary" href="/login">Log in with passkey</a></p>
 {{end}}
 {{template "layout_end" .}}

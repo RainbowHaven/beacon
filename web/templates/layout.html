@@ -1,79 +1,128 @@
 {{define "layout_start"}}<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="{{if .Theme}}{{.Theme}}{{else}}light{{end}}"{{if .SidebarCollapsed}} data-sidebar="collapsed"{{end}}>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{{if .Title}}{{.Title}} · {{end}}Beacon</title>
-  <link rel="stylesheet" href="{{static "css/app.css"}}">
+  <link rel="icon" href="{{static "img/favicon.svg"}}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+  <link rel="stylesheet" href="{{static "css/daisyui.css"}}">
+  <link rel="stylesheet" href="{{static "css/beacon.css"}}">
 </head>
-<body class="{{if and .User .User.Email}}app-shell{{end}}{{if .BodyClass}} {{.BodyClass}}{{end}}">
+<body>
 {{if and .User .User.Email}}
-<div class="app-chrome no-print">
-  <div class="brand">
-    <strong><a href="/">Beacon</a></strong>
-  </div>
-  <nav class="app-nav" aria-label="Primary">
-    <a href="/occupants"{{if navCurrent .Path "/occupants"}} aria-current="page"{{end}}>Occupants</a>
-    <a href="/expenses"{{if navCurrent .Path "/expenses"}} aria-current="page"{{end}}>Expenses</a>
-    <a class="nav-desktop-only" href="/operations"{{if navCurrent .Path "/operations"}} aria-current="page"{{end}}>Operations</a>
-    <a class="nav-desktop-only" href="/safeguarding"{{if navCurrent .Path "/safeguarding"}} aria-current="page"{{end}}>Safeguarding</a>
-    <a href="/reports"{{if navCurrent .Path "/reports"}} aria-current="page"{{end}}>Reports</a>
-    {{$admin := eq .User.Role "rhc_admin"}}
-    {{$dashboard := or $admin (eq .User.Role "rhl_admin")}}
-    {{if $dashboard}}
-    <a class="nav-desktop-only" href="/dashboard"{{if navCurrent .Path "/dashboard"}} aria-current="page"{{end}}>Dashboard</a>
-    {{end}}
-    {{if $admin}}
-    <a class="nav-desktop-only" href="/admin/users"{{if navCurrent .Path "/admin/users"}} aria-current="page"{{end}}>Users</a>
-    <a class="nav-desktop-only" href="/admin/houses"{{if navCurrent .Path "/admin/houses"}} aria-current="page"{{end}}>Houses</a>
-    <a class="nav-desktop-only" href="/admin/audit"{{if navCurrent .Path "/admin/audit"}} aria-current="page"{{end}}>Audit</a>
-    {{end}}
-    <details class="nav-more">
-      <summary{{if or (navCurrent .Path "/operations") (navCurrent .Path "/safeguarding") (and $dashboard (navCurrent .Path "/dashboard")) (and $admin (or (navCurrent .Path "/admin/users") (navCurrent .Path "/admin/houses") (navCurrent .Path "/admin/audit")))}} aria-current="page"{{end}}>More</summary>
-      <div class="nav-more-panel">
-        <a href="/operations"{{if navCurrent .Path "/operations"}} aria-current="page"{{end}}>Operations</a>
-        <a href="/safeguarding"{{if navCurrent .Path "/safeguarding"}} aria-current="page"{{end}}>Safeguarding</a>
-        {{if $dashboard}}
-        <a href="/dashboard"{{if navCurrent .Path "/dashboard"}} aria-current="page"{{end}}>Dashboard</a>
-        {{end}}
-        {{if $admin}}
-        <a href="/admin/users"{{if navCurrent .Path "/admin/users"}} aria-current="page"{{end}}>Users</a>
-        <a href="/admin/houses"{{if navCurrent .Path "/admin/houses"}} aria-current="page"{{end}}>Houses</a>
-        <a href="/admin/audit"{{if navCurrent .Path "/admin/audit"}} aria-current="page"{{end}}>Audit</a>
-        {{end}}
-      </div>
-    </details>
-  </nav>
-  <details class="profile-menu">
-    <summary class="profile-toggle" aria-label="Account">
-      <span class="profile-email">{{.User.Email}}</span>
-    </summary>
-    <div class="profile-panel">
-      <span class="muted profile-detail">{{.User.Email}} ({{.User.Role}})</span>
-      <a href="/account"{{if navCurrent .Path "/account"}} aria-current="page"{{end}}>Account &amp; passkeys</a>
-      <form class="inline" method="post" action="/logout">
-        <button class="secondary" type="submit">Log out</button>
-      </form>
+{{$admin := eq .User.Role "rhc_admin"}}
+{{$dashboard := or $admin (eq .User.Role "rhl_admin")}}
+<div class="app-frame">
+  <aside class="sidebar" id="app-sidebar">
+    <div class="sidebar-head">
+      {{template "brand-lockup" .}}
+      <button type="button" class="btn btn-ghost btn-square sidebar-toggle" data-sidebar-toggle aria-controls="app-sidebar" aria-expanded="{{if .SidebarCollapsed}}false{{else}}true{{end}}" title="{{if .SidebarCollapsed}}Expand sidebar{{else}}Collapse sidebar{{end}}" aria-label="{{if .SidebarCollapsed}}Expand sidebar{{else}}Collapse sidebar{{end}}">
+        <svg class="menu-icon icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        <svg class="menu-icon icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
     </div>
-  </details>
-</div>
+    <ul class="menu">
+      {{if $dashboard}}
+      <li><a href="/dashboard"{{if navCurrent .Path "/dashboard"}} aria-current="page" class="menu-active"{{end}} title="Dashboard">{{template "icon-dashboard"}}<span class="menu-label">Dashboard</span></a></li>
+      {{end}}
+      <li><a href="/occupants"{{if navCurrent .Path "/occupants"}} aria-current="page" class="menu-active"{{end}} title="Occupants">{{template "icon-occupants"}}<span class="menu-label">Occupants</span></a></li>
+      <li><a href="/expenses"{{if navCurrent .Path "/expenses"}} aria-current="page" class="menu-active"{{end}} title="Expenses">{{template "icon-expenses"}}<span class="menu-label">Expenses</span></a></li>
+      <li><a href="/operations"{{if navCurrent .Path "/operations"}} aria-current="page" class="menu-active"{{end}} title="Operations">{{template "icon-operations"}}<span class="menu-label">Operations</span></a></li>
+      <li><a href="/safeguarding"{{if navCurrent .Path "/safeguarding"}} aria-current="page" class="menu-active"{{end}} title="Safeguarding">{{template "icon-safeguarding"}}<span class="menu-label">Safeguarding</span></a></li>
+      <li><a href="/reports"{{if navCurrent .Path "/reports"}} aria-current="page" class="menu-active"{{end}} title="Reports">{{template "icon-reports"}}<span class="menu-label">Reports</span></a></li>
+      {{if $admin}}
+      <li><a href="/admin/users"{{if navCurrent .Path "/admin/users"}} aria-current="page" class="menu-active"{{end}} title="Users">{{template "icon-users"}}<span class="menu-label">Users</span></a></li>
+      <li><a href="/admin/houses"{{if navCurrent .Path "/admin/houses"}} aria-current="page" class="menu-active"{{end}} title="Houses">{{template "icon-houses"}}<span class="menu-label">Houses</span></a></li>
+      <li><a href="/admin/audit"{{if navCurrent .Path "/admin/audit"}} aria-current="page" class="menu-active"{{end}} title="Audit">{{template "icon-audit"}}<span class="menu-label">Audit</span></a></li>
+      {{end}}
+    </ul>
+    <ul class="menu sidebar-foot">
+      <li>{{template "theme-toggle" .}}</li>
+      <li><a href="/account"{{if navCurrent .Path "/account"}} aria-current="page" class="menu-active"{{end}} title="Account">{{template "icon-account"}}<span class="menu-label">Account</span></a></li>
+      <li>
+        <form class="logout-form" method="post" action="/logout">
+          <button class="theme-item" type="submit" title="Log out">{{template "icon-logout"}}<span class="menu-label">Log out</span></button>
+        </form>
+      </li>
+    </ul>
+  </aside>
+  <div class="main-col">
+    <header class="topbar no-print">
+      {{template "brand-lockup" .}}
+      <div class="topbar-tools">
+        {{template "theme-toggle" .}}
+        <details class="dropdown dropdown-end">
+          <summary class="btn btn-ghost">{{.User.Email}}</summary>
+          <ul class="dropdown-content menu bg-base-200 rounded-box">
+            <li><a href="/account">Account &amp; passkeys</a></li>
+            <li>
+              <form method="post" action="/logout">
+                <button type="submit">Log out</button>
+              </form>
+            </li>
+          </ul>
+        </details>
+      </div>
+    </header>
+    <main class="page">
+{{else if .AuthCentered}}
+<div class="auth-shell">
+  <div class="stack stack-narrow">
+    {{template "brand-lockup-lg" .}}
+    <p class="auth-product">Beacon</p>
 {{else}}
-<header class="app no-print">
-  <div class="brand">
-    <strong><a href="/">Beacon</a></strong>
-  </div>
-  <nav><a href="/login">Log in</a></nav>
+<header class="guest-bar no-print">
+  {{template "brand-lockup" .}}
+  <nav class="cluster">
+    {{template "theme-toggle" .}}
+    <a class="btn btn-ghost" href="/login">Log in</a>
+  </nav>
 </header>
+<main class="page">
 {{end}}
-<main class="wrap">
 {{end}}
 
 {{define "layout_end"}}
-<footer class="app-footer no-print">
-  <hr>
-  <p class="app-version">{{appVersion}}</p>
-</footer>
+{{if and .User .User.Email}}
+      <footer class="app-footer no-print"><p class="app-version">Beacon · {{appVersion}}</p></footer>
+    </main>
+  </div>
+</div>
+<nav class="dock dock-md no-print" aria-label="Primary">
+  <a{{if navCurrent .Path "/occupants"}} class="dock-active"{{end}} href="/occupants"{{if navCurrent .Path "/occupants"}} aria-current="page"{{end}}><span class="dock-label">Occupants</span></a>
+  <a{{if navCurrent .Path "/expenses"}} class="dock-active"{{end}} href="/expenses"{{if navCurrent .Path "/expenses"}} aria-current="page"{{end}}><span class="dock-label">Expenses</span></a>
+  <a{{if navCurrent .Path "/reports"}} class="dock-active"{{end}} href="/reports"{{if navCurrent .Path "/reports"}} aria-current="page"{{end}}><span class="dock-label">Reports</span></a>
+  {{$admin := eq .User.Role "rhc_admin"}}
+  {{$dashboard := or $admin (eq .User.Role "rhl_admin")}}
+  {{$more := or (navCurrent .Path "/operations") (navCurrent .Path "/safeguarding") (and $dashboard (navCurrent .Path "/dashboard")) (and $admin (or (navCurrent .Path "/admin/users") (navCurrent .Path "/admin/houses") (navCurrent .Path "/admin/audit")))}}
+  <details class="dock-more">
+    <summary{{if $more}} class="dock-active" aria-current="page"{{end}}><span class="dock-label">More</span></summary>
+    <div class="dock-more-panel">
+      {{if $dashboard}}
+      <a href="/dashboard"{{if navCurrent .Path "/dashboard"}} aria-current="page"{{end}}>Dashboard</a>
+      {{end}}
+      <a href="/operations"{{if navCurrent .Path "/operations"}} aria-current="page"{{end}}>Operations</a>
+      <a href="/safeguarding"{{if navCurrent .Path "/safeguarding"}} aria-current="page"{{end}}>Safeguarding</a>
+      {{if $admin}}
+      <a href="/admin/users"{{if navCurrent .Path "/admin/users"}} aria-current="page"{{end}}>Users</a>
+      <a href="/admin/houses"{{if navCurrent .Path "/admin/houses"}} aria-current="page"{{end}}>Houses</a>
+      <a href="/admin/audit"{{if navCurrent .Path "/admin/audit"}} aria-current="page"{{end}}>Audit</a>
+      {{end}}
+    </div>
+  </details>
+</nav>
+{{else if .AuthCentered}}
+    <footer class="app-footer"><p class="app-version">Beacon · {{appVersion}}</p></footer>
+  </div>
+</div>
+{{else}}
+  <footer class="app-footer no-print"><p class="app-version">Beacon · {{appVersion}}</p></footer>
 </main>
+{{end}}
+<script src="{{static "js/theme.js"}}"></script>
 </body>
 </html>
 {{end}}

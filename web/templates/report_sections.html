@@ -24,7 +24,7 @@
   {{if and .Reporting.CanConfirm (ne .Reporting.Status.State "confirmed")}}
   <form method="post" action="/reports/{{.House.ID}}/{{.Monthly.MonthKey}}/confirm" class="actions no-print">
     <input type="hidden" name="fingerprint" value="{{.Reporting.Fingerprint}}">
-    <button type="submit">Confirm data entry complete</button>
+    <button class="btn btn-primary" type="submit">Confirm data entry complete</button>
     <span class="muted">Confirm once every resident, expense, safeguarding concern and operational problem for {{.Monthly.MonthLabel}} is recorded.</span>
   </form>
   {{end}}
@@ -34,6 +34,21 @@
 
 {{define "report_summary"}}
 <section class="report-section">
+  <h2>Summary</h2>
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-title">Bed nights</div>
+      <div class="stat-value">{{.Monthly.BedNights}}</div>
+      <div class="stat-desc"></div>
+    </div>
+    {{range .Expenses.Currencies}}
+    <div class="stat">
+      <div class="stat-title">Expenses</div>
+      <div class="stat-value">{{.Amount}} {{.Currency}}</div>
+      <div class="stat-desc">{{.ReceiptCount}} receipts</div>
+    </div>
+    {{end}}
+  </div>
   <h2>Occupancy</h2>
   <dl class="report-facts">
     <dt>Residents served</dt><dd>{{.Monthly.ResidentsServed}}</dd>
@@ -55,7 +70,7 @@
   {{if .Monthly.Residents}}
   <div class="report-columns">
     <div class="table-scroll">
-    <table>
+    <table class="table table-zebra">
       <thead><tr><th>Gender</th><th>Residents</th></tr></thead>
       <tbody>
       {{range .Monthly.ByGender}}<tr><td>{{.Label}}</td><td>{{.N}}</td></tr>{{end}}
@@ -63,7 +78,7 @@
     </table>
     </div>
     <div class="table-scroll">
-    <table>
+    <table class="table table-zebra">
       <thead><tr><th>Country of origin</th><th>Residents</th></tr></thead>
       <tbody>
       {{range .Monthly.ByCountry}}<tr><td>{{.Label}}</td><td>{{.N}}</td></tr>{{end}}
@@ -82,7 +97,7 @@
   <h2>Residents</h2>
   {{if .Monthly.Residents}}
   <div class="table-scroll">
-  <table>
+  <table class="table table-zebra">
     <thead>
       <tr>
         <th>Nickname</th>
@@ -120,7 +135,7 @@
   <h2>Expenses</h2>
   {{if .Expenses.Currencies}}
   <div class="table-scroll">
-  <table>
+  <table class="table table-zebra">
     <thead>
       <tr>
         <th>Currency</th>
@@ -159,7 +174,7 @@
   {{if .Safeguarding.Concerns}}
   <p class="muted">Every concern open at some point this month, including open concerns reported in earlier months.</p>
   <div class="table-scroll">
-  <table>
+  <table class="table table-zebra">
     <thead>
       <tr>
         <th>Incident identifier</th>
@@ -192,7 +207,7 @@
   <h2>Operational problems or changes</h2>
   {{if .Operations}}
   <div class="table-scroll">
-  <table>
+  <table class="table table-zebra">
     <thead>
       <tr>
         <th>Date identified</th>
@@ -230,7 +245,7 @@
   <h2>All houses · {{.OverviewMonth.MonthLabel}} {{template "report_status" .OverviewMonth}}</h2>
   <p class="muted">Generated {{.GeneratedAt.Format "2006-01-02 15:04"}} UTC. Open a house for residents, demographics, expenses, safeguarding concerns and operational problems. Open problems are those not resolved or closed by the end of the month.</p>
   <div class="table-scroll">
-  <table>
+  <table class="table table-zebra">
     <thead>
       <tr>
         <th>House</th>

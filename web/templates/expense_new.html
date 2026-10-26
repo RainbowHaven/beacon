@@ -1,26 +1,30 @@
 {{template "layout_start" .}}
-<h1>Log expense</h1>
-{{if .Error}}<p class="flash error" role="alert">{{.Error}}</p>{{end}}
+<div class="page-header">
+  <h1>Log expense</h1>
+</div>
+{{if .Error}}<p class="alert alert-error" role="alert">{{.Error}}</p>{{end}}
 <p class="muted">Pick a currency (defaults from the safe house). Attach a receipt if you have one (JPEG, PNG, WebP, or PDF; max {{.MaxMB}}&nbsp;MB); otherwise explain why there is none. Large photos are resized in the browser before upload.</p>
-<form id="expense-form" class="stack" method="post" action="/expenses" enctype="multipart/form-data" style="max-width:28rem">
-  <label>Safe house
-    <select name="safe_house_id" id="safe_house_id" required>
+<form id="expense-form" class="stack stack-narrow" method="post" action="/expenses" enctype="multipart/form-data">
+  <fieldset class="fieldset">
+    <legend class="fieldset-legend">Details</legend>
+    <label class="label">Safe house</label>
+    <select class="select" name="safe_house_id" id="safe_house_id" required>
       {{range .Houses}}
       <option value="{{.ID}}" data-currency="{{.DefaultCurrency}}"{{if eq .ID $.Form.SafeHouseID}} selected{{end}}>{{.Name}} ({{.DefaultCurrency}})</option>
       {{end}}
     </select>
-  </label>
-  {{template "expense_fields" .}}
-  <label>Receipt
-    <input id="receipt" name="receipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
-  </label>
-  <label>No receipt? Explain why
-    <textarea name="no_receipt_reason" rows="2" maxlength="500" placeholder="For example: market stall, no receipt given">{{.Form.NoReceiptReason}}</textarea>
-  </label>
-  <p id="expense-error" class="flash error" hidden></p>
-  <button type="submit">Save</button>
+    {{template "expense_fields" .}}
+    <label class="label">Receipt</label>
+    <input class="file-input" id="receipt" name="receipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
+    <label class="label">No receipt? Explain why</label>
+    <textarea class="textarea" name="no_receipt_reason" rows="2" maxlength="500" placeholder="For example: market stall, no receipt given">{{.Form.NoReceiptReason}}</textarea>
+  </fieldset>
+  <p id="expense-error" class="alert alert-error" hidden></p>
+  <p class="cluster">
+    <button class="btn btn-primary" type="submit">Save</button>
+    <a class="btn btn-outline" href="/expenses">Cancel</a>
+  </p>
 </form>
-<p><a href="/expenses">Back</a></p>
 <script type="module" src="{{static "js/receipt-resize.js"}}"></script>
 <script>
 (function () {

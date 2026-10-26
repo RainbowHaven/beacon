@@ -1,33 +1,39 @@
 {{template "layout_start" .}}
-<div class="report">
-  <p class="print-only report-brand">Beacon</p>
-  <div class="report-toolbar no-print actions">
-    <h1 style="margin:0;flex:1">Monthly report</h1>
-    {{if .Report}}<a class="btn secondary" href="/reports/{{.Report.House.ID}}/{{.Report.Monthly.MonthKey}}.csv">Download CSV</a>{{end}}
-    <button type="button" class="btn" onclick="window.print()">Print</button>
-  </div>
-  <h1 class="print-only">Monthly report</h1>
-  {{if .Flash}}<p class="flash no-print">{{.Flash}}</p>{{end}}
-  {{if .Error}}<p class="flash error no-print">{{.Error}}</p>{{end}}
-  <p class="muted no-print">Built from resident records, expenses, safeguarding tracking records and operational problems as they are right now. No private key required. Residents are listed by nickname only.</p>
+<div class="page-header">
+  <h1>Monthly report</h1>
+  <p class="cluster no-print">
+    {{if .Report}}<a class="btn btn-outline" href="/reports/{{.Report.House.ID}}/{{.Report.Monthly.MonthKey}}.csv">Download CSV</a>{{end}}
+    <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
+  </p>
+</div>
+<h1 class="print-only">Monthly report · Beacon</h1>
+{{if .Flash}}<p class="alert no-print" role="status">{{.Flash}}</p>{{end}}
+{{if .Error}}<p class="alert alert-error no-print" role="alert">{{.Error}}</p>{{end}}
+<p class="muted no-print">Built from resident records, expenses, safeguarding tracking records and operational problems as they are right now. No private key required. Residents are listed by nickname only.</p>
 
-  <form method="get" action="/reports" class="actions no-print report-picker">
-    <label>Month
-      <input type="month" name="month" value="{{.Month}}" max="{{.MaxMonth}}" required>
-    </label>
-    {{if gt (len .Houses) 1}}
-    <label>Safe house
-      <select name="house">
-        <option value="">All houses (overview)</option>
-        {{range .Houses}}
-        <option value="{{.ID}}"{{if eq .ID $.SelectedHouseID}} selected{{end}}>{{.Name}}</option>
-        {{end}}
-      </select>
-    </label>
-    {{end}}
-    <button type="submit">Show</button>
-  </form>
+<form method="get" action="/reports" class="filter-bar no-print">
+  <label class="field field-month">Month
+    <select class="select" name="month" required>
+      {{range .MonthChoices}}
+      <option value="{{.Value}}"{{if eq .Value $.Month}} selected{{end}}>{{.Label}}</option>
+      {{end}}
+    </select>
+  </label>
+  {{if gt (len .Houses) 1}}
+  <label class="field">Safe house
+    <select class="select" name="house">
+      <option value="">All houses (overview)</option>
+      {{range .Houses}}
+      <option value="{{.ID}}"{{if eq .ID $.SelectedHouseID}} selected{{end}}>{{.Name}}</option>
+      {{end}}
+    </select>
+  </label>
+  {{end}}
+  <noscript><button class="btn btn-outline" type="submit">Show</button></noscript>
+</form>
 
+<div class="divider no-print"></div>
+<div class="report-doc">
   {{if .Report}}
     {{template "report_header" .Report}}
     {{template "report_confirmation" .Report}}
