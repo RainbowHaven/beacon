@@ -23,10 +23,17 @@ A suffix matches `menu.1`: letters and digits, with optional `.`, `_`, or `-` be
 1. `git status` must be clean. If it is dirty, stop. Do not stash, commit, or discard as part of the deploy.
 2. Fetch `origin`. Production publishes `HEAD`. `HEAD` must be `main`, match `origin/main`, and already contain the previous exact `vMAJOR.MINOR.PATCH` tag. Check out another commit only when the user names it and the tree is clean.
 3. Do not run `railway up`, `railway variable set`, `git tag`, or `git push` yourself. The Makefile target creates the annotated tag, pushes that tag, stamps the version, and uploads.
-4. Do not print Railway tokens or keychain passwords. The script reads them from the macOS login keychain (`RAILWAY_BEACON_STAGING_TOKEN`, `RAILWAY_BEACON_PRODUCTION_TOKEN`). If an item is missing, show the matching `security add-generic-password` line from [deploy/README.md](../../../deploy/README.md) and stop.
+4. Check the Railway token before the publish command. The Makefile names the macOS keychain items: `RAILWAY_BEACON_STAGING_TOKEN` for staging and `RAILWAY_BEACON_PRODUCTION_TOKEN` for production. The publish script copies the chosen item into `RAILWAY_TOKEN` for the Railway CLI. Confirm the item exists and is non-empty, and discard the secret:
+
+   ```bash
+   security find-generic-password -s RAILWAY_BEACON_STAGING_TOKEN -w 2>/dev/null | grep -q .
+   security find-generic-password -s RAILWAY_BEACON_PRODUCTION_TOKEN -w 2>/dev/null | grep -q .
+   ```
+
+   Run only the line for the environment you are about to publish. Do not print the token, the command substitution, or `-w` output. If the check fails, show the matching `security add-generic-password` line from [deploy/README.md](../../../deploy/README.md) and stop. Do not run `make publish-*`.
 5. Do not wipe a database. Do not set `BEACON_ALLOW_SCHEMA_WIPE` or a wipe pre-deploy on production. Do not run `scripts/wipe-postgres-schema.sh` or `make verify-phaseN` against Railway.
 
-Say the environment, the tag shape, and the exact command, then run it. Say before a staging publish that staging wipes its database on each deploy.
+Say the environment, the tag shape, and the exact command, then run it. Say before a staging publish that staging wipes its database on each deploy. The token check in step 4 must already have passed.
 
 ## Commands
 
