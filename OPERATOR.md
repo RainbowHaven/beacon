@@ -107,6 +107,7 @@ The bootstrap does not check the role of an existing account with that email, so
 ## Monthly reporting
 
 - **Reports** builds the monthly report (formerly Document 50) for one safe house from resident records and expenses as they are when you open it. There is no draft, submit or final version; corrections are made to the underlying records.
+- **Expenses** on this report use their own inclusive start and end dates. Leave both empty and Beacon uses the first and last day of the previous calendar month. The dates you set are what the expense totals, expense lines, Download CSV and print use. Occupancy, demographics, safeguarding, operational problems and month confirmation stay on the selected calendar month.
 - Bed-nights count each night a resident slept in the house; the departure night is not counted. For the current month only nights before today are counted and the report says "Month in progress".
 - Average occupancy needs the house's approved sleeping places (set on **Houses**).
 - **Safeguarding concerns** shows how many concerns were reported in the month and lists every concern open at some point in the month, including open ones from earlier months, by incident identifier only. Details stay in Document 37 with the RHL Safeguarding Contact.

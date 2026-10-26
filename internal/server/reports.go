@@ -12,6 +12,7 @@ import (
 
 	"github.com/RainbowHaven/beacon/internal/domain"
 	"github.com/RainbowHaven/beacon/internal/report"
+	"github.com/RainbowHaven/beacon/internal/store"
 )
 
 // houseReport is the monthly report for one safe house. Each report section
@@ -42,8 +43,27 @@ type currencyTotal struct {
 	ReceiptCount int
 }
 
+type expenseLine struct {
+	SpentOn       time.Time
+	CategoryLabel string
+	Merchant      string
+	Note          string
+	Amount        string
+	Currency      string
+	HasReceipt    bool
+}
+
+// reportExpenses is the expense section of the monthly report. Its dates are
+// an inclusive range chosen on the page, not the reporting month.
 type reportExpenses struct {
+	OK           bool
+	From         time.Time
+	To           time.Time
+	FromUS       string
+	ToUS         string
+	PeriodLabel  string
 	Currencies   []currencyTotal
+	Lines        []expenseLine
 	ExpenseCount int
 	ReceiptCount int
 }
@@ -84,6 +104,56 @@ func parseReportMonth(raw string, now time.Time) (time.Time, error) {
 }
 
 func monthEnd(month time.Time) time.Time { return month.AddDate(0, 1, -1) }
+
+const (
+	expenseDateOrderMsg  = "The end date is before the start date."
+	expenseDateBothMsg   = "Enter both a start date and an end date as MM/DD/YYYY."
+	expenseDateFormatMsg = "Enter the start and end dates as MM/DD/YYYY."
+)
+
+// previousExpenseMonth is the previous calendar month as an inclusive range.
+func previousExpenseMonth(now time.Time) (from, to time.Time) {
+	now = now.UTC()
+	firstOfThis := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	return firstOfThis.AddDate(0, -1, 0), firstOfThis.AddDate(0, 0, -1)
+}
+
+func expensePeriodLabel(from, to time.Time) string {
+	if from.Equal(to) {
+		return from.Format("January 2, 2006")
+	}
+	return from.Format("January 2, 2006") + " through " + to.Format("January 2, 2006")
+}
+
+// parseExpenseReportRange reads the expense dates for the monthly report.
+// Both empty means the previous calendar month. The range is inclusive.
+// fromInput and toInput are the values the form should show again.
+func parseExpenseReportRange(fromRaw, toRaw string, now time.Time) (from, to time.Time, fromInput, toInput, errMsg string) {
+	fromRaw = strings.TrimSpace(fromRaw)
+	toRaw = strings.TrimSpace(toRaw)
+	if fromRaw == "" && toRaw == "" {
+		from, to = previousExpenseMonth(now)
+		return from, to, formatUSDate(from), formatUSDate(to), ""
+	}
+	if fromRaw == "" || toRaw == "" {
+		return time.Time{}, time.Time{}, fromRaw, toRaw, expenseDateBothMsg
+	}
+	var err error
+	from, err = parseUSDate(fromRaw)
+	if err != nil {
+		return time.Time{}, time.Time{}, fromRaw, toRaw, expenseDateFormatMsg
+	}
+	to, err = parseUSDate(toRaw)
+	if err != nil {
+		return time.Time{}, time.Time{}, fromRaw, toRaw, expenseDateFormatMsg
+	}
+	from = time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.UTC)
+	to = time.Date(to.Year(), to.Month(), to.Day(), 0, 0, 0, 0, time.UTC)
+	if to.Before(from) {
+		return from, to, formatUSDate(from), formatUSDate(to), expenseDateOrderMsg
+	}
+	return from, to, formatUSDate(from), formatUSDate(to), ""
+}
 
 const reportMonthWindow = 24
 
@@ -156,6 +226,11 @@ func (s *Server) handleReports(w http.ResponseWriter, r *http.Request) {
 		selected = &houses[0]
 	}
 
+	expFrom, expTo, expFromInput, expToInput, expErr := parseExpenseReportRange(q.Get("expense_from"), q.Get("expense_to"), now)
+	errMsg := q.Get("error")
+	if expErr != "" {
+		errMsg = expErr
+	}
 	data := map[string]any{
 		"Title":           "Monthly report",
 		"User":            &u,
@@ -165,13 +240,16 @@ func (s *Server) handleReports(w http.ResponseWriter, r *http.Request) {
 		"MonthChoices":    reportMonthChoices(now, month.Format("2006-01")),
 		"Houses":          houses,
 		"SelectedHouseID": int64(0),
-		"Error":           q.Get("error"),
+		"ExpenseFrom":     expFromInput,
+		"ExpenseTo":       expToInput,
+		"ExpenseReady":    expErr == "",
+		"Error":           errMsg,
 	}
 	if q.Get("ok") == "confirmed" {
 		data["Flash"] = "Data entry confirmed complete."
 	}
 	if selected != nil {
-		rep, err := s.buildHouseReport(r.Context(), *selected, month, now)
+		rep, err := s.buildHouseReport(r.Context(), *selected, month, now, expFrom, expTo, expErr == "")
 		if err != nil {
 			s.log.Error("build report", "err", err)
 			http.Error(w, "failed to build report", http.StatusInternalServerError)
@@ -218,14 +296,21 @@ func (s *Server) handleReportCSV(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	rep, err := s.buildHouseReport(r.Context(), house, month, now)
+	expFrom, expTo, _, _, expErr := parseExpenseReportRange(r.URL.Query().Get("expense_from"), r.URL.Query().Get("expense_to"), now)
+	if expErr != "" {
+		http.Error(w, expErr, http.StatusBadRequest)
+		return
+	}
+	rep, err := s.buildHouseReport(r.Context(), house, month, now, expFrom, expTo, true)
 	if err != nil {
 		s.log.Error("build report", "err", err)
 		http.Error(w, "failed to build report", http.StatusInternalServerError)
 		return
 	}
 	_ = s.store.Audit(r.Context(), &u.ID, "report.export", "safe_house", idString(id), map[string]any{
-		"month": key,
+		"month":        key,
+		"expense_from": expFrom.Format("2006-01-02"),
+		"expense_to":   expTo.Format("2006-01-02"),
 	})
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
@@ -235,7 +320,7 @@ func (s *Server) handleReportCSV(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) buildHouseReport(ctx context.Context, house domain.SafeHouse, month, now time.Time) (houseReport, error) {
+func (s *Server) buildHouseReport(ctx context.Context, house domain.SafeHouse, month, now, expFrom, expTo time.Time, withExpenses bool) (houseReport, error) {
 	rhl, err := s.store.GetRHL(ctx, house.RHLID)
 	if err != nil {
 		return houseReport{}, err
@@ -244,9 +329,29 @@ func (s *Server) buildHouseReport(ctx context.Context, house domain.SafeHouse, m
 	if err != nil {
 		return houseReport{}, err
 	}
-	totals, err := s.store.ExpenseTotalsByHouses(ctx, []int64{house.ID}, month, monthEnd(month))
-	if err != nil {
-		return houseReport{}, err
+	var expenses reportExpenses
+	if withExpenses {
+		totals, err := s.store.ExpenseTotalsByHouses(ctx, []int64{house.ID}, expFrom, expTo)
+		if err != nil {
+			return houseReport{}, err
+		}
+		lines, err := s.store.ListExpenses(ctx, store.ExpenseFilter{
+			HouseIDs:  []int64{house.ID},
+			SpentFrom: &expFrom,
+			SpentTo:   &expTo,
+			Unpaged:   true,
+		})
+		if err != nil {
+			return houseReport{}, err
+		}
+		expenses = summarizeExpenses(totals)
+		expenses.OK = true
+		expenses.From = expFrom
+		expenses.To = expTo
+		expenses.FromUS = formatUSDate(expFrom)
+		expenses.ToUS = formatUSDate(expTo)
+		expenses.PeriodLabel = expensePeriodLabel(expFrom, expTo)
+		expenses.Lines = expenseReportLines(lines)
 	}
 	concerns, err := s.store.SafeguardingConcernsForMonth(ctx, []int64{house.ID}, month, monthEnd(month))
 	if err != nil {
@@ -268,7 +373,7 @@ func (s *Server) buildHouseReport(ctx context.Context, house domain.SafeHouse, m
 		RHL:          rhl,
 		House:        house,
 		Monthly:      report.Build(month, now, house.ApprovedSleepingPlaces, occupants),
-		Expenses:     summarizeExpenses(totals),
+		Expenses:     expenses,
 		Safeguarding: reportSafeguarding{Reported: reported, Concerns: concerns},
 		Operations:   issues,
 		Reporting:    reporting,
@@ -338,6 +443,22 @@ func (s *Server) buildOverview(ctx context.Context, houses []domain.SafeHouse, m
 	return rows, totals, nil
 }
 
+func expenseReportLines(in []domain.Expense) []expenseLine {
+	out := make([]expenseLine, 0, len(in))
+	for _, e := range in {
+		out = append(out, expenseLine{
+			SpentOn:       e.SpentOn,
+			CategoryLabel: e.CategoryLabel,
+			Merchant:      e.Merchant,
+			Note:          e.Note,
+			Amount:        formatCents(e.AmountCents),
+			Currency:      e.Currency,
+			HasReceipt:    e.HasReceipt(),
+		})
+	}
+	return out
+}
+
 func summarizeExpenses(totals []domain.ExpenseTotals) reportExpenses {
 	var out reportExpenses
 	cents := map[string]int64{}
@@ -379,6 +500,7 @@ var reportCSVTables = []func(houseReport) [][]string{
 	csvResidentRows,
 	csvSafeguardingRows,
 	csvOperationalRows,
+	csvExpenseLineRows,
 }
 
 func writeReportCSV(w http.ResponseWriter, rep houseReport) error {
@@ -519,11 +641,33 @@ func csvDemographicsRows(rep houseReport) [][]string {
 
 func csvExpenseRows(rep houseReport) [][]string {
 	rows := [][]string{
+		{"Expense period start", rep.Expenses.From.Format("2006-01-02")},
+		{"Expense period end", rep.Expenses.To.Format("2006-01-02")},
 		{"Expenses", strconv.Itoa(rep.Expenses.ExpenseCount)},
 		{"Expenses with receipt", strconv.Itoa(rep.Expenses.ReceiptCount)},
 	}
 	for _, c := range rep.Expenses.Currencies {
 		rows = append(rows, []string{"Expense total " + c.Currency, c.Amount})
+	}
+	return rows
+}
+
+func csvExpenseLineRows(rep houseReport) [][]string {
+	rows := [][]string{{"Expense date", "Category", "Merchant", "Description", "Amount", "Currency", "Receipt"}}
+	for _, line := range rep.Expenses.Lines {
+		receipt := "No"
+		if line.HasReceipt {
+			receipt = "Yes"
+		}
+		rows = append(rows, []string{
+			line.SpentOn.Format("2006-01-02"),
+			line.CategoryLabel,
+			line.Merchant,
+			line.Note,
+			line.Amount,
+			line.Currency,
+			receipt,
+		})
 	}
 	return rows
 }

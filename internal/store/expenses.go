@@ -326,7 +326,10 @@ func (s *Store) GetExpenseReceipt(ctx context.Context, id int64) (data []byte, c
 type ExpenseFilter struct {
 	HouseIDs     []int64
 	ReviewStatus domain.ExpenseReviewStatus // empty = any
+	SpentFrom    *time.Time                 // inclusive; nil means no lower bound
+	SpentTo      *time.Time                 // inclusive; nil means no upper bound
 	Limit        int
+	Unpaged      bool // every matching row, oldest first; used by the report
 }
 
 func (s *Store) ListExpensesByHouses(ctx context.Context, houseIDs []int64, limit int) ([]domain.Expense, error) {
@@ -337,19 +340,34 @@ func (s *Store) ListExpenses(ctx context.Context, f ExpenseFilter) ([]domain.Exp
 	if len(f.HouseIDs) == 0 {
 		return nil, nil
 	}
-	limit := f.Limit
-	if limit <= 0 {
-		limit = 200
-	}
 	in, args := int64InClause(1, f.HouseIDs)
 	where := `safe_house_id IN (` + in + `)`
 	if f.ReviewStatus != "" {
 		args = append(args, string(f.ReviewStatus))
 		where += fmt.Sprintf(` AND review_status = $%d`, len(args))
 	}
-	args = append(args, limit)
-	q := fmt.Sprintf(`SELECT %s FROM expenses WHERE %s ORDER BY spent_on DESC, id DESC LIMIT $%d`,
-		expenseCols, where, len(args))
+	if f.SpentFrom != nil {
+		args = append(args, f.SpentFrom.UTC().Truncate(24*time.Hour))
+		where += fmt.Sprintf(` AND spent_on >= $%d::date`, len(args))
+	}
+	if f.SpentTo != nil {
+		args = append(args, f.SpentTo.UTC().Truncate(24*time.Hour))
+		where += fmt.Sprintf(` AND spent_on <= $%d::date`, len(args))
+	}
+	order := `spent_on DESC, id DESC`
+	limitSQL := ""
+	if f.Unpaged {
+		order = `spent_on ASC, id ASC`
+	} else {
+		limit := f.Limit
+		if limit <= 0 {
+			limit = 200
+		}
+		args = append(args, limit)
+		limitSQL = fmt.Sprintf(` LIMIT $%d`, len(args))
+	}
+	q := fmt.Sprintf(`SELECT %s FROM expenses WHERE %s ORDER BY %s%s`,
+		expenseCols, where, order, limitSQL)
 	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
