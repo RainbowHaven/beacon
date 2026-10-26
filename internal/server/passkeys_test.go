@@ -1,6 +1,7 @@
 package server_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/hex"
@@ -20,6 +21,7 @@ import (
 	"github.com/RainbowHaven/beacon/internal/server"
 	"github.com/RainbowHaven/beacon/internal/store"
 	"github.com/descope/virtualwebauthn"
+	"github.com/go-webauthn/webauthn/webauthn"
 )
 
 type passkeyEnv struct {
@@ -245,6 +247,26 @@ func TestAddSecondPasskeyAndKeepLast(t *testing.T) {
 		t.Fatalf("register audit meta %v", ev.Meta)
 	}
 
+	passkeys, err := e.st.ListPasskeys(ctx, u.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(passkeys) != 1 || passkeys[0].Label != labelIPhone || passkeys[0].LastUsedAt == nil {
+		t.Fatalf("enrollment must record last use: %+v", passkeys)
+	}
+	phoneUsed := *passkeys[0].LastUsedAt
+	creds, err := e.st.ListCredentials(ctx, u.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.st.SaveCredential(ctx, u.ID, &creds[0]); err != nil {
+		t.Fatal(err)
+	}
+	passkeys, err = e.st.ListPasskeys(ctx, u.ID)
+	if err != nil || passkeys[0].LastUsedAt == nil || !passkeys[0].LastUsedAt.Equal(phoneUsed) {
+		t.Fatalf("SaveCredential cleared last_used_at: %+v", passkeys)
+	}
+
 	laptop := newWindowsPC(t)
 	addPasskeyHTTP(t, client, e.ts.URL, e.rp, laptop, phone.cred)
 	if ev := lastAudit(t, e.st, "auth.passkey.add"); ev.Meta["label"] != labelWindows {
@@ -255,21 +277,24 @@ func TestAddSecondPasskeyAndKeepLast(t *testing.T) {
 		t.Fatalf("re-adding the same credential: %d %s", status, body)
 	}
 
-	passkeys, err := e.st.ListPasskeys(ctx, u.ID)
+	passkeys, err = e.st.ListPasskeys(ctx, u.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(passkeys) != 2 || passkeys[0].Label != labelIPhone || passkeys[1].Label != labelWindows || passkeys[1].LastUsedAt != nil {
+	if len(passkeys) != 2 || passkeys[0].Label != labelIPhone || passkeys[1].Label != labelWindows ||
+		passkeys[0].LastUsedAt == nil || !passkeys[0].LastUsedAt.Equal(phoneUsed) || passkeys[1].LastUsedAt == nil {
 		t.Fatalf("passkeys after add: %+v", passkeys)
 	}
+	laptopUsed := *passkeys[1].LastUsedAt
 
 	// Sign in on a fresh client with the laptop passkey only; its Go
 	// User-Agent must not change the stored label.
 	laptopClient, laptopNoFollow := newClient()
 	login(t, laptopClient, e.ts.URL, "mgr@example.com", e.rp, laptop.auth, laptop.cred)
 	passkeys, _ = e.st.ListPasskeys(ctx, u.ID)
-	if passkeys[1].LastUsedAt == nil || passkeys[0].LastUsedAt != nil {
-		t.Fatalf("last_used_at after laptop login: %+v", passkeys)
+	if passkeys[0].LastUsedAt == nil || !passkeys[0].LastUsedAt.Equal(phoneUsed) ||
+		passkeys[1].LastUsedAt == nil || !passkeys[1].LastUsedAt.After(laptopUsed) {
+		t.Fatalf("last_used_at after laptop login: phone %v laptop before %v after %+v", phoneUsed, laptopUsed, passkeys)
 	}
 	if passkeys[0].Label != labelIPhone || passkeys[1].Label != labelWindows {
 		t.Fatalf("labels changed by sign-in: %+v", passkeys)
@@ -278,6 +303,15 @@ func TestAddSecondPasskeyAndKeepLast(t *testing.T) {
 	page, body := pageBody(t, laptopClient, e.ts.URL+"/account")
 	if !strings.Contains(body, labelIPhone) || !strings.Contains(body, labelWindows) {
 		t.Fatalf("account page missing passkeys: %s", body)
+	}
+	if strings.Contains(body, "Last used never") {
+		t.Fatalf("used passkey rendered as never: %s", body)
+	}
+	for _, p := range passkeys {
+		want := "Last used " + p.LastUsedAt.UTC().Format("Jan 2, 2006")
+		if !strings.Contains(body, want) {
+			t.Fatalf("account page missing %q: %s", want, body)
+		}
 	}
 	if strings.Contains(body, `name="label"`) || strings.Contains(body, "/rename") {
 		t.Fatalf("account page still offers renaming: %s", body)
@@ -331,6 +365,56 @@ func TestAddSecondPasskeyAndKeepLast(t *testing.T) {
 	res = postForm(t, otherNoFollow, e.ts.URL+"/account/passkeys/"+laptopKey+"/delete", nil)
 	if res.StatusCode != http.StatusNotFound {
 		t.Fatalf("cross-user delete status %d", res.StatusCode)
+	}
+}
+
+// Credential IDs are opaque authenticator bytes. MarkCredentialUsed must match
+// the BYTEA stored by AddCredential, including NUL and non-UTF-8 bytes, and
+// SaveCredential's conflict update must leave last_used_at alone.
+func TestCredentialIDRoundTripSetsLastUsed(t *testing.T) {
+	e := newPasskeyEnv(t)
+	ctx := context.Background()
+	u, _, err := e.st.CreateUserWithInvite(ctx, store.CreateUserInput{
+		Email: "id@example.com", Role: domain.RoleRHCAdmin,
+	}, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cred := &webauthn.Credential{
+		ID:              []byte{0x00, 0xff, '\\', '\'', 0x5c, 0x80, 0x01, 'A'},
+		PublicKey:       []byte{0x01},
+		AttestationType: "none",
+		Authenticator:   webauthn.Authenticator{AAGUID: make([]byte, 16)},
+	}
+	if err := e.st.AddCredential(ctx, u.ID, cred, "Passkey"); err != nil {
+		t.Fatal(err)
+	}
+	passkeys, err := e.st.ListPasskeys(ctx, u.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(passkeys) != 1 || passkeys[0].LastUsedAt != nil || !bytes.Equal(passkeys[0].ID, cred.ID) {
+		t.Fatalf("before use: %+v want id %x", passkeys, cred.ID)
+	}
+	if err := e.st.MarkCredentialUsed(ctx, u.ID, append([]byte(nil), cred.ID...)); err != nil {
+		t.Fatal(err)
+	}
+	passkeys, err = e.st.ListPasskeys(ctx, u.ID)
+	if err != nil || len(passkeys) != 1 || passkeys[0].LastUsedAt == nil {
+		t.Fatalf("after use: %+v %v", passkeys, err)
+	}
+	used := *passkeys[0].LastUsedAt
+	miss := append([]byte(nil), cred.ID...)
+	miss[0] ^= 0xff
+	if err := e.st.MarkCredentialUsed(ctx, u.ID, miss); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.st.SaveCredential(ctx, u.ID, cred); err != nil {
+		t.Fatal(err)
+	}
+	passkeys, err = e.st.ListPasskeys(ctx, u.ID)
+	if err != nil || len(passkeys) != 1 || passkeys[0].LastUsedAt == nil || !passkeys[0].LastUsedAt.Equal(used) {
+		t.Fatalf("last_used_at changed: before %v after %+v err %v", used, passkeys, err)
 	}
 }
 
@@ -422,8 +506,8 @@ func TestAdminEmailChangeAndPasskeyRemoval(t *testing.T) {
 	}
 
 	passkeys, _ := e.st.ListPasskeys(ctx, mgr.ID)
-	if len(passkeys) != 1 {
-		t.Fatalf("want 1 passkey, got %d", len(passkeys))
+	if len(passkeys) != 1 || passkeys[0].LastUsedAt == nil {
+		t.Fatalf("want 1 used passkey, got %+v", passkeys)
 	}
 	edit, err := adminNF.Get(fmt.Sprintf("%s/admin/users/%d/edit", e.ts.URL, mgr.ID))
 	if err != nil {
@@ -435,6 +519,12 @@ func TestAdminEmailChangeAndPasskeyRemoval(t *testing.T) {
 		!strings.Contains(string(body), labelPixel) ||
 		!strings.Contains(string(body), `value="new.mgr@example.com"`) {
 		t.Fatalf("edit page %d missing passkey or email form: %s", edit.StatusCode, body)
+	}
+	if strings.Contains(string(body), "Last used never") {
+		t.Fatalf("edit page shows a used passkey as never: %s", body)
+	}
+	if want := "Last used " + passkeys[0].LastUsedAt.UTC().Format("Jan 2, 2006"); !strings.Contains(string(body), want) {
+		t.Fatalf("edit page missing %q: %s", want, body)
 	}
 	if !signedIn(t, mgrNF, e.ts.URL) || !signedIn(t, c2NF, e.ts.URL) {
 		t.Fatal("manager sessions should be active before removal")
