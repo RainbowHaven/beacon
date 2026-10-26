@@ -155,7 +155,7 @@ func TestExpenseReviewAndCorrectionFlow(t *testing.T) {
 		"currency":      "USD",
 		"amount":        "20.00",
 		"spent_on":      "09/15/2026",
-		"category":      "maintenance_repairs",
+		"category":      "household_maintenance",
 		"merchant":      "Hardware store",
 		"note":          "door lock",
 	}
@@ -178,7 +178,7 @@ func TestExpenseReviewAndCorrectionFlow(t *testing.T) {
 		t.Fatalf("list=%+v err=%v", list, err)
 	}
 	e := list[0]
-	if e.ReviewStatus != domain.ExpenseSubmitted || e.NoReceiptReason != "market stall, no receipt given" || e.Category != "maintenance_repairs" {
+	if e.ReviewStatus != domain.ExpenseSubmitted || e.NoReceiptReason != "market stall, no receipt given" || e.Category != "household_maintenance" {
 		t.Fatalf("expense=%+v", e)
 	}
 	idPath := "/expenses/" + strconv.FormatInt(e.ID, 10)
@@ -256,7 +256,7 @@ func TestExpenseReviewAndCorrectionFlow(t *testing.T) {
 		t.Fatalf("review status %d", code)
 	}
 	code, body = env.get(bookkeeper, "/expenses?status=reviewed")
-	if code != http.StatusOK || !strings.Contains(body, "City hardware") || !strings.Contains(body, "Maintenance and repairs") {
+	if code != http.StatusOK || !strings.Contains(body, "City hardware") || !strings.Contains(body, "Household/Maintenance") {
 		t.Fatalf("filter reviewed status=%d", code)
 	}
 	if _, body := env.get(bookkeeper, "/expenses?status=submitted"); strings.Contains(body, "City hardware") {

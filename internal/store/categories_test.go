@@ -15,19 +15,24 @@ func TestCategoryTablesSeeded(t *testing.T) {
 	ctx := context.Background()
 
 	cases := []struct {
-		name string
-		load func(context.Context) (domain.Categories, error)
-		want [][2]string
+		name    string
+		load    func(context.Context) (domain.Categories, error)
+		want    [][2]string
+		offered []string // nil means every seeded row is offered
 	}{
 		{"expense", st.ExpenseCategories, [][2]string{
-			{"food", "Food"},
-			{"household_supplies", "Household supplies"},
+			{"rent", "Rent/Lease"},
 			{"utilities", "Utilities"},
-			{"rent", "Rent"},
-			{"maintenance_repairs", "Maintenance and repairs"},
+			{"food", "Food/Groceries"},
 			{"transport", "Transport"},
-			{"communication", "Communication"},
+			{"household_maintenance", "Household/Maintenance"},
+			{"fees", "Fees"},
 			{"other", "Other"},
+			{"household_supplies", "Household supplies"},
+			{"maintenance_repairs", "Maintenance and repairs"},
+			{"communication", "Communication"},
+		}, []string{
+			"rent", "utilities", "food", "transport", "household_maintenance", "fees", "other",
 		}},
 		{"operational issue", st.OperationalIssueCategories, [][2]string{
 			{"building_maintenance", "Building or maintenance problem"},
@@ -38,7 +43,7 @@ func TestCategoryTablesSeeded(t *testing.T) {
 			{"capacity_occupancy", "Capacity or occupancy change"},
 			{"service_availability", "Service availability"},
 			{"other_change", "Other significant operational change"},
-		}},
+		}, nil},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -53,8 +58,18 @@ func TestCategoryTablesSeeded(t *testing.T) {
 			if !slices.Equal(got, tc.want) {
 				t.Fatalf("categories=%v\nwant %v", got, tc.want)
 			}
-			if len(cats.Offered()) != len(cats) {
-				t.Fatalf("seeded categories not all offered: %+v", cats)
+			if tc.offered == nil {
+				if len(cats.Offered()) != len(cats) {
+					t.Fatalf("seeded categories not all offered: %+v", cats)
+				}
+				return
+			}
+			var gotOffered []string
+			for _, c := range cats.Offered() {
+				gotOffered = append(gotOffered, c.Key)
+			}
+			if !slices.Equal(gotOffered, tc.offered) {
+				t.Fatalf("offered=%v\nwant %v", gotOffered, tc.offered)
 			}
 		})
 	}
@@ -79,6 +94,16 @@ func TestCategoryForeignKeys(t *testing.T) {
 	e, err := st.CreateExpense(ctx, in)
 	if err != nil || e.Category != domain.ExpenseCategoryOther || e.CategoryLabel != "Other" {
 		t.Fatalf("default category: %+v err=%v", e, err)
+	}
+	for _, retired := range [][2]string{
+		{"household_supplies", "Household supplies"},
+		{"maintenance_repairs", "Maintenance and repairs"},
+	} {
+		in.Category = retired[0]
+		kept, err := st.CreateExpense(ctx, in)
+		if err != nil || kept.Category != retired[0] || kept.CategoryLabel != retired[1] {
+			t.Fatalf("retired category %s: %+v err=%v", retired[0], kept, err)
+		}
 	}
 	_, _, err = st.UpdateExpense(ctx, e.ID, store.UpdateExpenseInput{
 		AmountCents: 500, Currency: "CAD", Category: "groceries", NoReceiptReason: "market", SpentOn: e.SpentOn,

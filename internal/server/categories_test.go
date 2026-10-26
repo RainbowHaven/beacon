@@ -20,15 +20,20 @@ func TestRetiredCategories(t *testing.T) {
 	houseID := strconv.FormatInt(house.ID, 10)
 	manager := env.client("cat-mgr@example.com", domain.RoleSafeHouseManager, &house.RHLID, &house.ID)
 
-	// The forms offer exactly the categories in the database.
+	// Forms offer the active categories. Retired rows stay in the table for history.
 	expenseCats, err := env.st.ExpenseCategories(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	_, body := env.get(manager, "/expenses/new")
-	for _, c := range expenseCats {
+	for _, c := range expenseCats.Offered() {
 		if !strings.Contains(body, `<option value="`+c.Key+`">`+c.Label+`</option>`) {
 			t.Fatalf("expense form lacks %q", c.Key)
+		}
+	}
+	for _, c := range expenseCats {
+		if !c.Active && strings.Contains(body, `value="`+c.Key+`"`) {
+			t.Fatalf("expense form offers retired %q", c.Key)
 		}
 	}
 	issueCats, err := env.st.OperationalIssueCategories(ctx)
@@ -113,7 +118,7 @@ func TestRetiredCategories(t *testing.T) {
 		!strings.Contains(body, `<option value="" selected disabled>Choose a category</option>`) {
 		t.Fatal("edit page of a retired-category expense")
 	}
-	if _, body := env.get(manager, editedPath+"/edit"); !strings.Contains(body, "Category: Transport → Food") {
+	if _, body := env.get(manager, editedPath+"/edit"); !strings.Contains(body, "Category: Transport → Food/Groceries") {
 		t.Fatal("expense history lacks the retired label")
 	}
 	if _, body := env.get(manager, "/operations?status=all"); !strings.Contains(body, "Staffing or Agent change") {
