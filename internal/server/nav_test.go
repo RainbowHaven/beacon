@@ -180,8 +180,8 @@ func TestLayoutNavRenders(t *testing.T) {
 	if !strings.Contains(login, `class="auth-product"`) || !strings.Contains(login, ">Beacon<") {
 		t.Fatal("login page should show the product name Beacon")
 	}
-	if !strings.Contains(login, `class="link"`) {
-		t.Fatal("login passkey help should look like a link")
+	if !strings.Contains(login, `class="link link-primary" href="/help/passkeys"`) {
+		t.Fatal("login passkey help should use link link-primary")
 	}
 }
 
